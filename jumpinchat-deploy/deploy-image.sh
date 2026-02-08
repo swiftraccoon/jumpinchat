@@ -10,8 +10,8 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
-docker-compose build --no-cache ${IMAGE_NAME}
-docker-compose up -d
-docker-compose ps
+docker compose build --no-cache ${IMAGE_NAME}
+docker compose up -d
+docker compose ps
 
 ./push-docker-images.sh ${IMAGE_NAME}

@@ -6,7 +6,7 @@ const fs = require('fs');
 const gulp = require('gulp');
 const log = require('fancy-log');
 const sourcemaps = require('gulp-sourcemaps');
-const sass = require('gulp-sass');
+const sass = require('gulp-sass')(require('sass'));
 const autoprefixer = require('gulp-autoprefixer');
 const gulpif = require('gulp-if');
 const rev = require('gulp-rev');
@@ -18,7 +18,6 @@ const webpack = require('webpack');
 const babel = require('gulp-babel');
 const path = require('path');
 const vinylPaths = require('vinyl-paths');
-const runSequence = require('run-sequence');
 const del = require('del');
 const inject = require('gulp-inject');
 const csso = require('gulp-csso');
@@ -35,11 +34,11 @@ const paths = {
 };
 
 // clean <tmp> directory
-gulp.task('clean:tmp', () => gulp.src(path.join(paths.tmp, '*'))
+gulp.task('clean:tmp', () => gulp.src(path.join(paths.tmp, '*'), { allowEmpty: true })
   .pipe(vinylPaths(del)));
 
 // clean <dist> directory
-gulp.task('clean:dist', () => gulp.src(path.join(paths.dist, '*'))
+gulp.task('clean:dist', () => gulp.src(path.join(paths.dist, '*'), { allowEmpty: true })
   .pipe(vinylPaths(del)));
 
 gulp.task('copy:sounds', () => gulp.src([
@@ -106,34 +105,33 @@ gulp.task('inject:sass', () => {
     },
   };
 
-  target
+  return target
     .pipe(inject(gulp.src(sources, { read: false }), opts))
     .pipe(gulp.dest(path.join(paths.src, 'styles/')));
 });
 
 // watch for file changes and run injection and processing
-gulp.task('watch', () => {
-  gulp.watch(path.join(paths.src, 'styles/**/*.scss'), ['sass']);
-  gulp.watch(path.join(paths.src, 'sw/**/*.js'), ['generateSw:development']);
+gulp.task('watch', (done) => {
+  gulp.watch(path.join(paths.src, 'styles/**/*.scss'), gulp.series('sass'));
+  gulp.watch(path.join(paths.src, 'sw/**/*.js'), gulp.series('generateSw:development'));
   gulp.watch(
     [
       path.join(paths.src, 'styles/**/*.scss'),
       `!${path.join(paths.src, 'styles/main.scss')}`,
-    ], ['inject:sass'],
+    ], gulp.series('inject:sass'),
   );
+  done();
 });
 
 // compile sass/scss files and run autoprefixer on processed css
-gulp.task('sass', () => {
-  gulp.src([path.join(paths.src, 'styles/main.scss')])
-    .pipe(sourcemaps.init({ loadMaps: true }))
-    .pipe(sass({
-      indludePaths: ['node_modules/normalize-scss'],
-    }).on('error', sass.logError))
-    .pipe(autoprefixer())
-    .pipe(sourcemaps.write('./'))
-    .pipe(gulp.dest(path.join(paths.tmp, 'styles/')));
-});
+gulp.task('sass', () => gulp.src([path.join(paths.src, 'styles/main.scss')])
+  .pipe(sourcemaps.init({ loadMaps: true }))
+  .pipe(sass({
+    includePaths: ['node_modules/normalize-scss'],
+  }).on('error', sass.logError))
+  .pipe(autoprefixer())
+  .pipe(sourcemaps.write('./'))
+  .pipe(gulp.dest(path.join(paths.tmp, 'styles/'))));
 
 gulp.task('csso', () => gulp.src(`${paths.tmp}/**/*.css`)
   .pipe(csso())
@@ -201,7 +199,7 @@ gulp.task('useref', () => gulp.src(path.join(paths.src, 'index.ejs'))
   .on('error', err => log.error(err))
   .pipe(gulp.dest(paths.tmp)));
 
-gulp.task('revision', ['csso'],
+gulp.task('revision', gulp.series('csso',
   () => gulp.src([
     path.join(paths.tmp, '**/*.css'),
     path.join(paths.tmp, '**/*.js'),
@@ -211,17 +209,17 @@ gulp.task('revision', ['csso'],
     .pipe(rev())
     .pipe(gulp.dest(paths.dist))
     .pipe(rev.manifest())
-    .pipe(gulp.dest(paths.tmp)));
+    .pipe(gulp.dest(paths.tmp))));
 
-gulp.task('revreplace', ['revision'], () => {
+gulp.task('revreplace', gulp.series('revision', () => {
   const manifest = gulp.src(`${paths.tmp}/rev-manifest.json`);
 
   return gulp.src(`${paths.tmp}/index.ejs`)
     .pipe(revReplace({ manifest, replaceInExtensions: ['.ejs'] }))
     .pipe(gulp.dest(paths.dist));
-});
+}));
 
-function writeServiceWorkerFile(rootDir, callback) {
+function writeServiceWorkerFile(rootDir) {
   log.info({ rootDir });
   const config = {
     cacheId: 'jumpinchat',
@@ -268,7 +266,7 @@ function writeServiceWorkerFile(rootDir, callback) {
   };
 
   workbox
-    .generateSW(config, callback)
+    .generateSW(config)
     .then(({ count, size, warnings }) => {
       log.info(`Generated service-worker.js, which will precache ${count} files, totaling ${Math.round(size / 1024)}kb.`);
 
@@ -284,35 +282,33 @@ function writeServiceWorkerFile(rootDir, callback) {
 }
 
 
-gulp.task('compile:js', ['babelify'], () => compile());
-gulp.task('compile:js:esNext', ['babelify'], () => compile(false, true));
+gulp.task('compile:js', gulp.series('babelify', () => compile()));
+gulp.task('compile:js:esNext', gulp.series('babelify', () => compile(false, true)));
 gulp.task('compile:js:watch', () => compile(true, true));
 
-gulp.task('setEnv:production', () => { process.env.NODE_ENV = 'production'; });
-gulp.task('setEnv:development', () => { process.env.NODE_ENV = 'development'; });
+gulp.task('setEnv:production', (done) => { process.env.NODE_ENV = 'production'; done(); });
+gulp.task('setEnv:development', (done) => { process.env.NODE_ENV = 'development'; done(); });
 
-gulp.task('generateSw:development', (cb) => { writeServiceWorkerFile(paths.tmp, cb); });
-gulp.task('generateSw:production', (cb) => { writeServiceWorkerFile(paths.dist, cb); });
+gulp.task('generateSw:development', () => writeServiceWorkerFile(paths.tmp));
+gulp.task('generateSw:production', () => writeServiceWorkerFile(paths.dist));
 
-gulp.task('build', done => runSequence(
-  ['clean:tmp', 'clean:dist'],
-  ['copy:sounds', 'inject:sass', 'inject:js'],
+gulp.task('build', gulp.series(
+  gulp.parallel('clean:tmp', 'clean:dist'),
+  gulp.parallel('copy:sounds', 'inject:sass', 'inject:js'),
   'setEnv:production',
   'compile:js',
   'compile:js:esNext',
-  ['sass', 'imagemin'],
+  gulp.parallel('sass', 'imagemin'),
   'useref',
   'revreplace',
   'copy:sourcemaps',
   'generateSw:production',
-  done,
 ));
 
-gulp.task('watchify', done => runSequence(
+gulp.task('watchify', gulp.series(
   'clean:tmp',
-  ['inject:sass', 'inject:js'],
+  gulp.parallel('inject:sass', 'inject:js'),
   'setEnv:development',
-  ['compile:js:watch', 'sass'],
+  gulp.parallel('compile:js:watch', 'sass'),
   'watch',
-  done,
 ));

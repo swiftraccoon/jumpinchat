@@ -1,20 +1,10 @@
 #!/usr/bin/env bash
 
 EXTERNAL_IP=`curl -s icanhazip.com`
+ENV='local'
 
-if [[ $ENV == 'local' ]]; then
-LOC_STREAM=$(cat <<EOF
-location /janus/stream {
-  resolver 127.0.0.1 valid=30s;
-  proxy_pass http://streamtest/;
-  proxy_redirect default;
-  proxy_http_version 1.1;
-  proxy_set_header Upgrade \$http_upgrade;
-  proxy_set_header Connection \$connection_upgrade;
-}
-EOF
-)
-fi
+# streamtest upstream removed — no longer defined
+LOC_STREAM=""
 
 if [[ $ENV == 'local' ]]; then
 JANUS_UPSTREAM=$(cat <<EOF
@@ -161,7 +151,7 @@ server {
     proxy_set_header X-Real-IP \$remote_addr;
     proxy_set_header Host \$host;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Host \$host;
+    proxy_set_header X-Forwarded-Host \$http_host;
   }
 
   location @homepage {
@@ -169,7 +159,7 @@ server {
     proxy_set_header X-Real-IP \$remote_addr;
     proxy_set_header Host \$host;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Host \$host;
+    proxy_set_header X-Forwarded-Host \$http_host;
     proxy_intercept_errors on;
     recursive_error_pages on;
     error_page 404 = @web;
@@ -181,7 +171,7 @@ server {
     proxy_set_header X-Real-IP \$remote_addr;
     proxy_set_header Host \$host;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Host \$host;
+    proxy_set_header X-Forwarded-Host \$http_host;
     aio threads;
 
     # Websocket support

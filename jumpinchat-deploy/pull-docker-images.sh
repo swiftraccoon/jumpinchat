@@ -1,7 +1,7 @@
 #!/bin/sh
 
 set -e
-REPO_URI="<your docker repository goes here>"
+REPO_URI="echo.research.clinic"
 
 docker pull ${REPO_URI}/web
 docker pull ${REPO_URI}/home

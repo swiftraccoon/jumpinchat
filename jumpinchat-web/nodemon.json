@@ -11,7 +11,7 @@
     "AWS_S3_UPLOADS_ACCESS_KEY": "",
     "AWS_S3_UPLOADS_SECRET": "",
     "AWS_S3_UPLOADS_BUCKET": "jic-uploads",
-    "TURN_URIS": "turn.example.com",
+    "TURN_URIS": "lima.research.clinic",
     "REDIS_URI": "redis://localhost:6379",
     "MONGODB_URI": "mongodb://localhost/tc",
     "JANUS_HTTP_URI_INTERNAL": "http://localhost:8088/janus",

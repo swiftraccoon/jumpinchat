@@ -1,10 +1,24 @@
-FROM nginx:stable
-
-MAINTAINER Zaccary Price "wildtangomedia@gmail.com"
+FROM node:18-bullseye AS builder
 
 ENV SERVER_PATH /var/www
-ENV ACTIVE_BRANCH "master"
-ENV SCRIPTS_DIR /tmp/scripts
+
+WORKDIR /build
+
+# Copy local jumpinchat-web source
+COPY jumpinchat-web/ ./
+
+# Install ALL dependencies (including devDependencies needed for build)
+RUN npm install --legacy-peer-deps
+
+# Build with gulp (use local binary, not npx)
+# Node 18 uses OpenSSL 3.0 which drops MD4; webpack 4 needs legacy provider
+ENV NODE_OPTIONS="--openssl-legacy-provider"
+RUN ./node_modules/.bin/gulp build
+
+# Production image
+FROM nginx:stable
+
+ENV SERVER_PATH /var/www
 ENV NODE_ENV "production"
 ENV PORT 8080
 ENV REDIS_URI "redis://redis:6379"
@@ -15,31 +29,26 @@ ENV JANUS_BITRATE 128000
 ENV JANUS_ROOM_SIZE 12
 ENV TURN_URIS "turn.jumpin.chat"
 
-
-RUN apt-get update > /dev/null
-RUN apt-get install -yqq --no-install-recommends \
+RUN apt-get update > /dev/null && \
+    apt-get install -yqq --no-install-recommends \
         curl \
-        git \
-        sudo \
-        python3-pip \
-        python3-wheel \
-        build-essential \
-        jq \
-        unzip
+        sudo
 
-# install node dependencies
-RUN mkdir -p /tmp/scripts
-COPY . /tmp/scripts/
+# Install Node.js 18 in the nginx image for the server runtime
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs
 
-RUN chmod +x /tmp/scripts/nodejs.sh
-RUN /tmp/scripts/nodejs.sh
+# Copy built assets and server code
+RUN mkdir -p /var/www/jic-web
+COPY --from=builder /build/dist /var/www/jic-web/dist
+COPY --from=builder /build/srv /var/www/jic-web/srv
+COPY --from=builder /build/node_modules /var/www/jic-web/node_modules
+COPY --from=builder /build/package.json /var/www/jic-web/package.json
 
-RUN chmod +x /tmp/scripts/build.sh
-RUN /tmp/scripts/build.sh
+RUN rm -f /etc/nginx/conf.d/default.conf
+COPY jumpinchat-deploy/srv/conf/site.conf /etc/nginx/conf.d/
 
+COPY jumpinchat-deploy/srv/entry.sh /tmp/scripts/entry.sh
 RUN chmod +x /tmp/scripts/entry.sh
-
-RUN rm /etc/nginx/conf.d/default.conf
-COPY conf/site.conf /etc/nginx/conf.d/
 
 ENTRYPOINT ["/tmp/scripts/entry.sh"]

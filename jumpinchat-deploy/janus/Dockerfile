@@ -30,6 +30,13 @@ RUN apt-get update > /dev/null && \
         gtk-doc-tools \
         libconfig-dev
 
+# Upgrade CMake
+RUN cd /tmp && \
+    wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh && \
+    chmod +x cmake-3.26.4-linux-x86_64.sh && \
+    ./cmake-3.26.4-linux-x86_64.sh --skip-license --prefix=/usr/local && \
+    rm cmake-3.26.4-linux-x86_64.sh
+
 RUN mkdir -p $INSTALL_DIR && mkdir -p $JANUS_DIR/certs
 
 ARG OPENSSL_VERSION=1.1.1f
@@ -58,7 +65,7 @@ RUN apt-get update > /dev/null && \
       apt-get install -y \
       python3 python3-pip python3-setuptools python3-wheel ninja-build
 RUN pip3 install meson
-ARG LIBNICE_VERSION=master
+ARG LIBNICE_VERSION=0.1.21
 RUN git clone https://gitlab.freedesktop.org/libnice/libnice.git ${INSTALL_DIR}/libnice && \
   cd ${INSTALL_DIR}/libnice && \
   git checkout $LIBNICE_VERSION && \
@@ -86,7 +93,8 @@ RUN git clone https://github.com/warmcat/libwebsockets.git ${INSTALL_DIR}/libweb
 
 # build janus gateway
 #ARG JANUS_VERSION=tags/v0.10.4
-ARG JANUS_VERSION=sendmmsg
+#ARG JANUS_VERSION=sendmmsg
+ARG JANUS_VERSION=v1.0.0
 RUN git clone https://github.com/meetecho/janus-gateway.git ${INSTALL_DIR}/janus-gateway && \
   cd ${INSTALL_DIR}/janus-gateway && \
   git rev-parse --verify HEAD && \

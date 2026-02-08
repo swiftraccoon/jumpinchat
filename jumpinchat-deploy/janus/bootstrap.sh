@@ -58,7 +58,9 @@ nat: {
   stun_port = 19302
   server_name = "JumpInChat"
   full_trickle = true
-  ice_enforce_list = "eth0,enp0s31f6"
+  ice_enforce_list = "eth0"
+  nat_1_1_mapping = "${NAT_1_1_IP:-192.168.88.197}"
+  rtp_port_range = "${RTP_PORT_MIN:-20000}-${RTP_PORT_MAX:-20100}"
   nice_debug = false
 }
 

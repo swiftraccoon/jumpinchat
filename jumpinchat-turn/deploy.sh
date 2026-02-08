@@ -1,6 +1,6 @@
 #!/bin/bash
 
-IMAGE_TAG=registry.example.com/user/coturn
+IMAGE_TAG=echo.research.clinic/user/coturn
 CONTAINER_NAME=turnserver
 EXTERNAL_IP=`curl -s icanhazip.com`
 

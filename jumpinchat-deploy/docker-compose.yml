@@ -1,10 +1,15 @@
-version: '2.3'
+# version: '2.3'
 
 services:
   web:
-    build: ./srv
-    image: registry.example.com/user/web
+    build:
+      context: ..
+      dockerfile: jumpinchat-deploy/srv/Dockerfile
+    image: echo.research.clinic/web
     environment:
+      - JWT_SECRET=$JWT_SECRET
+      - COOKIE_SECRET=$COOKIE_SECRET
+      - SHARED_SECRET=$SHARED_SECRET
       - DEPLOY_LOCATION=local
       - JANUS_HTTP_URI=/janus/http
       - JANUS_HTTPS_URI=/janus/http
@@ -20,11 +25,13 @@ services:
       - AWS_S3_UPLOADS_ACCESS_KEY=$AWS_S3_UPLOADS_ACCESS_KEY
       - AWS_S3_UPLOADS_SECRET=$AWS_S3_UPLOADS_SECRET
       - AWS_S3_UPLOADS_BUCKET=jic-uploads
-      - TURN_URIS=turn.example.com
+      - TURN_URIS=lima.research.clinic
       - GCM_API_KEY=$GCM_API_KEY # key for push notifications
       - STRIPE_SK=$STRIPE_SK
       - STRIPE_WH_KEY=$STRIPE_WH_KEY
       - MONGODB_URI=mongodb://mongodb,mongodbslave/tc?replicaSet=rs0
+      - REDIS_URI=redis://redis:6379
+      - EMAIL_URL=http://email:3001
     expose:
       - "80"
     depends_on:
@@ -38,8 +45,11 @@ services:
         max-size: '1m'
     restart: always
   web2:
-    image: registry.example.com/user/web
+    image: echo.research.clinic/web
     environment:
+      - JWT_SECRET=$JWT_SECRET
+      - COOKIE_SECRET=$COOKIE_SECRET
+      - SHARED_SECRET=$SHARED_SECRET
       - DEPLOY_LOCATION=local
       - JANUS_HTTP_URI=/janus/http
       - JANUS_HTTPS_URI=/janus/http
@@ -55,11 +65,13 @@ services:
       - AWS_S3_UPLOADS_ACCESS_KEY=$AWS_S3_UPLOADS_ACCESS_KEY
       - AWS_S3_UPLOADS_SECRET=$AWS_S3_UPLOADS_SECRET
       - AWS_S3_UPLOADS_BUCKET=jic-uploads
-      - TURN_URIS=turn.example.com
+      - TURN_URIS=lima.research.clinic
       - GCM_API_KEY=$GCM_API_KEY # key for push notifications
       - STRIPE_SK=$STRIPE_SK
       - STRIPE_WH_KEY=$STRIPE_WH_KEY
       - MONGODB_URI=mongodb://mongodb,mongodbslave/tc?replicaSet=rs0
+      - REDIS_URI=redis://redis:6379
+      - EMAIL_URL=http://email:3001
     expose:
       - "80"
     depends_on:
@@ -74,8 +86,10 @@ services:
     restart: always
 
   home:
-    build: ./home
-    image: registry.example.com/user/home
+    build:
+      context: ..
+      dockerfile: jumpinchat-deploy/home/Dockerfile
+    image: echo.research.clinic/home
     environment:
       - DEPLOY_LOCATION=local
       - STRIPE_KEY_PUBLIC=$STRIPE_KEY_PUBLIC
@@ -90,7 +104,7 @@ services:
       options:
         max-size: '1m'
   home2:
-    image: registry.example.com/user/home
+    image: echo.research.clinic/home
     environment:
       - DEPLOY_LOCATION=local
       - STRIPE_KEY_PUBLIC=$STRIPE_KEY_PUBLIC
@@ -106,22 +120,22 @@ services:
         max-size: '1m'
 
   mongodb:
-    image: mongo:3.6
-    command: "--smallfiles --replSet rs0"
+    image: docker.io/library/mongo:4.4
+    command: "--replSet rs0"
     # expose:
     #   - "27017"
     ports:
       - "27017:27017"
     volumes:
-      - ./data/db:/data/db
+      - ./data/db:/data/db:Z
     logging:
       options:
         max-size: '1m'
     restart: always
 
   mongodbslave:
-    image: mongo:3.6
-    command: "--smallfiles --replSet rs0"
+    image: docker.io/library/mongo:4.4
+    command: "--replSet rs0"
     expose:
       - "27017"
     logging:
@@ -129,10 +143,10 @@ services:
         max-size: '1m'
     restart: always
     volumes:
-      - ./data/db2:/data/db
+      - ./data/db2:/data/db:Z
 
   redis:
-    image: redis
+    image: docker.io/library/redis
     logging:
       options:
         max-size: '1m'
@@ -143,10 +157,10 @@ services:
       context: ./nginx
       args:
         - ENV
-    image: registry.example.com/user/nginx
+    image: echo.research.clinic/nginx
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:80"
+      - "8443:443"
     logging:
       options:
         max-size: '1m'
@@ -161,47 +175,63 @@ services:
     build:
       context: ./janus
 
-    image: registry.example.com/user/janus
+    image: echo.research.clinic/janus
     expose:
       - "8088"
       - "8889"
       - "8188"
       - "8989"
       - "7888"
+    ports:
+      - "20000-20100:20000-20100/udp"
+    volumes:
+      - ./fullchain.pem:/opt/janus/certs/fullchain.pem:z
+      - ./privkey.pem:/opt/janus/certs/privkey.pem:z
     environment:
       - DEBUG_COLORS=false
       - SERVER_NAME=janus
       - ENABLE_EVENTS=true
       - ENABLE_RABBIT_EVENTS=false
       - JANUS_TOKEN_SECRET=$JANUS_TOKEN_SECRET
+      - NAT_1_1_IP=192.168.88.197
     logging:
       options:
         max-size: '1m'
     restart: always
 
   janus2:
-    image: registry.example.com/user/janus
+    image: echo.research.clinic/janus
     expose:
       - "8088"
       - "8889"
       - "8188"
       - "8989"
       - "7888"
+    ports:
+      - "20101-20200:20101-20200/udp"
     environment:
       - DEBUG_COLORS=false
       - SERVER_NAME=janus2
       - ENABLE_EVENTS=true
       - ENABLE_RABBIT_EVENTS=false
       - JANUS_TOKEN_SECRET=$JANUS_TOKEN_SECRET
+      - NAT_1_1_IP=192.168.88.197
+      - RTP_PORT_MIN=20101
+      - RTP_PORT_MAX=20200
     logging:
       options:
         max-size: '1m'
     volumes:
-      - ./core:/opt/janus/bin/core
+      - ./core:/opt/janus/bin/core:z
+      - ./fullchain.pem:/opt/janus/certs/fullchain.pem:z
+      - ./privkey.pem:/opt/janus/certs/privkey.pem:z
     restart: always
   haproxy:
     build: ./haproxy
-    image: registry.example.com/user/haproxy
+    image: echo.research.clinic/haproxy
+    depends_on:
+      - web
+      - web2
     expose:
       - "80"
     logging:
@@ -210,10 +240,12 @@ services:
     restart: always
 
   email:
-    image: registry.example.com/user/jic-email
+    build: ../jumpinchat-email
+    image: echo.research.clinic/jic-email
     expose:
       - "3001"
     environment:
+      - PORT=3001
       - AWS_SES_ACCESS_KEY=$AWS_SES_ACCESS_KEY
       - AWS_SES_SECRET=$AWS_SES_SECRET
       - SHARED_SECRET=$SHARED_SECRET

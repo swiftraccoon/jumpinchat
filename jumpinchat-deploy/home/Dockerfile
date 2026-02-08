@@ -1,34 +1,38 @@
-FROM node:10 as builder
+FROM node:18-bullseye AS builder
 
 ENV SERVER_PATH /var/www
-ENV ACTIVE_BRANCH "master"
-ENV SCRIPTS_DIR /tmp/scripts
 ENV NODE_ENV "production"
 ENV PORT 3000
-ENV MONGODB_URI "mongodb://mongodb/tc"
 
-
-RUN apt-get update > /dev/null
-RUN apt-get install -y \
-        curl \
-        git \
-        sudo \
-        python \
-        python-dev \
+RUN apt-get update > /dev/null && \
+    apt-get install -y --no-install-recommends \
         build-essential \
-        jq \
-        unzip
+        python3
 
-# install node dependencies
-RUN mkdir -p /tmp/scripts
-COPY . /tmp/scripts/
+WORKDIR /var/www/jic-homepage
 
-RUN chmod +x /tmp/scripts/build.sh
-RUN /tmp/scripts/build.sh
+# Copy local jumpinchat-homepage source
+COPY jumpinchat-homepage/package.json jumpinchat-homepage/yarn.lock ./
+# Install production deps
+RUN npm install --legacy-peer-deps
 
-RUN chmod +x /tmp/scripts/entry.sh
+# Copy the rest of the source
+COPY jumpinchat-homepage/ ./
 
-FROM node:10
+# Build JS bundles with esbuild and copy assets
+RUN npm install --no-save esbuild && \
+    mkdir -p public/styles public/js public/images && \
+    echo '{}' > public/rev-manifest.json && \
+    cp -r src/images/* public/images/ && \
+    cp src/styles/site.css public/styles/site.css && \
+    ./node_modules/.bin/esbuild src/js/app.js --bundle --outfile=public/js/bundle.js \
+      --format=iife --target=es2015 --platform=browser && \
+    ./node_modules/.bin/esbuild src/js/app.js --bundle --outfile=public/js/bundle.mjs \
+      --format=esm --target=es2017 --platform=browser
+
+FROM node:18-bullseye-slim
+ENV NODE_ENV "production"
 COPY --from=builder /var/www /var/www
-COPY --from=builder /tmp/scripts/entry.sh /tmp/scripts/entry.sh
+COPY jumpinchat-deploy/home/entry.sh /tmp/scripts/entry.sh
+RUN chmod +x /tmp/scripts/entry.sh
 ENTRYPOINT ["/tmp/scripts/entry.sh"]

@@ -20,7 +20,7 @@ Also required is [jumpinchat/jumpinchat-emails](https://github.com/jumpinchat/ju
 ### Running Janus locally
 
 ```shell
-  docker-compose -f docker-compose.yml -f local-compose.yml up -d janus && dc logs -f janus
+  docker-compose -f docker-compose.yml -f local-compose.yml up -d janus && docker-compose logs -f janus
 ```
 
 ### Run all services

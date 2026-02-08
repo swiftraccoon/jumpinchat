@@ -1,4 +1,4 @@
-version: '2.3'
+# version: '2.3'
 
 services:
   web:
@@ -22,7 +22,7 @@ services:
     logging:
       driver: json-file
     environment:
-      - JANUS_TOKEN_SECRET=janus
+      - JANUS_TOKEN_SECRET=topsecretkey2222
       - RABBIT_HOST=localhost
       - ENABLE_EVENTS=false
       - ENABLE_RABBIT_EVENTS=false
@@ -37,6 +37,8 @@ services:
       - ./core:/core
       - ./januscore:/opt/bin/janus/core
       - ./valgrind:/tmp/valgrind
+      - ./fullchain.pem:/opt/janus/certs/fullchain.pem
+      - ./privkey.pem:/opt/janus/certs/privkey.pem
     ulimits:
       core:
         hard: 99999999999

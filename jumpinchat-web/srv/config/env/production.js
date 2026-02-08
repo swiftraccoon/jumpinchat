@@ -78,7 +78,7 @@ module.exports = {
   },
   emailServiceUri: process.env.EMAIL_URL,
   yt: {
-    keys: process.env.YT_API_KEY.split(','),
+    keys: (process.env.YT_API_KEY || '').split(',').filter(Boolean),
     key: process.env.YT_API_KEY,
     cacheExpire: 60 * 60 * 24 * 7,
     detailCacheExpire: 60 * 60 * 24 * 31,

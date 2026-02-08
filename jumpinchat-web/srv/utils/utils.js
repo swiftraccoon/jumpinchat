@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const Jimp = require('jimp');
 const { S3 } = require('aws-sdk');
-const uuid = require('node-uuid');
+const uuid = require('uuid');
 const requestIp = require('request-ip');
 const log = require('./logger.util')({ name: 'utils' });
 const config = require('../config/env/');

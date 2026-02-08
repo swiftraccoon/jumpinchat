@@ -1,3 +1,3 @@
-IMAGE_TAG=registry.example.com/user/coturn
+IMAGE_TAG=echo.research.clinic/user/coturn
 
 docker push ${IMAGE_TAG}

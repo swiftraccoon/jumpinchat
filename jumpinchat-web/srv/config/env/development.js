@@ -14,7 +14,7 @@ module.exports = {
     },
   },
   redis: {
-    uri: process.env.REDIS_URI || 'redis://user:redis@localhost:6379/',
+    uri: process.env.REDIS_URI || 'redis://localhost:6379',
     socketExpire: 60 * 60 * 10,
     lastSeenExpire: 60,
   },
@@ -24,6 +24,8 @@ module.exports = {
     http_uri: process.env.JANUS_HTTP_URI || ':8088/janus',
     http_admin_uri_internal: process.env.JANUS_ADMIN_HTTP_URI_INTERNAL || 'http://localhost:7888/admin',
     ws_uri: process.env.JANUS_WS_URI || ':8188',
+    wss_uri: process.env.JANUS_WSS_URI || '/janus/ws',
+    https_uri: process.env.JANUS_HTTPS_URI || '/janus/http',
     serverIds: process.env.JANUS_SERVER_IDS
       ? process.env.JANUS_SERVER_IDS.split(',')
       : ['janus'],
@@ -82,7 +84,7 @@ module.exports = {
   },
   emailServiceUri: process.env.EMAIL_URL || 'http://localhost:3434',
   yt: {
-    keys: process.env.YT_API_KEY.split(','),
+    keys: (process.env.YT_API_KEY || '').split(',').filter(Boolean),
     key: process.env.YT_API_KEY || 'foo',
     cacheExpire: 60 * 10,
     detailCacheExpire: 60 * 10,

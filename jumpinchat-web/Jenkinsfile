@@ -18,7 +18,7 @@ pipeline {
     }
     stage('Setup') {
       steps {
-        withCredentials([string(credentialsId: 'FONT_AWESOME_NPM_TOKEN', variable: 'FONT_AWESOME_NPM_TOKEN')]) {
+        withCredentials([string(credentialsId: '24912292-7049-4CEB-9AC0-AEDA7ACDB3EF', variable: 'FONT_AWESOME_NPM_TOKEN')]) {
           sh 'printf "@fortawesome:registry=https://npm.fontawesome.com/\n//npm.fontawesome.com/:_authToken=${FONT_AWESOME_NPM_TOKEN}" > ~/.npmrc'
         }
         sh 'yarn install --frozen-lockfile'
