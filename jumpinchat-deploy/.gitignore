@@ -1,0 +1,8 @@
+.idea
+githook
+dump.rdb
+data
+valgrind-out.txt
+logs
+!example.env
+.env
