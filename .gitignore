@@ -1,0 +1,34 @@
+# Secrets and credentials
+.npmrc
+.env
+*.pem
+
+# Dependencies
+node_modules/
+
+# Data / volumes
+jumpinchat-deploy/data/
+
+# IDE
+.idea/
+*.swp
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+logs/
+dump.rdb
+
+# Build artifacts
+coverage/
+dist/
+.tmp
+.sass-cache
+.size-snapshot.json
+
+# Deploy artifacts
+jumpinchat-deploy/valgrind
+jumpinchat-deploy/core
+jumpinchat-deploy/logs.txt
