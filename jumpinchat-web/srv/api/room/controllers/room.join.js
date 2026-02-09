@@ -281,16 +281,12 @@ class RoomJoin {
 
     if (session.kicked) {
       session.kicked = false;
-      return session.save((err) => {
-        if (err) {
-          log.fatal({ err }, 'failed to save session');
-          return cb(err);
-        }
-
-        return cb({
-          error: 'ERR_KICKED',
+      return session.save()
+        .then(() => cb({ error: 'ERR_KICKED' }))
+        .catch((saveErr) => {
+          log.fatal({ err: saveErr }, 'failed to save session');
+          cb(saveErr);
         });
-      });
     }
 
     sanitizeUserList(roomName, (err) => {

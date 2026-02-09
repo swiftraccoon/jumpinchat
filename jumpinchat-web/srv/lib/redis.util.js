@@ -1,9 +1,4 @@
-/**
- * Created by Zaccary on 23/09/2015.
- */
-
 const redis = require('redis');
-const url = require('url');
 const config = require('../config/env');
 const log = require('../utils/logger.util')({ name: 'redis.util' });
 
@@ -11,43 +6,41 @@ let client;
 
 log.debug({ redisConfig: config.redis });
 
-function connect() {
+function createClient() {
+  const opts = {};
+
   if (config.redis) {
     log.debug('has redis config');
-    const rtg = url.parse(config.redis.uri);
-    client = redis.createClient(rtg.port, rtg.hostname, {});
-
-    if (rtg.auth) {
-      client.auth(rtg.auth.split(':')[1]);
-    }
+    opts.url = config.redis.uri;
   } else {
     log.debug('using default redis config');
-    client = redis.createClient();
   }
+
+  client = redis.createClient(opts);
+
+  client.on('ready', () => {
+    log.info('redis server ready');
+  });
+
+  client.on('connect', () => {
+    log.info('redis server connected');
+  });
+
+  client.on('reconnecting', () => {
+    log.warn('redis server reconnecting');
+  });
+
+  client.on('error', (err) => {
+    log.fatal({ err }, 'redis error');
+  });
+
+  // Start connecting (commands will queue until connected)
+  client.connect().catch((err) => {
+    log.fatal({ err }, 'redis connection failed');
+  });
 }
 
-connect();
-
-client.on('ready', () => {
-  log.info('redis server ready');
-});
-
-client.on('connect', () => {
-  log.info('redis server connected');
-});
-
-client.on('reconnecting', ({ delay, attempt }) => {
-  log.warn({ delay, attempt }, 'redis server reconnecting');
-});
-
-client.on('error', (err) => {
-  log.fatal({ err }, 'redis error');
-});
-
-client.on('end', () => {
-  log.fatal('redis connection closed');
-  connect();
-});
+createClient();
 
 module.exports = function redisUtil() {
   return client;

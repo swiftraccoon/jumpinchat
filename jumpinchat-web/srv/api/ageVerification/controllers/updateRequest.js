@@ -28,27 +28,26 @@ function handleApprove(userId) {
 
       user.attrs.ageVerified = true;
 
-      user.save((err) => {
-        if (err) {
-          log.fatal({ err }, 'error saving user');
-          return;
-        }
+      user.save()
+        .then(() => {
+          email.sendMail({
+            to: user.auth.email,
+            subject: 'Age verification approved',
+            html: ageVerifyApprovedTemplate({
+              user,
+            }),
+          }, (sendErr) => {
+            if (sendErr) {
+              log.fatal({ err: sendErr }, 'failed to send verification email');
+              return;
+            }
 
-        email.sendMail({
-          to: user.auth.email,
-          subject: 'Age verification approved',
-          html: ageVerifyApprovedTemplate({
-            user,
-          }),
-        }, (err, info) => {
-          if (err) {
-            log.fatal({ err }, 'failed to send verification email');
-            return;
-          }
-
-          log.debug('verification email sent');
+            log.debug('verification email sent');
+          });
+        })
+        .catch((saveErr) => {
+          log.fatal({ err: saveErr }, 'error saving user');
         });
-      });
     } catch (err) {
       log.fatal({ err }, 'failed to get user ID');
     }
@@ -124,29 +123,24 @@ module.exports = async function updateRequest(req, res) {
     request.reason = reason;
     request.updatedAt = Date.now();
 
-    request.save((err, updatedRequest) => {
-      if (err) {
-        log.fatal({ err }, 'error saving request');
-        return res.status(500).send();
-      }
+    const updatedRequest = await request.save();
 
-      switch (status) {
-        case ageVerificationConstants.statuses.APPROVED:
-          handleApprove(updatedRequest.user);
-          break;
-        case ageVerificationConstants.statuses.REJECTED:
-          handleReject(updatedRequest.user, reason);
-          break;
-        case ageVerificationConstants.statuses.DENIED:
-          handleDeny(updatedRequest.user);
-          break;
-        default:
-          log.error('missing status');
-          return res.status(400);
-      }
+    switch (status) {
+      case ageVerificationConstants.statuses.APPROVED:
+        handleApprove(updatedRequest.user);
+        break;
+      case ageVerificationConstants.statuses.REJECTED:
+        handleReject(updatedRequest.user, reason);
+        break;
+      case ageVerificationConstants.statuses.DENIED:
+        handleDeny(updatedRequest.user);
+        break;
+      default:
+        log.error('missing status');
+        return res.status(400).send();
+    }
 
-      return res.status(200).send(request);
-    });
+    return res.status(200).send(request);
   } catch (err) {
     log.fatal({ err }, 'error fetching requests');
     return res.status(500).send();

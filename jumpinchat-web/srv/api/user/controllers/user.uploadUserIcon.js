@@ -91,14 +91,12 @@ module.exports = function uploadUserIcon(req, res) {
 
             user.settings.userIcon = `${filePath}?t=${Date.now()}`;
 
-            user.save((err) => {
-              if (err) {
-                log.fatal('saving user failed', { err });
-                return res.status(500).send();
-              }
-
-              return res.status(200).send({ url: filePath });
-            });
+            user.save()
+              .then(() => res.status(200).send({ url: filePath }))
+              .catch((saveErr) => {
+                log.fatal('saving user failed', { err: saveErr });
+                res.status(500).send();
+              });
           });
         });
       });

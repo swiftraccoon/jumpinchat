@@ -24,7 +24,7 @@ module.exports = function handleSilenceUserSocket(socket, io) {
     }
 
     const ip = utils.getIpFromSocket(socket);
-    const sessionId = jwt.decode(socket.handshake.query.token).session;
+    const sessionId = jwt.decode(socket.handshake.auth.token).session;
 
     try {
       const ident = {

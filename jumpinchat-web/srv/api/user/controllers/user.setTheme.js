@@ -12,8 +12,10 @@ module.exports = async function setTheme(req, res) {
   });
 
   try {
-    const { value: { dark } } = await Joi.validate(req.query, querySchema);
-    const { value: { userId } } = await Joi.validate(req.params, paramsSchema);
+    const { error: queryError, value: { dark } } = querySchema.validate(req.query);
+    if (queryError) throw queryError;
+    const { error: paramsError, value: { userId } } = paramsSchema.validate(req.params);
+    if (paramsError) throw paramsError;
 
     log.debug({ userId: req.params });
     return userUtils.getUserById(userId, (err, user) => {
@@ -32,14 +34,12 @@ module.exports = async function setTheme(req, res) {
 
       user.settings.darkTheme = dark;
 
-      user.save((err) => {
-        if (err) {
-          log.fatal({ err });
-          return res.status(500).send();
-        }
-
-        return res.status(200).send({ darkTheme: dark });
-      });
+      user.save()
+        .then(() => res.status(200).send({ darkTheme: dark }))
+        .catch((saveErr) => {
+          log.fatal({ err: saveErr });
+          res.status(500).send();
+        });
     });
   } catch (err) {
     log.fatal({ err });

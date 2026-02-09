@@ -15,6 +15,9 @@ RUN npm install --legacy-peer-deps
 ENV NODE_OPTIONS="--openssl-legacy-provider"
 RUN ./node_modules/.bin/gulp build
 
+# Generate version.js (normally done by publish-artifact.sh)
+RUN echo "window.BUILD_NUM='$(git rev-parse HEAD 2>/dev/null || echo local-dev)';" > dist/version.js
+
 # Production image
 FROM nginx:stable
 

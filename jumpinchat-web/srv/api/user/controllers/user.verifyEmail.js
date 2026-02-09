@@ -10,65 +10,62 @@ module.exports = function verifyEmail(req, res) {
     token: Joi.string().required(),
   });
 
-  Joi.validate(req.params, schema, (err, validated) => {
-    if (err) {
-      log.warn('invalid email verification token');
-      res.status(400).send({ error: 'ERR_TOKEN_INVALID', message: 'A valid token is required' });
-      return;
-    }
+  const { error, value: validated } = schema.validate(req.params);
+  if (error) {
+    log.warn('invalid email verification token');
+    res.status(400).send({ error: 'ERR_TOKEN_INVALID', message: 'A valid token is required' });
+    return;
+  }
 
 
-    VerifyModel
-      .findOne({ token: validated.token, type: verifyTypes.TYPE_EMAIL })
-      .where({ expireDate: { $gt: new Date() } })
-      .exec((err, v) => {
+  VerifyModel
+    .findOne({ token: validated.token, type: verifyTypes.TYPE_EMAIL })
+    .where({ expireDate: { $gt: new Date() } })
+    .exec()
+    .then((v) => {
+      if (!v) {
+        log.warn('verification token not found');
+        res.status(403).send({
+          error: 'ERR_NO_TOKEN',
+          message: 'Token is invalid or has expired',
+        });
+        return;
+      }
+
+      UserUtils.getUserById(v.userId, (err, user) => {
         if (err) {
-          log.fatal(err);
+          log.fatal('could not get user', v.userId, err);
           res.status(403).send();
           return;
         }
 
-        if (!v) {
-          log.warn('verification token not found');
-          res.status(403).send({
-            error: 'ERR_NO_TOKEN',
-            message: 'Token is invalid or has expired',
-          });
+        if (!user) {
+          log.error('user does not exists', v.userId);
+          res.status(401).send();
           return;
         }
 
-        UserUtils.getUserById(v.userId, (err, user) => {
-          if (err) {
-            log.fatal('could not get user', v.userId, err);
-            res.status(403).send();
-            return;
-          }
-
-          if (!user) {
-            log.error('user does not exists', v.userId);
-            res.status(401).send();
-            return;
-          }
-
-          user.auth.email_is_verified = true;
-          user.save((err) => {
-            if (err) {
-              log.fatal('error saving user', user._id, err);
-              res.status(403).send();
-              return;
-            }
-
-            trophyUtils.applyTrophy(user._id, 'TROPHY_EMAIL_VERIFIED', (err) => {
-              if (err) {
-                log.error({ err }, 'failed to apply trophy');
+        user.auth.email_is_verified = true;
+        user.save()
+          .then(() => {
+            trophyUtils.applyTrophy(user._id, 'TROPHY_EMAIL_VERIFIED', (trophyErr) => {
+              if (trophyErr) {
+                log.error({ err: trophyErr }, 'failed to apply trophy');
               }
 
               log.debug('applied trophy');
             });
 
             res.status(200).send();
+          })
+          .catch((saveErr) => {
+            log.fatal('error saving user', user._id, saveErr);
+            res.status(403).send();
           });
-        });
       });
-  });
+    })
+    .catch((err) => {
+      log.fatal(err);
+      res.status(403).send();
+    });
 };

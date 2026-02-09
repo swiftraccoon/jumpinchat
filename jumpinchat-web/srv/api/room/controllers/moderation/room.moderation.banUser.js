@@ -37,7 +37,7 @@ module.exports = async function banUser(socket, roomName, userListIdToBan, banDu
 
 
   const ip = getIpFromSocket(socket);
-  const sessionId = jwt.decode(socket.handshake.query.token).session;
+  const sessionId = jwt.decode(socket.handshake.auth.token).session;
 
   try {
     log.debug({ userId, ip, sessionId });
@@ -149,12 +149,10 @@ module.exports = async function banUser(socket, roomName, userListIdToBan, banDu
 
   room.banlist = [...filteredBanlist, banEntry];
 
-  return room.save((err) => {
-    if (err) {
-      log.fatal({ err }, 'error saving room');
-      return cb(err);
-    }
-
-    return cb(null, userToBan);
-  });
+  return room.save()
+    .then(() => cb(null, userToBan))
+    .catch((saveErr) => {
+      log.fatal({ err: saveErr }, 'error saving room');
+      cb(saveErr);
+    });
 };

@@ -10,24 +10,17 @@ const {
 
 
 module.exports.getTrophyByName = function getTrophyByName(name, cb) {
-  const query = trophyModel.findOne({ name });
-
-  if (!cb) {
-    return query.exec();
-  }
-
-  return query.exec((err, trophy) => {
-    if (err) {
-      log.fatal({ err }, 'error fetching trophy');
-      return cb(err);
-    }
-
+  const promise = trophyModel.findOne({ name }).exec();
+  if (!cb) return promise;
+  promise.then((trophy) => {
     if (!trophy) {
       log.warn({ name }, 'trophy not found');
       return cb('ERR_NOT_FOUND');
     }
-
     return cb(null, trophy);
+  }, (err) => {
+    log.fatal({ err }, 'error fetching trophy');
+    cb(err);
   });
 };
 
@@ -100,34 +93,32 @@ module.exports.findApplicableTrophies = function findApplicableTrophies(userId, 
       return cb('ERR_NO_USER');
     }
 
-    return trophyModel.find().exec((err, trophies) => {
-      if (err) {
+    return trophyModel.find().exec()
+      .then((trophies) => {
+        applicableTrophies = [
+          ...checkMembershipDuration(user.attrs.join_date, trophies),
+          ...checkOccasion(trophies),
+        ]
+          .map(t => ({
+            trophyId: t._id,
+          }))
+          .filter(t => !user.trophies
+            .find(userTrophy => String(userTrophy.trophyId) === String(t.trophyId)))
+          .forEach((t) => {
+            user.trophies.push(t);
+          });
+
+        return user.save()
+          .then(() => cb(null, applicableTrophies))
+          .catch((saveErr) => {
+            log.fatal({ err: saveErr }, 'error saving user');
+            cb(saveErr);
+          });
+      })
+      .catch((err) => {
         log.fatal({ err }, 'error getting trophies');
-        return cb('ERR_SRV');
-      }
-
-      applicableTrophies = [
-        ...checkMembershipDuration(user.attrs.join_date, trophies),
-        ...checkOccasion(trophies),
-      ]
-        .map(t => ({
-          trophyId: t._id,
-        }))
-        .filter(t => !user.trophies
-          .find(userTrophy => String(userTrophy.trophyId) === String(t.trophyId)))
-        .forEach((t) => {
-          user.trophies.push(t);
-        });
-
-      return user.save((err) => {
-        if (err) {
-          log.fatal({ err }, 'error saving user');
-          return cb(err);
-        }
-
-        return cb(null, applicableTrophies);
+        cb('ERR_SRV');
       });
-    });
   });
 };
 
@@ -159,7 +150,9 @@ module.exports.applyTrophy = async function applyTrophy(userId, trophyName, cb) 
       } catch (messageErr) {
         log.error({ err: messageErr }, 'failed to send message');
       }
-      return user.save(cb);
+      return user.save()
+        .then(() => cb())
+        .catch(err => cb(err));
     }
 
     log.debug('user has trophy already, skipping');

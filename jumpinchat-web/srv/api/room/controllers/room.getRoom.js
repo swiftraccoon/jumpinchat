@@ -62,10 +62,8 @@ function setUp(req, res, name) {
         users: RoomUtils.checkModAssignedBy(room),
       });
 
-      return io.in(name).clients((err, clients) => {
-        if (err) {
-          log.fatal({ err, roomName: name }, 'error fetching socket clients');
-        }
+      return io.in(name).fetchSockets().then((sockets) => {
+        const clients = sockets.map(s => s.id);
 
         room.users = room.users.filter(user => clients.includes(user.socket_id));
 
@@ -87,17 +85,17 @@ function setUp(req, res, name) {
           room.attrs.janus_id = janusRoomId;
           room.attrs.janusServerId = janusServerId;
 
-          room.save((err, savedRoom) => {
-            if (err) {
-              log.fatal({ err }, 'failed to save room');
-              return res.status(500).end();
-            }
-
-            return res.status(200).send({
-              ...RoomUtils.filterRoom(savedRoom),
-              users: [],
+          room.save()
+            .then((savedRoom) => {
+              res.status(200).send({
+                ...RoomUtils.filterRoom(savedRoom),
+                users: [],
+              });
+            })
+            .catch((saveErr) => {
+              log.fatal({ err: saveErr }, 'failed to save room');
+              res.status(500).end();
             });
-          });
         });
       });
     }

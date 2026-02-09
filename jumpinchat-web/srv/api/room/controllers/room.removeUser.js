@@ -27,19 +27,17 @@ module.exports = function removeUserFromRoom(socketId, roomData, cb) {
       return true;
     });
 
-    return room.save((err, savedRoom) => {
-      if (err) {
-        return cb(err);
-      }
+    return room.save()
+      .then((savedRoom) => {
+        // if removing the user causes the room to be empty, and if
+        // the room is not a user room, it should be removed.
+        if (!savedRoom.users.length) {
+          log.debug('room empty, attempting to remove it');
+          return roomRemove(roomData, cb);
+        }
 
-      // if removing the user causes the room to be empty, and if
-      // the room is not a user room, it should be removed.
-      if (!savedRoom.users.length) {
-        log.debug('room empty, attempting to remove it');
-        return roomRemove(roomData, cb);
-      }
-
-      return cb(null, removedUser);
-    });
+        return cb(null, removedUser);
+      })
+      .catch((saveErr) => cb(saveErr));
   });
 };

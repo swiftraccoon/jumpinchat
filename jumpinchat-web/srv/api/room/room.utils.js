@@ -25,20 +25,18 @@ removeUserQueue.on('done', () => log.debug('remove user queue finished'));
 
 
 function getRoomById(id, cb) {
-  const query = RoomModel.findOne({ _id: id });
-
-  if (cb) {
-    return query.exec(cb);
-  }
-
-  return query.exec();
+  const promise = RoomModel.findOne({ _id: id }).exec();
+  if (!cb) return promise;
+  promise.then(result => cb(null, result), err => cb(err));
 }
 module.exports.getRoomById = getRoomById;
 
 module.exports.getRoomUserListById = function getRoomUserListById(roomId, cb) {
-  RoomModel.findOne({ _id: roomId })
+  const promise = RoomModel.findOne({ _id: roomId })
     .select('users')
-    .exec(cb);
+    .exec();
+  if (!cb) return promise;
+  promise.then(result => cb(null, result), err => cb(err));
 };
 
 module.exports.getRoomIdFromName = function getRoomIdFromName(name) {
@@ -50,21 +48,13 @@ module.exports.getRoomIdFromName = function getRoomIdFromName(name) {
 module.exports.getMediaByRoomName = function getMediaByRoomName(name) {
   return RoomModel
     .findOne({ name })
-    .populate({
-      path: 'media.startedBy',
-      select: ['username', 'profile.pic'],
-    })
     .select('media')
     .exec();
 };
 
 function getRoomByName(name, cb) {
-  const query = RoomModel
+  const promise = RoomModel
     .findOne({ name })
-    .populate({
-      path: 'media.startedBy',
-      select: ['username', 'profile.pic'],
-    })
     .populate({
       path: 'banlist.user_id',
       select: ['username'],
@@ -72,13 +62,11 @@ function getRoomByName(name, cb) {
     .populate({
       path: 'settings.topic.updatedBy',
       select: ['username'],
-    });
+    })
+    .exec();
 
-  if (!cb) {
-    return query.exec();
-  }
-
-  return query.exec(cb);
+  if (!cb) return promise;
+  promise.then(result => cb(null, result), err => cb(err));
 }
 
 module.exports.getRoomByName = getRoomByName;
@@ -90,13 +78,15 @@ module.exports.getRoomByName = getRoomByName;
  */
 const getRoomsByJanusIds = function getRoomsByJanusIds(janusIdArr, cb) {
   log.debug({ janusIdArr }, 'janus ID array');
-  RoomModel
+  const promise = RoomModel
     .find({
       'attrs.janus_id': {
         $in: janusIdArr,
       },
     })
-    .exec(cb);
+    .exec();
+  if (!cb) return promise;
+  promise.then(result => cb(null, result), err => cb(err));
 };
 
 module.exports.getRoomsByJanusIds = getRoomsByJanusIds;
@@ -202,7 +192,7 @@ module.exports.createGuestUser = function createGuestUser(socket) {
   return {
     ip: socket.handshake.address,
     signature: 'superawesomesignaturebro',
-    session_id: jwt.decode(socket.handshake.query.token),
+    session_id: jwt.decode(socket.handshake.auth.token),
     handle: _createGuestHandle(),
     socket: socket.id,
   };
@@ -215,23 +205,23 @@ module.exports.createGuestUser = function createGuestUser(socket) {
  * @param roomName
  * @param cb
  */
-module.exports.sanitizeUserList = function sanitizeUserList(sockets, roomName, cb) {
-  RoomModel.findOne({ name: roomName })
-    .exec((err, room) => {
-      if (err) {
-        return cb(err);
-      }
+module.exports.sanitizeUserList = async function sanitizeUserList(sockets, roomName, cb) {
+  try {
+    const room = await RoomModel.findOne({ name: roomName }).exec();
 
-      if (!room) {
-        return cb('ERR_NO_ROOM');
-      }
+    if (!room) {
+      return cb('ERR_NO_ROOM');
+    }
 
-      const usersToBeRemoved = room.users.filter(user => !sockets[user.socket_id]);
+    const usersToBeRemoved = room.users.filter(user => !sockets[user.socket_id]);
 
-      room.users = room.users.filter(user => !!sockets[user.socket_id]);
+    room.users = room.users.filter(user => !!sockets[user.socket_id]);
 
-      room.save(() => cb(null, usersToBeRemoved));
-    });
+    await room.save();
+    return cb(null, usersToBeRemoved);
+  } catch (err) {
+    return cb(err);
+  }
 };
 
 async function selectJanusServerLeastConn(cb) {
@@ -314,7 +304,8 @@ module.exports.getActiveRooms = function getActiveRooms(start, end, publicOnly, 
       { $skip: start },
       { $limit: end },
     ])
-    .exec(cb);
+    .exec()
+    .then(result => cb(null, result), err => cb(err));
 };
 
 function createJanusSession(serverId, janusId, cb) {
@@ -599,12 +590,9 @@ module.exports.checkModAssignedBy = function checkModAssignedBy(room) {
   });
 };
 
-module.exports.getSocketIdFromRoom = function getSocketIdFromRoom(roomName, userListId, cb) {
-  getRoomByName(roomName, (err, room) => {
-    if (err) {
-      log.fatal({ err }, 'error getting room');
-      return cb(err);
-    }
+module.exports.getSocketIdFromRoom = async function getSocketIdFromRoom(roomName, userListId, cb) {
+  try {
+    const room = await getRoomByName(roomName);
 
     if (!room) {
       log.error({ room: roomName }, 'room not found');
@@ -622,13 +610,18 @@ module.exports.getSocketIdFromRoom = function getSocketIdFromRoom(roomName, user
       socketId: user.socket_id,
       userId: user.user_id,
     });
-  });
+  } catch (err) {
+    log.fatal({ err }, 'error getting room');
+    return cb(err);
+  }
 };
 
 module.exports.removeRoomByUserId = function removeRoomByUserId(userId, cb) {
-  RoomModel
+  const promise = RoomModel
     .deleteOne({ 'attrs.owner': userId })
-    .exec(cb);
+    .exec();
+  if (!cb) return promise;
+  promise.then(result => cb(null, result), err => cb(err));
 };
 
 function isIgnoreExpired({ expiresAt }) {

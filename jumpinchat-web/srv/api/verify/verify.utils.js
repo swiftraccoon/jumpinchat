@@ -14,67 +14,67 @@ const types = {
   TYPE_PASS_RESET: 'passwordreset',
 };
 
-module.exports.createEmailVerification = function createEmailVerification(user, cb = () => {}) {
-  VerifyModel.findOneAndRemove({ userId: user._id, type: types.TYPE_EMAIL }, (err) => {
-    if (err) {
-      log.fatal({ err }, 'failed to create verification entry');
-      return cb(err);
-    }
+module.exports.createEmailVerification = async function createEmailVerification(user, cb = () => {}) {
+  try {
+    await VerifyModel.findOneAndDelete({ userId: user._id, type: types.TYPE_EMAIL });
+  } catch (err) {
+    log.fatal({ err }, 'failed to remove existing verification entry');
+    return cb(err);
+  }
 
-    const token = crypto.createHash('sha256').update(uuid.v4()).digest('hex');
+  const token = crypto.createHash('sha256').update(uuid.v4()).digest('hex');
 
-    VerifyModel.create({
+  try {
+    const verifyEntry = await VerifyModel.create({
       userId: user._id,
       expireDate: new Date(Date.now() + config.verification.emailTimeout),
       token,
       type: types.TYPE_EMAIL,
-    }, (err, verifyEntry) => {
-      if (err) {
-        log.fatal({ err }, 'failed to create verification entry');
-        return cb(err);
-      }
-
-      email.sendMail({
-        to: user.auth.email,
-        subject: 'Activate your JumpInChat account',
-        html: signUpTemplate({ username: user.username, token: verifyEntry.token }),
-      }, cb);
     });
-  });
+
+    email.sendMail({
+      to: user.auth.email,
+      subject: 'Activate your JumpInChat account',
+      html: signUpTemplate({ username: user.username, token: verifyEntry.token }),
+    }, cb);
+  } catch (err) {
+    log.fatal({ err }, 'failed to create verification entry');
+    return cb(err);
+  }
 };
 
-module.exports.createPasswordReset = function createPasswordReset(user, cb = () => {}) {
+module.exports.createPasswordReset = async function createPasswordReset(user, cb = () => {}) {
   if (!user.auth.email_is_verified) {
     log.warn('User attempted to reset a password with an unverified email', user._id);
     return cb();
   }
 
-  VerifyModel.findOneAndRemove({ userId: user._id, type: types.TYPE_PASS_RESET }, (err) => {
-    if (err) {
-      log.fatal({ err }, 'failed to create verification entry');
-      return cb(err);
-    }
+  try {
+    await VerifyModel.findOneAndDelete({ userId: user._id, type: types.TYPE_PASS_RESET });
+  } catch (err) {
+    log.fatal({ err }, 'failed to remove existing verification entry');
+    return cb(err);
+  }
 
-    const token = crypto.createHash('sha256').update(uuid.v4()).digest('hex');
+  const token = crypto.createHash('sha256').update(uuid.v4()).digest('hex');
 
-    VerifyModel.create({
+  try {
+    const verifyEntry = await VerifyModel.create({
       userId: user._id,
       expireDate: new Date(Date.now() + config.verification.pwResetTimeout),
       token,
       type: types.TYPE_PASS_RESET,
-    }, (err, verifyEntry) => {
-      if (err) {
-        log.fatal({ err }, 'failed to create verification entry');
-        return cb(err);
-      }
-
-      log.debug('sending password reset email');
-
-      email.sendMail({
-        to: user.auth.email,
-        subject: 'Password reset',
-        html: resetPasswordTemplate({ username: user.username, token: verifyEntry.token }),
-      }, cb);
     });
-  });
+
+    log.debug('sending password reset email');
+
+    email.sendMail({
+      to: user.auth.email,
+      subject: 'Password reset',
+      html: resetPasswordTemplate({ username: user.username, token: verifyEntry.token }),
+    }, cb);
+  } catch (err) {
+    log.fatal({ err }, 'failed to create verification entry');
+    return cb(err);
+  }
 };

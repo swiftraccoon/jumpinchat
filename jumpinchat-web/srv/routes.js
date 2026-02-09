@@ -1,5 +1,5 @@
 const path = require('path');
-const request = require('request');
+const axios = require('axios');
 const user = require('./api/user');
 const room = require('./api/room');
 const janus = require('./api/janus');
@@ -64,26 +64,15 @@ module.exports = function routes(app) {
         ];
       }
 
-      const requestOptions = {
-        method: 'POST',
-        url: slackHookUrl,
-        body: payload,
-        json: true,
-      };
-
-      return request(requestOptions, (err, response, body) => {
-        if (err) {
-          log.fatal({ err }, 'error posting slack webhook');
-          return res.status(500).send();
-        }
-
-        if (response.statusCode >= 400) {
-          log.fatal({ statusCode: response.statusCode }, 'error posting slack webhook');
-          return res.status(response.statusCode).send();
-        }
-
-        res.status(200).send();
-      });
+      return axios.post(slackHookUrl, payload)
+        .then(() => {
+          res.status(200).send();
+        })
+        .catch((err) => {
+          const status = err.response && err.response.status;
+          log.fatal({ err, statusCode: status }, 'error posting slack webhook');
+          return res.status(status || 500).send();
+        });
     } catch (e) {
       log.fatal({ err: e }, 'error parsing body');
       return res.status(400).send();

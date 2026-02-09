@@ -114,14 +114,14 @@ module.exports = async function createUser(req, res) {
     return res.status(500).send(errors.ERR_SRV);
   }
 
-  Joi.validate(user, schema, { abortEarly: false }, (err, validatedUser) => {
-    if (err) {
-      return res.status(400).send(new ReturnModel(err, null, 'ERR_INPUT_VALIDATION'));
-    }
+  const { error, value: validatedUser } = schema.validate(user, { abortEarly: false });
+  if (error) {
+    return res.status(400).send(new ReturnModel(error, null, 'ERR_INPUT_VALIDATION'));
+  }
 
-    let userObj;
+  let userObj;
 
-    userUtils.getUserByName(validatedUser.username, (err, hasUser) => {
+  userUtils.getUserByName(validatedUser.username, (err, hasUser) => {
       if (err) {
         log.fatal({ err, username: validatedUser.username }, 'failed to get user');
         return res.status(500).send({
@@ -156,49 +156,48 @@ module.exports = async function createUser(req, res) {
           settings: validatedUser.settings,
         };
 
-        UserModel.create(userObj, (err, createdUser) => {
-          if (err) {
-            log.fatal({ err }, 'failed to create user');
-            return res.status(403).send({
+        UserModel.create(userObj)
+          .then((createdUser) => {
+            // create room
+            roomCreate({
+              name: validatedUser.username,
+              ip: validatedUser.ip,
+              isUserRoom: true,
+            }, createdUser, (err, room) => {
+              if (err) {
+                log.fatal({ err }, 'failed to create room');
+                return res.status(403).send({
+                  error: 'forbidden',
+                });
+              }
+
+              // log user in
+              const token = jwt.sign({ id: createdUser._id }, config.auth.jwt_secret);
+
+              // create cookie/cookies
+              res.cookie('jic.ident', createdUser._id, {
+                maxAge: config.auth.cookieTimeout,
+                signed: true,
+                httpOnly: true,
+                secure: config.auth.secureSessionCookie,
+                sameSite: 'lax',
+              });
+
+              const result = {
+                user: createdUser,
+                room: RoomUtils.filterRoom(room),
+                token,
+              };
+
+              res.status(201).send(new ReturnModel(null, result, null));
+            });
+          })
+          .catch((createErr) => {
+            log.fatal({ err: createErr }, 'failed to create user');
+            res.status(403).send({
               error: 'forbidden',
             });
-          }
-
-          // create room
-          roomCreate({
-            name: validatedUser.username,
-            ip: validatedUser.ip,
-            isUserRoom: true,
-          }, createdUser, (err, room) => {
-            if (err) {
-              log.fatal({ err }, 'failed to create room');
-              return res.status(403).send({
-                error: 'forbidden',
-              });
-            }
-
-            // log user in
-            const token = jwt.sign({ id: createdUser._id }, config.auth.jwt_secret);
-
-            // create cookie/cookies
-            res.cookie('jic.ident', createdUser._id, {
-              maxAge: config.auth.cookieTimeout,
-              signed: true,
-              httpOnly: true,
-              secure: config.auth.secureSessionCookie,
-              sameSite: 'lax',
-            });
-
-            const result = {
-              user: createdUser,
-              room: RoomUtils.filterRoom(room),
-              token,
-            };
-
-            res.status(201).send(new ReturnModel(null, result, null));
           });
-        });
       });
     });
-  });
 };

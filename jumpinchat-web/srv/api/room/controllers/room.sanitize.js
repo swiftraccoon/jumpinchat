@@ -8,13 +8,10 @@ const roomUtils = require('../room.utils');
 const redis = require('../../../lib/redis.util')();
 
 const clearOldSessionData = (socketId) => {
-  redis.del(socketId, (err) => {
-    if (err) {
-      log.fatal({ err, socketId }, 'failed to remove session data');
-      return;
-    }
-
+  redis.del(socketId).then(() => {
     log.debug({ socketId }, 'removed old session data');
+  }).catch((err) => {
+    log.fatal({ err, socketId }, 'failed to remove session data');
   });
 };
 
@@ -28,10 +25,8 @@ module.exports = function sanitizeUserList(name, cb) {
   log.debug({ roomName: name }, 'sanitizeUserList');
   const io = roomController.getSocketIo();
 
-  io.in(name).clients((err, clients) => {
-    if (err) {
-      log.fatal({ err, roomName: name }, 'error fetching socket clients');
-    }
+  io.in(name).fetchSockets().then((sockets) => {
+    const clients = sockets.map(s => s.id);
 
     log.debug({ clients, roomName: name }, 'socketio clients');
 

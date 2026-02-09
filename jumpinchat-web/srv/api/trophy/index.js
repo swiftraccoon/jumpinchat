@@ -10,13 +10,9 @@ const router = express.Router();
 
 router.get('/:name', getByName);
 router.get('/', (req, res) => {
-  trophyModel.find().exec((err, trophies) => {
-    if (err) {
-      return res.status(500).send('ERR_SRV');
-    }
-
-    return res.status(200).send(trophies);
-  });
+  trophyModel.find().exec()
+    .then((trophies) => res.status(200).send(trophies))
+    .catch(() => res.status(500).send('ERR_SRV'));
 });
 router.put('/apply/:userId', verifyAdmin, applyTrophy);
 router.post('/migrate', migrate);

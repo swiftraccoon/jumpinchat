@@ -75,15 +75,12 @@ module.exports = function handleMessageSocket(socket, io) {
           }));
         }
 
-        io.in(roomName).clients((err, clients) => {
-          if (err) {
-            log.fatal({ err }, 'error fetching socket room clients');
-            return;
-          }
-
-          clients
-            .filter(c => c !== socket.id)
-            .forEach(clientSocket => sendPush(msg.message.substring(0, 255), data, clientSocket));
+        io.in(roomName).fetchSockets().then((sockets) => {
+          sockets
+            .filter(s => s.id !== socket.id)
+            .forEach(s => sendPush(msg.message.substring(0, 255), data, s.id));
+        }).catch((err) => {
+          log.fatal({ err }, 'error fetching socket room clients');
         });
 
         const message = utils.messageFactory({

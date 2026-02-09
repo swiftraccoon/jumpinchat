@@ -81,5 +81,7 @@ module.exports = async function removeRoom(roomData, cb) {
   room.attrs.janusServerId = null;
   room.attrs.janus_id = null;
 
-  return room.save(cb);
+  return room.save()
+    .then(savedRoom => cb(null, savedRoom))
+    .catch(err => cb(err));
 };

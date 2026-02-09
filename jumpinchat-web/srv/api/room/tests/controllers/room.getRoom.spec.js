@@ -14,13 +14,14 @@ describe('Get Room', () => {
   const roomMock = {
     name: 'foo',
     attrs: {},
-    save: sinon.stub().yields(),
+    save: sinon.stub().resolves(),
     users: [],
   };
+  roomMock.save.resolves(roomMock);
 
   const ioMock = {
     in: sinon.stub().returns({
-      clients: sinon.stub().yields(null, [1, 2, 3]),
+      fetchSockets: sinon.stub().resolves([{ id: 1 }, { id: 2 }, { id: 3 }]),
     }),
   };
 
@@ -78,14 +79,13 @@ describe('Get Room', () => {
   });
 
   it('should get a room', (done) => {
-    sendSpy
-      .then(() => {
-        expect(res.status.firstCall.args[0]).to.equal(200);
-        done();
-      })
-      .catch(done.fail);
-
     controller(req, res);
+
+    // Allow promise microtasks (room.save().then()) to settle
+    setImmediate(() => {
+      expect(res.status.firstCall.args[0]).to.equal(200);
+      done();
+    });
   });
 
   it('should create a room if no room exists', (done) => {

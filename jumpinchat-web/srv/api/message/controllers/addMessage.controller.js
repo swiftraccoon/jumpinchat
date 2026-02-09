@@ -28,7 +28,7 @@ module.exports = async function addMessage(req, res) {
       value: {
         message,
       },
-    } = await Joi.validate(req.body, schema);
+    } = schema.validate(req.body);
 
     if (error) {
       return res.status(400).send(error);

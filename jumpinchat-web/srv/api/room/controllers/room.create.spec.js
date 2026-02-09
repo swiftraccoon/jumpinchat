@@ -13,7 +13,7 @@ describe('Room Create Controller', () => {
   const getController = () => mock.reRequire('./room.create');
 
   beforeEach(() => {
-    roomSaveSpy = sinon.stub().yields(null);
+    roomSaveSpy = sinon.stub().resolves();
     createJanusRoomSpy = sinon.stub().returns(Promise.resolve({ janusRoomId: 123, serverId: 'server' }));
     getRoomSpy = sinon.stub().returns(Promise.resolve(null));
     createSpy = sinon.stub().returns(Promise.resolve());

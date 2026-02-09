@@ -17,12 +17,10 @@ module.exports = function registerPush(req, res) {
     pushAuth: authSecret,
   };
 
-  redis.hmset(socketId, pushData, (err) => {
-    if (err) {
-      log.fatal({ err }, 'Failed to set push data');
-      return res.status(500).send('ERR_SRV');
-    }
-
-    return res.status(204).send();
+  redis.hSet(socketId, pushData).then(() => {
+    res.status(204).send();
+  }).catch((err) => {
+    log.fatal({ err }, 'Failed to set push data');
+    res.status(500).send('ERR_SRV');
   });
 };

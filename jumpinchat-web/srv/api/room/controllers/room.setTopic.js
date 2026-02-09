@@ -75,10 +75,12 @@ module.exports = async function submitTopic(socketId, topic) {
 
   try {
     const {
+      error: topicError,
       value: {
         topic: validatedTopic,
       },
-    } = await Joi.validate({ topic }, schema);
+    } = schema.validate({ topic });
+    if (topicError) throw topicError;
 
     if (room.settings.topic.text !== validatedTopic.trim()) {
       room.settings.topic = {

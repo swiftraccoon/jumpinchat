@@ -19,22 +19,11 @@ describe('Handle ban user socket', () => {
     emit,
   }));
 
-  const ioMockOf = () => ({
-    adapter: {
-      remoteDisconnect: sinon.stub().yields(),
-    },
-  });
-
   const ioMock = (emit = ioEmitSpy) => ({
     to: socketId => ioMockTo(emit, socketId),
-    of: socketId => ioMockOf(emit, socketId),
-    sockets: {
-      connected: {
-        foo: {
-          disconnect: disconnectSocketSpy,
-        },
-      },
-    },
+    in: sinon.stub().returns({
+      disconnectSockets: sinon.stub(),
+    }),
   });
 
   const getSocketCacheInfo = sinon.stub().resolves({

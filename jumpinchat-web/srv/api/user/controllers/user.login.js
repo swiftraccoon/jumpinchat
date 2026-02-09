@@ -18,16 +18,16 @@ module.exports = function login(req, res) {
     password: Joi.string().required(),
   });
 
-  Joi.validate({
+  const { error, value: validatedLogin } = schema.validate({
     username: req.body.username,
     password: req.body.password,
-  }, schema, { abortEarly: false }, (err, validatedLogin) => {
-    if (err) {
-      log.warn('invalid login details');
-      return res.status(400).send(new ReturnModel(err, null, 'ERR_VALIDATION'));
-    }
+  }, { abortEarly: false });
+  if (error) {
+    log.warn('invalid login details');
+    return res.status(400).send(new ReturnModel(error, null, 'ERR_VALIDATION'));
+  }
 
-    userUtils.getUserByName(validatedLogin.username.toLowerCase(), (err, user) => {
+  userUtils.getUserByName(validatedLogin.username.toLowerCase(), (err, user) => {
       if (err) {
         log.fatal({ err }, 'error getting user by username');
         return res.status(500).send(new ReturnModel(null, null, 'ERR_SRV'));
@@ -54,30 +54,28 @@ module.exports = function login(req, res) {
 
         // log user in
         const token = jwt.sign(String(user._id), config.auth.jwt_secret);
-        user.save((err, savedUser) => {
-          if (err) {
-            log.fatal({ err }, 'error saving user');
+        user.save()
+          .then((savedUser) => {
+            const dataToReturn = {
+              user: savedUser,
+              token,
+            };
+
+            // create cookie/cookies
+            res.cookie('jic.ident', savedUser._id, {
+              maxAge: config.auth.cookieTimeout,
+              signed: true,
+              httpOnly: true,
+              secure: config.auth.secureSessionCookie,
+              sameSite: 'lax',
+            });
+
+            res.status(200).send(new ReturnModel(null, dataToReturn, null));
+          })
+          .catch((saveErr) => {
+            log.fatal({ err: saveErr }, 'error saving user');
             res.status(403).send('forbidden');
-            return;
-          }
-
-          const dataToReturn = {
-            user: savedUser,
-            token,
-          };
-
-          // create cookie/cookies
-          res.cookie('jic.ident', savedUser._id, {
-            maxAge: config.auth.cookieTimeout,
-            signed: true,
-            httpOnly: true,
-            secure: config.auth.secureSessionCookie,
-            sameSite: 'lax',
           });
-
-          res.status(200).send(new ReturnModel(null, dataToReturn, null));
-        });
       });
     });
-  });
 };

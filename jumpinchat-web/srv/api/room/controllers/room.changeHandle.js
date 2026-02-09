@@ -7,7 +7,7 @@ const redis = require('../../../lib/redis.util')();
 const log = require('../../../utils/logger.util')({ name: 'room.changeHandle' });
 const errors = require('../../../config/constants/errors');
 
-module.exports = function changeHandle(socketId, newHandle, cb) {
+module.exports = async function changeHandle(socketId, newHandle, cb) {
   let oldHandle;
   let userId;
   const re = /^[a-zA-Z0-9_\-|[\]]+$/;
@@ -36,21 +36,25 @@ module.exports = function changeHandle(socketId, newHandle, cb) {
   }
 
   // get room name via socket id stored in redis
-  return redis.hgetall(socketId, (err, roomData) => {
-    if (err) {
-      return cb(err);
-    }
+  let roomData;
+  try {
+    roomData = await redis.hGetAll(socketId);
+    // hGetAll returns {} for missing keys in v4
+    if (roomData && Object.keys(roomData).length === 0) roomData = null;
+  } catch (err) {
+    return cb(err);
+  }
 
-    if (!roomData) {
-      log.error({ socketId }, 'no user session info found');
-      return cb({
-        error: 'ERR_NO_USER_SESSION',
-        message: 'User session is invalid, you need to refresh',
-      });
-    }
+  if (!roomData) {
+    log.error({ socketId }, 'no user session info found');
+    return cb({
+      error: 'ERR_NO_USER_SESSION',
+      message: 'User session is invalid, you need to refresh',
+    });
+  }
 
-    // get the room user is active in
-    return RoomUtils.getRoomByName(roomData.name, (err, room) => {
+  // get the room user is active in
+  return RoomUtils.getRoomByName(roomData.name, (err, room) => {
       if (err) {
         log.fatal({ err }, 'error getting room');
         return cb(err);
@@ -88,14 +92,11 @@ module.exports = function changeHandle(socketId, newHandle, cb) {
         return u;
       });
 
-      return room.save((err, savedRoom) => {
-        if (err) {
-          log.fatal({ err }, 'failed to save room');
-          return cb(err);
-        }
-
-        redis.hmset(socketId, { handle: newHandleTrimmed }, async (err) => {
-          if (err) {
+      return room.save()
+        .then(async (savedRoom) => {
+          try {
+            await redis.hSet(socketId, { handle: newHandleTrimmed });
+          } catch (err) {
             log.fatal({ err }, 'failed to set handle in redis');
             return cb(err);
           }
@@ -114,8 +115,8 @@ module.exports = function changeHandle(socketId, newHandle, cb) {
 
               await historyEntry.save();
             }
-          } catch (err) {
-            log.fatal({ err }, 'failed to update history entry');
+          } catch (histErr) {
+            log.fatal({ err: histErr }, 'failed to update history entry');
           }
 
           return cb(null, {
@@ -125,8 +126,10 @@ module.exports = function changeHandle(socketId, newHandle, cb) {
             room: roomData.name,
             user: savedUser,
           });
+        })
+        .catch((saveErr) => {
+          log.fatal({ err: saveErr }, 'failed to save room');
+          cb(saveErr);
         });
-      });
     });
-  });
 };

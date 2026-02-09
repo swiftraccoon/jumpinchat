@@ -46,7 +46,7 @@ module.exports = function handleJoinRoomSocket(socket, io) {
     // attach socket info
     const user = {
       ip,
-      session_id: jwt.decode(socket.handshake.query.token).session,
+      session_id: jwt.decode(socket.handshake.auth.token).session,
       handle: RoomUtils.createGuestHandle(),
       socket_id: socket.id,
       user_id: socket.handshake.signedCookies['jic.ident'] || null,

@@ -10,13 +10,13 @@ module.exports = function changeEmail(req, res) {
     password: Joi.string().required(),
   });
 
-  return Joi.validate(req.body, schema, (err, validated) => {
-    if (err) {
-      log.warn({ err }, 'body invalid');
-      return res.status(400).send({ error: 'ERR_INVALID_BODY', message: 'Invalid body' });
-    }
+  const { error, value: validated } = schema.validate(req.body);
+  if (error) {
+    log.warn({ err: error }, 'body invalid');
+    return res.status(400).send({ error: 'ERR_INVALID_BODY', message: 'Invalid body' });
+  }
 
-    return userUtils.getUserById(req.params.userId, (err, user) => {
+  return userUtils.getUserById(req.params.userId, (err, user) => {
       if (err) {
         log.fatal({ err }, 'error getting user');
         return res.status(403).send({ error: 'ERR_SRV', message: 'Server error' });
@@ -52,21 +52,20 @@ module.exports = function changeEmail(req, res) {
         user.auth.email = validated.email;
         user.auth.email_is_verified = false;
 
-        return user.save((err) => {
-          if (err) {
-            log.fatal({ err }, 'error saving user');
-            return res.status(500).send({ error: 'ERR_SRV', message: 'Server error' });
-          }
+        return user.save()
+          .then(() => {
+            createEmailVerification(user, (verifyErr) => {
+              if (verifyErr) {
+                log.fatal({ err: verifyErr }, 'failed to send verification email');
+              }
 
-          return createEmailVerification(user, (err) => {
-            if (err) {
-              log.fatal({ err }, 'failed to send verification email');
-            }
-
-            return res.status(200).send();
+              return res.status(200).send();
+            });
+          })
+          .catch((saveErr) => {
+            log.fatal({ err: saveErr }, 'error saving user');
+            res.status(500).send({ error: 'ERR_SRV', message: 'Server error' });
           });
-        });
       });
     });
-  });
 };

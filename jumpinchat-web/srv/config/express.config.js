@@ -9,20 +9,36 @@ const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const helmet = require('helmet');
 const errorHandler = require('errorhandler');
+const { createClient: createRedisClient } = require('redis');
 const RedisStore = require('connect-redis')(session);
 const path = require('path');
 const ejs = require('ejs');
-const sioSession = require('express-socket.io-session');
-const redis = require('../lib/redis.util');
 const config = require('./env');
 const log = require('../utils/logger.util')({ name: 'express.config' });
 
 module.exports = function expressConfig(app, io) {
   const env = app.get('env');
+
+  // Trust first proxy (nginx) so Express sees X-Forwarded-Proto as HTTPS
+  // Required for secure session cookies behind reverse proxy
+  app.set('trust proxy', 1);
+
+  // Create a separate legacy-mode redis client for connect-redis v6
+  // (connect-redis v6 uses callback-based API, not redis v4 promises)
+  const sessionRedisOpts = {};
+  if (config.redis) {
+    sessionRedisOpts.url = config.redis.uri;
+  }
+  sessionRedisOpts.legacyMode = true;
+  const sessionRedisClient = createRedisClient(sessionRedisOpts);
+  sessionRedisClient.connect().catch((err) => {
+    log.fatal({ err }, 'session redis connection failed');
+  });
+
   const cookieParserInstance = cookieParser(config.auth.cookieSecret);
   const sessionInstance = session({
     store: new RedisStore({
-      client: redis(),
+      client: sessionRedisClient,
     }),
     resave: false,
     saveUninitialized: true,
@@ -35,9 +51,21 @@ module.exports = function expressConfig(app, io) {
   app.use(sessionInstance);
   app.use(cookieParserInstance);
 
-  io.use(sioSession(sessionInstance, cookieParserInstance, {
-    autoSave: true,
-  }));
+  // Share Express session with Socket.io (replaces express-socket.io-session)
+  io.use((socket, next) => {
+    const req = socket.request;
+    const res = { getHeader() {}, setHeader() {} };
+    cookieParserInstance(req, res, (err) => {
+      if (err) return next(err);
+      socket.handshake.signedCookies = req.signedCookies;
+      sessionInstance(req, res, (err) => {
+        if (err) return next(err);
+        socket.handshake.session = req.session;
+        socket.handshake.sessionStore = req.sessionStore;
+        next();
+      });
+    });
+  });
 
   app.use(helmet({
     contentSecurityPolicy: false,

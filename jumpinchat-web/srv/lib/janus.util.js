@@ -2,7 +2,7 @@
  * Created by Zaccary on 09/09/2015.
  */
 
-const request = require('request');
+const axios = require('axios');
 const uuid = require('uuid');
 const crypto = require('crypto');
 const log = require('../utils/logger.util')({ name: 'janus' });
@@ -44,23 +44,25 @@ function createAdminRequest(body, opts, cb) {
 
   log.debug({ url: janusUri }, 'sending request');
 
-  const requestOptions = {
-    method: 'POST',
-    url: janusUri,
-    body: {
-      ...body,
-      transaction: generateTransactionString(),
-      token: getJanusToken(),
-    },
-    json: true,
-    headers: {
-      JANUS_SERVER_ID: opts.serverId,
-    },
+  const requestData = {
+    ...body,
+    transaction: generateTransactionString(),
+    token: getJanusToken(),
   };
 
-  log.debug({ requestOptions }, 'final request options');
+  log.debug({ url: janusUri, data: requestData }, 'final request options');
 
-  return request(requestOptions, cb);
+  return axios({
+    method: 'POST',
+    url: janusUri,
+    data: requestData,
+    headers: { JANUS_SERVER_ID: opts.serverId },
+    validateStatus: () => true,
+  }).then((response) => {
+    cb(null, { statusCode: response.status }, response.data);
+  }).catch((err) => {
+    cb(err);
+  });
 }
 
 

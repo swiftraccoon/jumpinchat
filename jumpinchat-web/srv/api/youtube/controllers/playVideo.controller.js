@@ -1,4 +1,4 @@
-const request = require('request');
+const axios = require('axios');
 const {
   toSeconds,
   parse,
@@ -60,24 +60,22 @@ class PlayVideo {
 
   constructor() {
     this.redis = redis;
-    this.request = request;
+    this.axios = axios;
   }
 
   checkCache(videoId, cb) {
-    this.redis.get(`yt:${videoId}`, cb);
+    this.redis.get(`yt:${videoId}`).then(val => cb(null, val)).catch(err => cb(err));
   }
 
   saveVideoInfoToCache(videoInformation, cb) {
     const infoString = JSON.stringify(videoInformation);
     const key = `yt:${videoInformation.mediaId}`;
 
-    return this.redis.set(key, infoString, (err) => {
-      if (err) {
-        log.fatal({ err }, 'failed to set video info in cache');
-        return cb(err);
-      }
-
-      return this.redis.expire(key, config.yt.detailCacheExpire, cb);
+    return this.redis.set(key, infoString).then(() => {
+      this.redis.expire(key, config.yt.detailCacheExpire).then(() => cb(null)).catch(err => cb(err));
+    }).catch((err) => {
+      log.fatal({ err }, 'failed to set video info in cache');
+      cb(err);
     });
   }
 
@@ -107,18 +105,13 @@ class PlayVideo {
 
       log.debug('no video info in cache');
 
-      this.request({
-        method: 'GET',
-        url: `https://www.googleapis.com/youtube/v3/videos?${encodeUriParams(urlParams)}`,
-        json: true,
-      }, (err, response, body) => {
-        if (err) {
-          log.error({ err, videoId }, 'error fetching video details');
-          return cb(err);
-        }
+      this.axios.get(`https://www.googleapis.com/youtube/v3/videos?${encodeUriParams(urlParams)}`, {
+        validateStatus: () => true,
+      }).then((response) => {
+        const body = response.data;
 
-        if (response.statusCode >= 400) {
-          log.warn({ body }, `error code from yt api: ${response.statusCode}`);
+        if (response.status >= 400) {
+          log.warn({ body }, `error code from yt api: ${response.status}`);
           if (body.error && Array.isArray(body.error)) {
             const [error] = body.error;
             return cb({
@@ -167,6 +160,9 @@ class PlayVideo {
 
           return cb(null, videoInformation);
         });
+      }).catch((err) => {
+        log.error({ err, videoId }, 'error fetching video details');
+        return cb(err);
       });
     });
   }
@@ -206,14 +202,12 @@ class PlayVideo {
 
       playlist.media[0].pausedAt = pausedAt;
       playlist.media[0].startTime = new Date(pausedAt.getTime() - (elapsedDuration * 1000));
-      return playlist.save((err, newPlaylist) => {
-        if (err) {
-          log.fatal({ err }, 'failed to save room');
-          return cb(err);
-        }
-
-        return cb(null, newPlaylist.media[0]);
-      });
+      return playlist.save()
+        .then((newPlaylist) => cb(null, newPlaylist.media[0]))
+        .catch((saveErr) => {
+          log.fatal({ err: saveErr }, 'failed to save room');
+          cb(saveErr);
+        });
     } catch (err) {
       log.fatal({ err, roomName }, 'Error getting room');
       console.error({ err });
@@ -270,14 +264,12 @@ class PlayVideo {
       playlist.media[0].startTime = new Date(currentTime - (elapsedDuration * 1000));
       playlist.media[0].endTime = new Date(currentTime + ((duration - elapsedDuration) * 1000));
 
-      return playlist.save((err, savedPlaylist) => {
-        if (err) {
-          log.fatal({ err }, 'failed to save room');
-          return cb(err);
-        }
-
-        return cb(null, savedPlaylist.media[0]);
-      });
+      return playlist.save()
+        .then((savedPlaylist) => cb(null, savedPlaylist.media[0]))
+        .catch((saveErr) => {
+          log.fatal({ err: saveErr }, 'failed to save room');
+          cb(saveErr);
+        });
     } catch (err) {
       log.fatal({ err, roomName }, 'Error getting room');
       return cb(err);
@@ -365,14 +357,12 @@ class PlayVideo {
           mediaObject,
         ];
 
-        return playlist.save((err, savedPlaylist) => {
-          if (err) {
-            log.fatal({ err }, 'error saving room');
-            return cb(err);
-          }
-
-          return cb(null, savedPlaylist.media, videoInformation);
-        });
+        return playlist.save()
+          .then((savedPlaylist) => cb(null, savedPlaylist.media, videoInformation))
+          .catch((saveErr) => {
+            log.fatal({ err: saveErr }, 'error saving room');
+            cb(saveErr);
+          });
       } catch (err) {
         log.fatal({ err }, 'error adding video to playlist');
         return cb(errors.ERR_SRV);
@@ -386,14 +376,12 @@ class PlayVideo {
       const removedItem = playlist.media.find(m => String(m._id) === String(id));
       playlist.media = playlist.media.filter(m => String(m._id) !== String(id));
 
-      playlist.save((err, savedPlaylist) => {
-        if (err) {
-          log.fatal({ err }, 'error saving playlist');
-          return cb(errors.ERR_SRV);
-        }
-
-        return cb(null, removedItem, savedPlaylist.media.length);
-      });
+      playlist.save()
+        .then((savedPlaylist) => cb(null, removedItem, savedPlaylist.media.length))
+        .catch((saveErr) => {
+          log.fatal({ err: saveErr }, 'error saving playlist');
+          cb(errors.ERR_SRV);
+        });
     } catch (err) {
       log.fatal({ err, roomName }, 'error fetching room');
       cb(errors.ERR_SRV);
@@ -428,14 +416,12 @@ class PlayVideo {
       playlist.media[0].endTime = new Date(startTime + (currentMedia.duration * 1000));
       playlist.media[0].startAt = PlayVideo.getStartTime({ ...currentMedia, startTime });
 
-      playlist.save((err, savedPlaylist) => {
-        if (err) {
-          log.fatal({ err }, 'error saving playlist');
-          return cb(errors.ERR_SRV);
-        }
-
-        return cb(null, savedPlaylist.media[0].toObject());
-      });
+      playlist.save()
+        .then((savedPlaylist) => cb(null, savedPlaylist.media[0].toObject()))
+        .catch((saveErr) => {
+          log.fatal({ err: saveErr }, 'error saving playlist');
+          cb(errors.ERR_SRV);
+        });
     } catch (err) {
       log.fatal({ err, roomName }, 'error fetching room');
       cb(errors.ERR_SRV);

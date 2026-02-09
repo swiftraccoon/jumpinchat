@@ -4,7 +4,7 @@ const RoomUtils = require('../room.utils');
 module.exports = function setUserIsBroadcastingSocket(socket, io) {
   return function setUserIsBroadcasting(msg) {
     log.debug({ message: msg }, 'setUserIsBroadcasting');
-    const getRoomNameBySocketId = () => Object.keys(socket.rooms).find(room => room !== socket.id);
+    const getRoomNameBySocketId = () => [...socket.rooms].find(room => room !== socket.id);
 
     RoomUtils.getRoomByName(getRoomNameBySocketId(), (err, room) => {
       if (err) {
@@ -38,25 +38,24 @@ module.exports = function setUserIsBroadcastingSocket(socket, io) {
           return user;
         });
 
-      return room.save((saveErr, savedRoom) => {
-        if (saveErr) {
+      return room.save()
+        .then((savedRoom) => {
+          const updatedUser = RoomUtils
+            .filterRoomUser(savedRoom.users.find(u => u.socket_id === socket.id));
+
+          log.info({
+            handle: updatedUser.handle,
+            room: savedRoom.name,
+            broadcasting: msg.isBroadcasting,
+          }, 'user changed broadcasting state');
+
+          io.to(savedRoom.name).emit('room::updateUser', {
+            user: updatedUser,
+          });
+        })
+        .catch((saveErr) => {
           log.fatal({ saveErr }, 'error saving room');
-          return;
-        }
-
-        const updatedUser = RoomUtils
-          .filterRoomUser(savedRoom.users.find(u => u.socket_id === socket.id));
-
-        log.info({
-          handle: updatedUser.handle,
-          room: savedRoom.name,
-          broadcasting: msg.isBroadcasting,
-        }, 'user changed broadcasting state');
-
-        io.to(savedRoom.name).emit('room::updateUser', {
-          user: updatedUser,
         });
-      });
     });
   };
 };

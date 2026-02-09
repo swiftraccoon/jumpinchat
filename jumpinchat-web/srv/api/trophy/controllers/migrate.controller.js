@@ -4,37 +4,26 @@ const trophyConst = require('../trophies');
 
 module.exports = function migrate(req, res) {
   log.debug('migrate trophies');
-  return trophyModel.find({}).exec((err, trophies) => {
-    if (err) {
-      log.fatal({ err }, 'error fetching trophies');
-      return res.status(500).send();
-    }
-
-    trophyConst.trophies.forEach((trophy) => {
-      const existingTrophy = trophies.find(t => t.name === trophy.name);
-      if (existingTrophy) {
-        return Object
-          .assign(existingTrophy, trophy)
-          .save((err) => {
-            if (err) {
-              log.fatal({ err }, 'error creating trophy');
-              return res.status(500).send();
-            }
-
-            log.debug('saved existing trophy');
-          });
-      }
-
-      return trophyModel.create(trophy, (err) => {
-        if (err) {
-          log.fatal({ err }, 'error creating trophy');
-          return res.status(500).send();
+  return trophyModel.find({}).exec()
+    .then((trophies) => {
+      const promises = trophyConst.trophies.map((trophy) => {
+        const existingTrophy = trophies.find(t => t.name === trophy.name);
+        if (existingTrophy) {
+          Object.assign(existingTrophy, trophy);
+          return existingTrophy.save()
+            .then(() => log.debug('saved existing trophy'))
+            .catch((saveErr) => log.fatal({ err: saveErr }, 'error saving trophy'));
         }
 
-        log.debug('created new trophy document');
+        return trophyModel.create(trophy)
+          .then(() => log.debug('created new trophy document'))
+          .catch((createErr) => log.fatal({ err: createErr }, 'error creating trophy'));
       });
-    });
 
-    res.status(200).send();
-  });
+      return Promise.all(promises).then(() => res.status(200).send());
+    })
+    .catch((err) => {
+      log.fatal({ err }, 'error fetching trophies');
+      res.status(500).send();
+    });
 };

@@ -27,14 +27,8 @@ module.exports = async function setAgeRestricted(req, res) {
     room.settings.forceUser = true;
     room.settings.public = false;
     room.attrs.ageRestricted = true;
-    return room.save((err) => {
-      if (err) {
-        log.fatal({ err }, 'failed to save room');
-        return res.status(500).send(errors.ERR_SRV);
-      }
-
-      return res.status(200).send();
-    });
+    await room.save();
+    return res.status(200).send();
   } catch (err) {
     log.fatal({ err }, 'error getting room');
     return res.status(500).send(errors.ERR_SRV);

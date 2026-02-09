@@ -30,25 +30,25 @@ module.exports = function addReport(req, res) {
     privateMessages: Joi.array().items(Joi.object()),
   });
 
-  Joi.validate(req.body, schema, { abortEarly: false }, (err, validated) => {
-    if (err) {
-      const message = err.details.map(d => d.message).join('\n');
-      return res.status(400).send(Object.assign(errors.ERR_INVALID_BODY, { message }));
-    }
+  const { error, value: validated } = schema.validate(req.body, { abortEarly: false });
+  if (error) {
+    const message = error.details.map(d => d.message).join('\n');
+    return res.status(400).send(Object.assign(errors.ERR_INVALID_BODY, { message }));
+  }
 
-    const ip = getRemoteIpFromReq(req);
-    const {
-      reporterId,
-      targetId,
-      room,
-      reason,
-      description,
-      screenshotUri,
-      messages,
-      privateMessages,
-    } = validated;
+  const ip = getRemoteIpFromReq(req);
+  const {
+    reporterId,
+    targetId,
+    room,
+    reason,
+    description,
+    screenshotUri,
+    messages,
+    privateMessages,
+  } = validated;
 
-    return roomUtils.getRoomByName(room, (err, roomObj) => {
+  return roomUtils.getRoomByName(room, (err, roomObj) => {
       if (err) {
         log.fatal({ err, room }, 'error getting room');
         return res.status(500).send(errors.ERR_SRV);
@@ -104,7 +104,7 @@ module.exports = function addReport(req, res) {
 
         const screenshotFileName = `${Date.now()}.${targetUser._id}.jpg`;
 
-        uploadDataUriToS3(screenshotFileName, screenshotUri, (err, url) => {
+        uploadDataUriToS3(screenshotFileName, screenshotUri, async (err, url) => {
           if (err) {
             log.fatal({ err }, 'error uploading report screenshot');
             return res.status(500).send(errors.ERR_SRV);
@@ -145,60 +145,60 @@ module.exports = function addReport(req, res) {
             },
           };
 
-          return reportModel.create(report, async (err, createdReport) => {
-            if (err) {
-              log.fatal({ err }, 'failed to save report');
-              return res.status(500).send(errors.ERR_SRV);
-            }
+          let createdReport;
+          try {
+            createdReport = await reportModel.create(report);
+          } catch (createErr) {
+            log.fatal({ err: createErr }, 'failed to save report');
+            return res.status(500).send(errors.ERR_SRV);
+          }
 
-            const text = 'User report';
-            const attachments = [
-              {
-                fallback: text,
-                title: text,
-                title_link: `https://jumpin.chat/admin/reports/${createdReport._id}`,
-                fields: [
-                  {
-                    title: 'Reason',
-                    value: report.reason,
-                    short: true,
-                  },
-                  {
-                    title: 'Room',
-                    value: `<https://jumpin.chat/admin/rooms/${report.room.name}|${report.room.name}>`,
-                    short: true,
-                  },
-                  {
-                    title: 'Reporter',
-                    value: report.reporter.handle,
-                    short: true,
-                  },
-                  {
-                    title: 'Target',
-                    value: report.target.handle,
-                    short: true,
-                  },
-                ],
-                ts: Date.now() / 1000,
-              },
-            ];
+          const text = 'User report';
+          const attachments = [
+            {
+              fallback: text,
+              title: text,
+              title_link: `https://jumpin.chat/admin/reports/${createdReport._id}`,
+              fields: [
+                {
+                  title: 'Reason',
+                  value: report.reason,
+                  short: true,
+                },
+                {
+                  title: 'Room',
+                  value: `<https://jumpin.chat/admin/rooms/${report.room.name}|${report.room.name}>`,
+                  short: true,
+                },
+                {
+                  title: 'Reporter',
+                  value: report.reporter.handle,
+                  short: true,
+                },
+                {
+                  title: 'Target',
+                  value: report.target.handle,
+                  short: true,
+                },
+              ],
+              ts: Date.now() / 1000,
+            },
+          ];
 
-            try {
-              await slackBot.message(attachments);
-            } catch (err) {
-              log.error({ err }, 'failed to send slack message');
-            }
+          try {
+            await slackBot.message(attachments);
+          } catch (slackErr) {
+            log.error({ err: slackErr }, 'failed to send slack message');
+          }
 
-            try {
-              await reportUtils.sendReportMessages(createdReport, roomObj.name);
-            } catch (err) {
-              log.fatal({ err }, 'failed to send report messages');
-            }
+          try {
+            await reportUtils.sendReportMessages(createdReport, roomObj.name);
+          } catch (reportErr) {
+            log.fatal({ err: reportErr }, 'failed to send report messages');
+          }
 
-            return res.status(201).send();
-          });
+          return res.status(201).send();
         });
       });
     });
-  });
 };

@@ -1,4 +1,4 @@
-const request = require('request');
+const axios = require('axios');
 const log = require('../../../utils/logger.util')({ name: 'ytAPiQuery' });
 const encodeUriParams = require('../../../utils/encodeUriParams');
 const getCurrentCred = require('./getCurrentCred');
@@ -14,38 +14,32 @@ module.exports = async function ytApiQuery(url, urlParams, method = 'GET') {
 
   log.debug({ apiKey }, 'got current cred');
 
-  return new Promise((resolve, reject) => request({
+  const response = await axios({
     method,
     url: `${url}?${encodeUriParams({ ...urlParams, key: apiKey })}`,
-    json: true,
-  }, (err, response, body) => {
-    if (err) {
-      log.error({ err }, 'error fetching yt search results');
+    validateStatus: () => true,
+  });
 
-      return reject(err);
-    }
+  const body = response.data;
 
-    if (response.statusCode >= 400) {
-      log.warn({ body }, `error code from yt api: ${response.statusCode}`);
+  if (response.status >= 400) {
+    log.warn({ body }, `error code from yt api: ${response.status}`);
 
-      if (body.error && body.error.errors) {
-        const [error] = body.error.errors;
+    if (body.error && body.error.errors) {
+      const [error] = body.error.errors;
 
-        if (error.reason === 'dailyLimitExceeded' || error.reason === 'quotaExceeded') {
-          // attempt to rotate API keys
-          log.error({ error }, 'Youtube quota exceeded');
+      if (error.reason === 'dailyLimitExceeded' || error.reason === 'quotaExceeded') {
+        log.error({ error }, 'Youtube quota exceeded');
 
-          const e = new Error();
-
-          e.name = 'ExternalProviderError';
-          e.message = 'YouTube quota exceeded. Quota will be reset at midnight PST';
-          return reject(e);
-        }
+        const e = new Error();
+        e.name = 'ExternalProviderError';
+        e.message = 'YouTube quota exceeded. Quota will be reset at midnight PST';
+        throw e;
       }
-
-      return reject();
     }
 
-    return resolve(body.items);
-  }));
+    throw new Error(`YouTube API error: ${response.status}`);
+  }
+
+  return body.items;
 };

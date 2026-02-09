@@ -102,14 +102,12 @@ module.exports = function uploadDisplayPic(req, res) {
 
             room.settings.display = filePath;
 
-            room.save((err) => {
-              if (err) {
-                log.fatal({ err }, 'saving user failed');
-                return res.status(500).send();
-              }
-
-              return res.status(200).send({ url: filePath });
-            });
+            room.save()
+              .then(() => res.status(200).send({ url: filePath }))
+              .catch((saveErr) => {
+                log.fatal({ err: saveErr }, 'saving user failed');
+                res.status(500).send();
+              });
           });
         });
       });

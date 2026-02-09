@@ -1,5 +1,4 @@
 const Joi = require('joi');
-const request = require('request');
 const crypto = require('crypto');
 const {
   toSeconds,
@@ -30,21 +29,20 @@ class SearchYoutube {
 
   constructor() {
     this.Joi = Joi;
-    this.request = request;
     this.redis = redis;
     this.cacheExpire = config.yt.cacheExpire;
   }
 
-  validate(data, cb) {
+  validate(data) {
     const schema = this.Joi.object().keys({
       term: this.Joi.string().required(),
     });
 
-    this.Joi.validate(data, schema, cb);
+    return schema.validate(data);
   }
 
   checkCache(hash, cb) {
-    this.redis.get(`yt_search:${hash}`, cb);
+    this.redis.get(`yt_search:${hash}`).then(val => cb(null, val)).catch(err => cb(err));
   }
 
   saveSearchInCache(hash, results, cb) {
@@ -57,13 +55,9 @@ class SearchYoutube {
 
     const key = `yt_search:${hash}`;
 
-    return this.redis.set(key, resultsString, (err) => {
-      if (err) {
-        return cb(err);
-      }
-
-      return this.redis.expire(key, this.cacheExpire, cb);
-    });
+    return this.redis.set(key, resultsString).then(() => {
+      this.redis.expire(key, this.cacheExpire).then(() => cb(null)).catch(err => cb(err));
+    }).catch(err => cb(err));
   }
 
   static encodeUrlParams(params) {
@@ -73,15 +67,15 @@ class SearchYoutube {
   }
 
   sendRequest(req, res) {
-    this.validate(req.params, (err, params) => {
-      if (err) {
-        log.warn({ err }, 'invalid search params');
-        return res.status(400).send({
-          message: 'invalid search term',
-        });
-      }
+    const { error, value: params } = this.validate(req.params);
+    if (error) {
+      log.warn({ err: error }, 'invalid search params');
+      return res.status(400).send({
+        message: 'invalid search term',
+      });
+    }
 
-      const term = SearchYoutube.fetchVideoIdFromUrl(params.term);
+    const term = SearchYoutube.fetchVideoIdFromUrl(params.term);
 
       if (!term || !SearchYoutube.testYouTubeId(term)) {
         return res.status(400).send({
@@ -182,7 +176,6 @@ class SearchYoutube {
           });
         }
       });
-    });
   }
 }
 

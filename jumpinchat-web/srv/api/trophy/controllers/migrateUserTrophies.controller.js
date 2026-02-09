@@ -36,7 +36,9 @@ function handleMigration(user, trophies, cb) {
       return cb(err);
     }
 
-    return applyStatusTrophies(user, trophies).save(cb);
+    return applyStatusTrophies(user, trophies).save()
+      .then(savedUser => cb(null, savedUser))
+      .catch(err => cb(err));
   });
 }
 

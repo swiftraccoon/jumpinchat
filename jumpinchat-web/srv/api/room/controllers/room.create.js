@@ -67,7 +67,9 @@ module.exports = async function createRoom(room, user, cb) {
     existingRoom.attrs.owner = roomOwnerId;
     existingRoom.settings.moderators = roomSettings.moderators;
 
-    return existingRoom.save(cb);
+    return existingRoom.save()
+      .then(savedRoom => cb(null, savedRoom))
+      .catch(err => cb(err));
   }
 
   let janusRoomId;

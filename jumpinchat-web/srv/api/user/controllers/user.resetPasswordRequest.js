@@ -28,33 +28,32 @@ module.exports = function requestResetPassword(req, res) {
     username: Joi.string().alphanum().required(),
   });
 
-  return Joi.validate(req.body, schema, (err, validated) => {
+  const { error, value: validated } = schema.validate(req.body);
+  if (error) {
+    log.warn('invalid email verification token');
+    return res.status(400).send('Email address is required');
+  }
+
+  return getUser(validated.username, (err, user) => {
     if (err) {
-      log.warn('invalid email verification token');
-      return res.status(400).send('Email address is required');
+      return res.status(err.status).send(err.message);
     }
 
-    return getUser(validated.username, (err, user) => {
+    if (!user) {
+      return res.status(204).send();
+    }
+
+    if (!user.auth.email_is_verified) {
+      return res.status(204).send();
+    }
+
+    return createPasswordReset(user, (err) => {
       if (err) {
-        return res.status(err.status).send(err.message);
+        log.error({ err }, 'Could not create new verification data');
+        return res.status(403).send();
       }
 
-      if (!user) {
-        return res.status(204).send();
-      }
-
-      if (!user.auth.email_is_verified) {
-        return res.status(204).send();
-      }
-
-      return createPasswordReset(user, (err) => {
-        if (err) {
-          log.error({ err }, 'Could not create new verification data');
-          return res.status(403).send();
-        }
-
-        return res.status(204).send();
-      });
+      return res.status(204).send();
     });
   });
 };

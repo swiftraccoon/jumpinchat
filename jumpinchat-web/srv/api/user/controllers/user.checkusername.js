@@ -9,46 +9,45 @@ module.exports = function checkUsername(req, res) {
     username: Joi.string().alphanum().required(),
   });
 
-  Joi.validate(req.params, schema, { abortEarly: false }, (err, params) => {
-    if (err) {
-      log.warn('invalid username');
-      return res.status(400).send({
-        message: 'Username can only contain letters and numbers',
+  const { error, value: params } = schema.validate(req.params, { abortEarly: false });
+  if (error) {
+    log.warn('invalid username');
+    return res.status(400).send({
+      message: 'Username can only contain letters and numbers',
+      error: 'ERR_VALIDATION',
+    });
+  }
+
+  const username = params.username.toLowerCase();
+
+  if (username.length > 16) {
+    return res.status(400)
+      .send({
+        message: 'Username can not be longer than 16 characters',
         error: 'ERR_VALIDATION',
+      });
+  }
+
+  if (config.reservedUsernames.includes(username)) {
+    return res.status(400)
+      .send({
+        message: 'Username taken',
+        error: 'ERR_USER_EXISTS',
+      });
+  }
+
+  return userUtils.getUserByName(username, (err, hasUser) => {
+    if (err) {
+      log.error({ err });
+      return res.status(403).send({
+        error: 'forbidden',
       });
     }
 
-    const username = params.username.toLowerCase();
-
-    if (username.length > 16) {
-      return res.status(400)
-        .send({
-          message: 'Username can not be longer than 16 characters',
-          error: 'ERR_VALIDATION',
-        });
+    if (hasUser) {
+      return res.status(400).send({ message: 'Username taken', error: 'ERR_USER_EXISTS' });
     }
 
-    if (config.reservedUsernames.includes(username)) {
-      return res.status(400)
-        .send({
-          message: 'Username taken',
-          error: 'ERR_USER_EXISTS',
-        });
-    }
-
-    return userUtils.getUserByName(username, (err, hasUser) => {
-      if (err) {
-        log.error({ err });
-        return res.status(403).send({
-          error: 'forbidden',
-        });
-      }
-
-      if (hasUser) {
-        return res.status(400).send({ message: 'Username taken', error: 'ERR_USER_EXISTS' });
-      }
-
-      return res.status(200).send();
-    });
+    return res.status(200).send();
   });
 };

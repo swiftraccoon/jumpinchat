@@ -21,7 +21,7 @@ describe('banUser', () => {
     socket = {
       id: 'socket',
       handshake: {
-        query: {
+        auth: {
           token: jwt.sign({ session: 'sessionId' }, 'foo'),
         },
         headers: {
@@ -30,7 +30,7 @@ describe('banUser', () => {
       },
     };
     roomMock = _.cloneDeep(roomMockJson);
-    roomSaveStub = sinon.stub().yields();
+    roomSaveStub = sinon.stub().resolves();
 
     roomMock.save = roomSaveStub;
     roomUtilsStub = {

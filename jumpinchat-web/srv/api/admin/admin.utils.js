@@ -1,5 +1,4 @@
 const moment = require('moment');
-const request = require('request');
 const { groupBy } = require('lodash');
 const config = require('../../config/env');
 const log = require('../../utils/logger.util')({ name: 'adminUtils' });
@@ -120,59 +119,52 @@ module.exports.getStatsMonth = function getStatsMonth(stats) {
   return limitedStats.map(v => mergeData(v, 'day'));
 };
 
-module.exports.setStatsInCache = function setStatsInCache(stats) {
-  return new Promise((resolve, reject) => {
-    try {
-      const statsString = JSON.stringify(stats);
-      return redis.set(statsKey, statsString, (err) => {
-        if (err) {
-          log.fatal({ err }, 'failed to set stats');
-          return reject(err);
-        }
+module.exports.setStatsInCache = async function setStatsInCache(stats) {
+  let statsString;
+  try {
+    statsString = JSON.stringify(stats);
+  } catch (err) {
+    log.fatal({ err }, 'failed to stringify stats');
+    throw err;
+  }
 
-        return redis.expire(statsKey, config.admin.stats.ttl, (err) => {
-          if (err) {
-            log.fatal({ err }, 'failed to set stats');
-            return reject(err);
-          }
-
-          return resolve();
-        });
-      });
-    } catch (err) {
-      log.fatal({ err }, 'failed to stringify stats');
-      return reject(err);
-    }
-  });
+  try {
+    await redis.set(statsKey, statsString);
+    await redis.expire(statsKey, config.admin.stats.ttl);
+  } catch (err) {
+    log.fatal({ err }, 'failed to set stats');
+    throw err;
+  }
 };
 
-module.exports.getStatsFromCache = function getStatsFromCache() {
-  return new Promise((resolve, reject) => redis.ttl(statsKey, (err, ttl) => {
-    if (err) {
-      log.fatal({ err }, 'failed to get stats');
-      return reject(err);
-    }
+module.exports.getStatsFromCache = async function getStatsFromCache() {
+  let ttl;
+  try {
+    ttl = await redis.ttl(statsKey);
+  } catch (err) {
+    log.fatal({ err }, 'failed to get stats');
+    throw err;
+  }
 
-    if (ttl === -2) {
-      log.debug('stats have expired, skipping');
-      return resolve();
-    }
+  if (ttl === -2) {
+    log.debug('stats have expired, skipping');
+    return undefined;
+  }
 
-    return redis.get(statsKey, (err, stats) => {
-      if (err) {
-        log.fatal({ err }, 'failed to get stats');
-        return reject(err);
-      }
+  let stats;
+  try {
+    stats = await redis.get(statsKey);
+  } catch (err) {
+    log.fatal({ err }, 'failed to get stats');
+    throw err;
+  }
 
-      try {
-        const parsedStats = JSON.parse(stats);
-        return resolve(parsedStats);
-      } catch (err) {
-        log.fatal({ err }, 'failed to parse stats');
-        return reject(err);
-      }
-    });
-  }));
+  try {
+    return JSON.parse(stats);
+  } catch (err) {
+    log.fatal({ err }, 'failed to parse stats');
+    throw err;
+  }
 };
 
 module.exports.addSiteMod = function addSiteMod(sitemod) {

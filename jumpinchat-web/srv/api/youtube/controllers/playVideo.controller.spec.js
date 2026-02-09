@@ -60,7 +60,7 @@ describe('youtube play controller', () => {
         getRoomIdFromName: () => Promise.resolve(),
       },
       '../../user/user.utils': {},
-      '../../../lib/redis.util': () => ({ hmset: sinon.stub().yields() }),
+      '../../../lib/redis.util': () => ({ hSet: sinon.stub().resolves() }),
       '../../../utils/encodeUriParams': () => 'foo',
       '../../role/role.utils': {
         getUserHasRolePermissions: () => Promise.resolve(true),
@@ -78,25 +78,30 @@ describe('youtube play controller', () => {
     PlayVideo = playVideoController.PlayVideo;
 
     playVideo.redis = {
-      get: sandbox.stub().yields(),
-      set: sandbox.stub().yields(),
-      expire: sandbox.stub().yields(),
+      get: sandbox.stub().resolves(),
+      set: sandbox.stub().resolves(),
+      expire: sandbox.stub().resolves(),
     };
 
-    playVideo.request = sinon.stub().yields(null, { statusCode: 200 }, {
-      items: [{
-        contentDetails: {
-          duration: 'P1S',
-        },
-        snippet: {
-          thumbnails: {
-            default: {
-              url: 'http://foo.bar',
+    playVideo.axios = {
+      get: sinon.stub().resolves({
+        status: 200,
+        data: {
+          items: [{
+            contentDetails: {
+              duration: 'P1S',
             },
-          },
+            snippet: {
+              thumbnails: {
+                default: {
+                  url: 'http://foo.bar',
+                },
+              },
+            },
+          }],
         },
-      }],
-    });
+      }),
+    };
   });
 
   describe('checkCache', () => {
@@ -138,7 +143,7 @@ describe('youtube play controller', () => {
     it('should not request YT API if cache is available', (done) => {
       playVideo.checkCache = sinon.stub().yields(null, '{"foo": "bar"}');
       playVideo.getVideoInformation('foo', () => {
-        expect(playVideo.request.called).to.equal(false);
+        expect(playVideo.axios.get.called).to.equal(false);
         done();
       });
     });
@@ -146,7 +151,7 @@ describe('youtube play controller', () => {
     it('should request YT API if cache is not available', (done) => {
       playVideo.checkCache = sinon.stub().yields(null);
       playVideo.getVideoInformation('foo', () => {
-        expect(playVideo.request.called).to.equal(true);
+        expect(playVideo.axios.get.called).to.equal(true);
         done();
       });
     });

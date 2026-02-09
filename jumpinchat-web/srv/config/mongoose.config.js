@@ -21,12 +21,11 @@ if (config.env === 'development') {
 }
 
 module.exports = function mongooseConfig() {
-  mongoose.connect(config.mongo.uri, config.mongo.options, (err) => {
-    if (err) {
+  mongoose.connect(config.mongo.uri, config.mongo.options)
+    .catch((err) => {
       log.fatal({ err }, 'failed to connect to MongoDB');
       throw err;
-    }
-  });
+    });
 
   mongoose.connection.on('connected', () => {
     log.info('Mongoose connected');

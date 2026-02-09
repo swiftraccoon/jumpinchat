@@ -1,13 +1,19 @@
 const redis = require('../lib/redis.util')();
 
-module.exports.callPromise = function callPromise(method, ...args) {
-  return new Promise((resolve, reject) => {
-    redis[method](...args, (err, ...res) => {
-      if (err) {
-        return reject(err);
-      }
+// Map redis v2 method names to v4 equivalents
+const methodMap = {
+  hmset: 'hSet',
+  hgetall: 'hGetAll',
+};
 
-      return resolve(...res);
-    });
-  });
+module.exports.callPromise = async function callPromise(method, ...args) {
+  const v4Method = methodMap[method] || method;
+  const result = await redis[v4Method](...args);
+
+  // hGetAll returns {} for missing keys in v4, but callers expect null (v2 behavior)
+  if ((method === 'hgetall' || method === 'hGetAll') && result && Object.keys(result).length === 0) {
+    return null;
+  }
+
+  return result;
 };

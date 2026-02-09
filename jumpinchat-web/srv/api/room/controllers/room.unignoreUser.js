@@ -17,13 +17,12 @@ module.exports = function unignoreUserController(id, socketId, cb) {
         user.settings.ignoreList = user.settings.ignoreList
           .filter(i => i.id !== id);
 
-        return user.save((err) => {
-          if (err) {
-            log.fatal({ err }, 'error saving user');
-          }
-
-          return cb();
-        });
+        return user.save()
+          .then(() => cb())
+          .catch((saveErr) => {
+            log.fatal({ err: saveErr }, 'error saving user');
+            cb();
+          });
       } catch (err) {
         log.fatal({ err }, 'error fetching user');
         return cb(errors.ERR_SRV);

@@ -50,13 +50,9 @@ module.exports = async function ignoreUser(roomName, socketId, targetListId, cb)
         ignoreData,
       ];
 
-      user.save((err) => {
-        if (err) {
-          log.fatal({ err }, 'error saving user');
-        }
-
-        log.debug('ignore list item saved to user settings');
-      });
+      user.save()
+        .then(() => log.debug('ignore list item saved to user settings'))
+        .catch((saveErr) => log.fatal({ err: saveErr }, 'error saving user'));
     }
 
     return cb(null, ignoreData);

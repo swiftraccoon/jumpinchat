@@ -51,7 +51,8 @@ describe('utils', () => {
     controller = proxyquire('./utils.js', {
       '../api/user/user.utils': userUtilsMock,
       '../api/room/room.utils': {},
-      '../lib/redis.util': redisMock,
+      './redis.util': { callPromise: sinon.stub() },
+      './rateLimit': sinon.stub(),
       'aws-sdk': awsMock,
     });
   });

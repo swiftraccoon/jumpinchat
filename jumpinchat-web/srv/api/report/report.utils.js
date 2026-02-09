@@ -23,40 +23,38 @@ module.exports.getReportById = function getReportById(reportId) {
 
 module.exports.incrementReport = async function incrementReport(session, cb) {
   const key = getLimiterKey(session);
-  return redis.get(key, (err, current) => {
-    if (err) {
+
+  let current;
+  try {
+    current = await redis.get(key);
+  } catch (err) {
+    return cb(err);
+  }
+
+  if (current && current >= config.report.limit) {
+    let ttl;
+    try {
+      ttl = await redis.ttl(key);
+    } catch (err) {
+      log.fatal({ err }, 'failed to get TTL');
       return cb(err);
     }
 
-    if (current && current >= config.report.limit) {
-      return redis.ttl(key, (err, ttl) => {
-        if (err) {
-          log.fatal({ err }, 'failed to get TTL');
-          return cb(err);
-        }
-
-        log.warn('User has hit report limit');
-        return cb({
-          name: 'ERR_LIMIT',
-          ttl,
-        });
-      });
-    }
-
-    return redis.incr(key, (err) => {
-      if (err) {
-        return cb(err);
-      }
-
-      return redis.expire(key, config.report.limitExpire, (err) => {
-        if (err) {
-          return cb(err);
-        }
-
-        return cb();
-      });
+    log.warn('User has hit report limit');
+    return cb({
+      name: 'ERR_LIMIT',
+      ttl,
     });
-  });
+  }
+
+  try {
+    await redis.incr(key);
+    await redis.expire(key, config.report.limitExpire);
+  } catch (err) {
+    return cb(err);
+  }
+
+  return cb();
 };
 
 module.exports.getTimeLeft = function getTimeLeft(ttl) {

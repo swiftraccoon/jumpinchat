@@ -97,7 +97,7 @@ module.exports = async function updateRolesController(body) {
       ...r,
       roomName,
     })),
-    ...changedRoles.map(role => roleModel.update(
+    ...changedRoles.map(role => roleModel.updateOne(
       { _id: role._id }, {
         $set: {
           name: role.name,

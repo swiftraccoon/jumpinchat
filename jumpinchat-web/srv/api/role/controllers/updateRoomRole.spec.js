@@ -30,7 +30,7 @@ describe('updateRoomRoleController', () => {
     };
 
     mock('../role.model', {
-      update: roleModelUpdate,
+      updateOne: roleModelUpdate,
     });
 
     roleUtilStubs = {

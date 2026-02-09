@@ -390,13 +390,18 @@ module.exports.verifySiteMod = async function verifyAdmin(req, res, next) {
 };
 
 module.exports.getSocketRooms = function getSocketRooms(io, socketId, cb) {
-  io.of('/').adapter.clientRooms(socketId, (err, rooms) => {
-    if (err) {
-      log.fatal({ err }, 'error getting client rooms');
+  io.in(socketId).fetchSockets().then((sockets) => {
+    if (!sockets.length) {
+      log.debug({ socketId }, 'socket not found');
+      return cb(null, undefined);
     }
 
+    const rooms = [...sockets[0].rooms].filter(r => r !== socketId);
     log.debug({ rooms, socketId }, 'socket rooms');
-    cb(null, rooms[1]);
+    cb(null, rooms[0]);
+  }).catch((err) => {
+    log.fatal({ err }, 'error getting client rooms');
+    cb(err);
   });
 };
 
@@ -495,15 +500,8 @@ module.exports.getHostDomain = function getHostDomain(req) {
 };
 
 module.exports.destroySocketConnection = function destroySocketConnection(io, socketId) {
-  return new Promise((resolve, reject) => {
-    io.of('/').adapter.remoteDisconnect(socketId, true, (err) => {
-      if (err) {
-        return reject(err);
-      }
-
-      return resolve();
-    });
-  });
+  io.in(socketId).disconnectSockets(true);
+  return Promise.resolve();
 };
 
 module.exports.getIpFromSocket = function getIpFromSocket(socket) {

@@ -29,20 +29,20 @@ module.exports = function bounceNotification(req, res) {
     }
 
     user.auth.email_is_verified = false;
-    user.save(async (err) => {
-      if (err) {
-        log.fatal({ err }, 'failed to save user');
-      }
+    user.save()
+      .then(async () => {
+        try {
+          log.info({ emailAddress }, 'blacklisting bounced address');
+          await addToBlacklist(message);
+        } catch (blErr) {
+          log.fatal({ err: blErr }, 'error adding to blacklist');
+        }
 
-      try {
-        log.info({ emailAddress }, 'blacklisting bounced address');
-        await addToBlacklist(message);
-      } catch (err) {
-        log.fatal({ err }, 'error adding to blacklist');
-      }
-
-      log.info({ emailAddress }, 'email unverified');
-    });
+        log.info({ emailAddress }, 'email unverified');
+      })
+      .catch((saveErr) => {
+        log.fatal({ err: saveErr }, 'failed to save user');
+      });
   }));
 
   if (config.env === 'production') {

@@ -13,7 +13,7 @@ let roomMockData;
 
 const ioMock = {
   in: sinon.stub().returns({
-    clients: sinon.stub().yields(null, [1, 2, 3]),
+    fetchSockets: sinon.stub().resolves([{ id: 1 }, { id: 2 }, { id: 3 }]),
   }),
 };
 
@@ -52,6 +52,7 @@ describe('Room Sanitize Controller', () => {
         getRoomByName,
       },
       '../sockets/disconnectUser.socket': disconnectUserSocket,
+      '../../../lib/redis.util': () => ({ del: sinon.stub().resolves() }),
     };
 
     roomSanitize = proxyquire('../../controllers/room.sanitize.js', stubs);

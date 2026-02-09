@@ -3,11 +3,11 @@ const sinon = require('sinon');
 const mock = require('mock-require');
 
 describe('ytApiQuery', () => {
-  let requestStub;
+  let axiosStub;
   const getController = () => mock.reRequire('./ytApiQuery');
   beforeEach(() => {
-    requestStub = sinon.stub().yields(null, { statusCode: 200 }, { items: [] });
-    mock('request', requestStub);
+    axiosStub = sinon.stub().resolves({ status: 200, data: { items: [] } });
+    mock('axios', axiosStub);
     mock('./getCurrentCred', () => Promise.resolve('foo'));
   });
 
@@ -24,23 +24,23 @@ describe('ytApiQuery', () => {
       throw err;
     }
 
-    expect(requestStub.firstCall.args[0]).to.eql({
-      method: 'GET',
-      url: 'http://api?key=foo',
-      json: true,
-    });
+    expect(axiosStub.firstCall.args[0].method).to.equal('GET');
+    expect(axiosStub.firstCall.args[0].url).to.equal('http://api?key=foo');
   });
 
   it('should reject with provider error if yt quota error', async () => {
-    requestStub = sinon.stub().yields(null, { statusCode: 429 }, {
-      error: {
-        errors: [{
-          reason: 'dailyLimitExceeded',
-        }],
+    axiosStub = sinon.stub().resolves({
+      status: 429,
+      data: {
+        error: {
+          errors: [{
+            reason: 'dailyLimitExceeded',
+          }],
+        },
       },
     });
 
-    mock('request', requestStub);
+    mock('axios', axiosStub);
     const controller = getController();
 
     try {
@@ -55,7 +55,7 @@ describe('ytApiQuery', () => {
     const controller = getController();
 
     try {
-      const result = await controller('foo', {});
+      const result = await controller('http://api', {});
       expect(result).to.eql([]);
     } catch (err) {
       throw err;

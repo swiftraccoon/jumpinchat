@@ -1,4 +1,4 @@
-const request = require('request');
+const axios = require('axios');
 const log = require('./logger.util')({ name: 'SlackBot' });
 
 class SlackBot {
@@ -17,26 +17,13 @@ class SlackBot {
       attachments,
     };
 
-    const requestOptions = {
-      method: 'POST',
-      url: this.url,
-      body: payload,
-      json: true,
-    };
-
-    return new Promise((resolve, reject) => request(requestOptions, (err, response) => {
-      if (err) {
-        log.fatal({ err }, 'error posting slack webhook');
-        return reject(err);
-      }
-
-      if (response.statusCode >= 400) {
-        log.fatal({ statusCode: response.statusCode }, 'error posting slack webhook');
-        return reject(response.statusCode);
-      }
-
-      return resolve();
-    }));
+    return axios.post(this.url, payload)
+      .then(() => {})
+      .catch((err) => {
+        const status = err.response && err.response.status;
+        log.fatal({ err, statusCode: status }, 'error posting slack webhook');
+        throw status || err;
+      });
   }
 }
 

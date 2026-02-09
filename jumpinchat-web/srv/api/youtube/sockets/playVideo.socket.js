@@ -7,7 +7,7 @@ const { playVideo } = require('../controllers/playVideo.controller');
 
 module.exports = function playYoutubeVideoSocket(socket, io) {
   return async function playYoutubeVideo(msg) {
-    const roomName = Object.keys(socket.rooms).find(k => k !== socket.id);
+    const roomName = [...socket.rooms].find(k => k !== socket.id);
 
     let data;
 

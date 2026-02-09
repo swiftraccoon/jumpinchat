@@ -7,26 +7,25 @@ module.exports = function getTrophyByName(req, res) {
     name: Joi.string(),
   });
 
-  Joi.validate(req.params, schema, { abortEarly: false }, (err, { name }) => {
+  const { error, value: { name } } = schema.validate(req.params, { abortEarly: false });
+  if (error) {
+    return res.status(400).send();
+  }
+
+  return trophyUtils.getTrophyByName(name, (err, trophy) => {
     if (err) {
-      return res.status(400).send();
+      if (err === 'ERR_NOT_FOUND') {
+        return res.status(404).send();
+      }
+
+      log.fatal({ err }, 'error getting trophy');
+      return res.status(500).send('ERR_SRV');
     }
 
-    return trophyUtils.getTrophyByName(name, (err, trophy) => {
-      if (err) {
-        if (err === 'ERR_NOT_FOUND') {
-          return res.status(404).send();
-        }
+    if (!trophy) {
+      res.status(404).send();
+    }
 
-        log.fatal({ err }, 'error getting trophy');
-        return res.status(500).send('ERR_SRV');
-      }
-
-      if (!trophy) {
-        res.status(404).send();
-      }
-
-      return res.status(200).send(trophy);
-    });
+    return res.status(200).send(trophy);
   });
 };

@@ -1,17 +1,16 @@
-const RedisStore = require('rate-limit-redis');
+const { RedisStore } = require('rate-limit-redis');
 const rateLimit = require('express-rate-limit');
 const log = require('./logger.util')({ name: 'rateLimit' });
 const redis = require('../lib/redis.util')();
 const config = require('../config/env');
 
 const store = new RedisStore({
-  client: redis,
-  expiry: config.auth.rateLimitDuration / 1000,
+  sendCommand: (...args) => redis.sendCommand(args),
 });
 
 module.exports = rateLimit({
   windowMs: config.auth.rateLimitDuration,
-  max: 10,
+  limit: 10,
   store,
   keyGenerator: (req) => {
     let ip;

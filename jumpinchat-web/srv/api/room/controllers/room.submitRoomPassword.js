@@ -11,7 +11,8 @@ module.exports = async function submitRoomPassword(req, res) {
   });
 
   try {
-    const { value: { password } } = Joi.validate(req.body, schema);
+    const { error, value: { password } } = schema.validate(req.body);
+    if (error) throw error;
     return roomUtils.getRoomByName(req.params.room, async (err, room) => {
       if (err) {
         log.fatal({ err }, 'error getting room');

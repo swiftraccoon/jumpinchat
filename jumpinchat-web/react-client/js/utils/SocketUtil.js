@@ -15,7 +15,7 @@ class SocketUtil {
   }
 
   authSocket(token) {
-    this.socket = io({ query: `token=${token}` });
+    this.socket = io({ auth: { token } });
     this.socket.on('disconnect', () => {
       console.warn('socket disconnected');
     });

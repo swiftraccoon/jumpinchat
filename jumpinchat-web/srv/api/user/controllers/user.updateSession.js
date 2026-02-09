@@ -30,33 +30,32 @@ function updateRoomSocketInfo(roomName, oldSocket, newSocket, cb) {
       return user;
     });
 
-    room.save((err) => {
-      if (err) {
-        log.fatal({ err }, 'error saving new socket');
-        return cb(err);
-      }
-
-      return cb(null);
-    });
+    room.save()
+      .then(() => cb(null))
+      .catch((saveErr) => {
+        log.fatal({ err: saveErr }, 'error saving new socket');
+        cb(saveErr);
+      });
   });
 }
 
-function setNewId(newId, oldId, roomData, cb) {
-  redis.hmset(newId, roomData, (err) => {
-    if (err) {
-      log.fatal({ err }, 'error pushing room name into redis socket list');
-      return cb(err);
-    }
+async function setNewId(newId, oldId, roomData, cb) {
+  try {
+    await redis.hSet(newId, roomData);
+  } catch (err) {
+    log.fatal({ err }, 'error pushing room name into redis socket list');
+    return cb(err);
+  }
 
-    // delete old socket info
-    redis.del(oldId, (err) => {
-      if (err) {
-        log.fatal({ err }, 'failed to delete old redis session');
-        return cb(err);
-      }
+  try {
+    await redis.del(oldId);
+  } catch (err) {
+    log.fatal({ err }, 'failed to delete old redis session');
+    return cb(err);
+  }
 
-      // rejoin socket into room
-      const io = UserSocket.getIo();
+  // rejoin socket into room
+  const io = UserSocket.getIo();
 
       if (!io) {
         const error = new Error('ERR_NO_SIO');
@@ -65,12 +64,8 @@ function setNewId(newId, oldId, roomData, cb) {
         return cb(error);
       }
 
-      io.of('/').adapter.clients((err, clients) => {
-        if (err) {
-          log.fatal({ err }, 'failed to get connected sockets');
-          return cb(err);
-        }
-
+      io.fetchSockets().then((sockets) => {
+        const clients = sockets.map(s => s.id);
         const newSocket = clients.find(c => c === newId);
 
         if (!newSocket) {
@@ -78,28 +73,24 @@ function setNewId(newId, oldId, roomData, cb) {
           return cb(new Error('new socket connection not found'));
         }
 
-        return io.of('/').adapter.remoteJoin(newSocket, roomData.name, (err) => {
+        io.in(newId).socketsJoin(roomData.name);
+
+        updateRoomSocketInfo(roomData.name, oldId, newId, (err) => {
           if (err) {
-            log.fatal({ err }, 'failed to join new socket to room');
+            log.fatal({ err }, 'failed to update socket info');
             return cb(err);
           }
 
-          updateRoomSocketInfo(roomData.name, oldId, newId, (err) => {
-            if (err) {
-              log.fatal({ err }, 'failed to update socket info');
-              return cb(err);
-            }
+          log.info({ newId, oldId, room: roomData.name }, 'updated room cache info');
 
-            log.info({ newId, oldId, room: roomData.name }, 'updated room cache info');
+          log.info({ newId, oldId, room: roomData.name }, 'reconnected socket to room');
 
-            log.info({ newId, oldId, room: roomData.name }, 'reconnected socket to room');
-
-            return cb();
-          });
+          return cb();
         });
+      }).catch((err) => {
+        log.fatal({ err }, 'failed to get connected sockets');
+        return cb(err);
       });
-    });
-  });
 }
 
 module.exports = function updateSession(req, res) {

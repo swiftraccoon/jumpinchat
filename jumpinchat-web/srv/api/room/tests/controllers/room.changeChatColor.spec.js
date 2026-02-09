@@ -19,12 +19,12 @@ const roomMockData = {
 };
 
 let hmset;
-const roomSaveStub = sinon.stub().yields(null, roomMockData);
+const roomSaveStub = sinon.stub().resolves(roomMockData);
 const roomMock = Object.assign({}, roomMockData, { save: roomSaveStub });
 
 describe('Room Change Handle Controller', () => {
   beforeEach(() => {
-    hmset = sinon.stub().yields();
+    hmset = sinon.stub().resolves();
     changeColor = proxyquire('../../controllers/room.changeChatColor', {
       '../room.utils': {
         filterRoomUser: sinon.stub().callsFake(u => u),
@@ -32,8 +32,8 @@ describe('Room Change Handle Controller', () => {
         getRoomByName: sinon.stub().yields(null, roomMock),
       },
       '../../../lib/redis.util': () => ({
-        hmset,
-        hgetall: sinon.stub().yields(null, {
+        hSet: hmset,
+        hGetAll: sinon.stub().resolves({
           name: 'roomName',
           color: '#000000',
         }),

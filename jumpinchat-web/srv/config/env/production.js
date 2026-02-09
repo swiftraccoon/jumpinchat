@@ -7,10 +7,8 @@ module.exports = {
   mongo: {
     uri: process.env.MONGODB_URI,
     options: {
-      poolSize: process.env.MONGODB_POOL || 10,
-      autoIndex: false, // Don't build indexes
-      reconnectTries: Number.MAX_VALUE, // Never stop trying to reconnect
-      reconnectInterval: 500, // Reconnect every 500ms
+      maxPoolSize: process.env.MONGODB_POOL || 10,
+      autoIndex: false,
     },
   },
   redis: {

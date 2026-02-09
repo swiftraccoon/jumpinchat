@@ -12,12 +12,10 @@ module.exports = function getReports(req, res) {
       path: 'resolution.resolvedBy',
       select: ['username', 'profile.pic'],
     })
-    .exec((err, result) => {
-      if (err) {
-        log.fatal({ err }, 'failed to fetch report');
-        return res.status(500).send(errors.ERR_SRV);
-      }
-
-      return res.status(200).send(result);
+    .exec()
+    .then((result) => res.status(200).send(result))
+    .catch((err) => {
+      log.fatal({ err }, 'failed to fetch report');
+      res.status(500).send(errors.ERR_SRV);
     });
 };

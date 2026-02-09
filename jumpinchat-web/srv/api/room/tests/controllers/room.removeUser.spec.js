@@ -6,7 +6,7 @@ const proxyquire = require('proxyquire').noCallThru().noPreserveCache();
 
 let removeUser;
 
-const roomSave = sinon.stub().yields(null, { users: [{ handle: 'foo' }] });
+const roomSave = sinon.stub().resolves({ users: [{ handle: 'foo' }] });
 
 let roomMockData;
 
@@ -67,7 +67,7 @@ describe('Room Remove User Controller', () => {
         },
       ],
       attrs: {},
-      save: sinon.stub().yields(null, { users: ['foo'] }),
+      save: sinon.stub().resolves({ users: ['foo'] }),
     });
 
     stubs = Object.assign({}, stubs, {
@@ -92,7 +92,7 @@ describe('Room Remove User Controller', () => {
         },
       ],
       attrs: {},
-      save: sinon.stub().yields(null, { users: [] }),
+      save: sinon.stub().resolves({ users: [] }),
     });
 
     stubs = Object.assign({}, stubs, {

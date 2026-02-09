@@ -65,14 +65,7 @@ async function handleBanSocket(socketId, banEntry) {
 
     if (restrictions.join) {
       io.to(target.socketId).emit('self::banned');
-      io.of('/').adapter.remoteDisconnect(target.socketId, true, (err) => {
-        if (err) {
-          log.error({
-            err,
-            socket: target.socketId,
-          }, 'error disconnecting socket');
-        }
-      });
+      io.in(target.socketId).disconnectSockets(true);
     }
 
     log.debug({ ...target }, 'user banned');
@@ -93,21 +86,10 @@ module.exports = async function siteBan(req, res) {
     reportId: Joi.string().allow(''),
   });
 
-  let validated;
-
-  try {
-    const {
-      value,
-    } = await Joi.validate(req.body, schema, { abortEarly: false });
-    validated = value;
-  } catch (err) {
-    if (err.name === 'ValidationError') {
-      log.error({ err }, 'validation error');
-      return res.status(400).send('ERR_VALIDATION');
-    }
-
-    log.fatal({ err }, 'error');
-    return res.status(500).send('ERR_SRV');
+  const { error, value: validated } = schema.validate(req.body, { abortEarly: false });
+  if (error) {
+    log.error({ err: error }, 'validation error');
+    return res.status(400).send('ERR_VALIDATION');
   }
 
   const {

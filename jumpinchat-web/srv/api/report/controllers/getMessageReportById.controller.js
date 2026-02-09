@@ -11,12 +11,10 @@ module.exports = function getMessageReportById(req, res) {
       path: 'message',
       select: ['recipient', 'sender', '_id', 'message'],
     })
-    .exec((err, result) => {
-      if (err) {
-        log.fatal({ err }, 'failed to fetch reports');
-        return res.status(500).send(errors.ERR_SRV);
-      }
-
-      return res.status(200).send(result);
+    .exec()
+    .then((result) => res.status(200).send(result))
+    .catch((err) => {
+      log.fatal({ err }, 'failed to fetch reports');
+      res.status(500).send(errors.ERR_SRV);
     });
 };

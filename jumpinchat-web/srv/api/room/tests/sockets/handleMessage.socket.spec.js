@@ -19,7 +19,7 @@ describe('Handle message socket', () => {
       emit,
     }),
     in: sinon.stub().returns({
-      clients: sinon.stub().yields(null, [1, 2, 3]),
+      fetchSockets: sinon.stub().resolves([{ id: 1 }, { id: 2 }, { id: 3 }]),
     }),
   });
 

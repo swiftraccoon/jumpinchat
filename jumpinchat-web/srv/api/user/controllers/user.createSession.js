@@ -111,15 +111,13 @@ module.exports = function createSession(req, res) {
         user.attrs.last_login_ip = utils.getRemoteIpFromReq(req);
         user.auth.latestFingerprint = fp;
 
-        user.save((err) => {
-          if (err) {
-            log.fatal({ err, userId: user._id }, 'error saving user');
-            return false;
-          }
-
-          log.debug('updated user last seen');
-          return true;
-        });
+        user.save()
+          .then(() => {
+            log.debug('updated user last seen');
+          })
+          .catch((saveErr) => {
+            log.fatal({ err: saveErr, userId: user._id }, 'error saving user');
+          });
       }
       return returnUserData();
     });

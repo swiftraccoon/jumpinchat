@@ -2,12 +2,10 @@
  * Created by vivaldi on 09/11/2014.
  */
 
-const url = require('url');
-const sioJwt = require('socketio-jwt');
-const sioWildcard = require('socketio-wildcard')();
-const socketIoRedis = require('socket.io-redis');
+const jwt = require('jsonwebtoken');
+const { createAdapter } = require('@socket.io/redis-adapter');
+const Redis = require('ioredis');
 const log = require('../utils/logger.util')({ name: 'socket.config' });
-const redis = require('../lib/redis.util');
 const config = require('./env');
 const utils = require('../utils/utils');
 
@@ -26,20 +24,28 @@ function _onConnect(socket, io) {
 }
 
 module.exports = function socketConfig(io) {
-  io.use(sioJwt.authorize({
-    secret: config.auth.jwt_secret,
-    handshake: true,
-  }));
+  // JWT authentication middleware (replaces socketio-jwt)
+  io.use((socket, next) => {
+    const token = socket.handshake.auth && socket.handshake.auth.token;
 
-  io.use(sioWildcard);
+    if (!token) {
+      return next(new Error('Authentication error: no token'));
+    }
 
-  const rtg = url.parse(config.redis.uri);
-  io.adapter(socketIoRedis({
-    host: rtg.hostname,
-    port: rtg.port,
-    pub: redis(),
-    sub: redis(),
-  }));
+    try {
+      jwt.verify(token, config.auth.jwt_secret);
+      // Store token on handshake for backward compat with handlers
+      // that read socket.handshake.auth.token
+      next();
+    } catch (err) {
+      return next(new Error('Authentication error: invalid token'));
+    }
+  });
+
+  // Redis adapter (replaces socket.io-redis with @socket.io/redis-adapter + ioredis)
+  const pubClient = new Redis(config.redis.uri);
+  const subClient = pubClient.duplicate();
+  io.adapter(createAdapter(pubClient, subClient));
 
   adminController.setSocketIo(io);
   roomController.setSocketIo(io);
@@ -47,7 +53,9 @@ module.exports = function socketConfig(io) {
 
   io.on('connection', (socket) => {
     log.info({ socketId: socket.id }, 'Connected to socket');
-    socket.on('*', () => {
+
+    // Replaces socketio-wildcard's socket.on('*', ...)
+    socket.onAny(() => {
       utils.updateLastSeen(socket.id, async (err, updated, userId) => {
         if (err) {
           log.error({ err }, 'failed to update last seen');

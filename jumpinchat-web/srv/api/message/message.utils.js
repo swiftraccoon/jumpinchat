@@ -198,51 +198,43 @@ module.exports.getConversationCount = async function getConversationCount(userId
   return ConversationModel.countDocuments({ participants: { $in: [userId] } }).exec();
 };
 
-function setInCache(key, data) {
-  return new Promise((resolve, reject) => {
-    try {
-      const dataString = JSON.stringify(data);
-      return redis.set(key, dataString, (err) => {
-        if (err) {
-          log.fatal({ err }, 'error setting conversations in cache');
-          return reject(err);
-        }
+async function setInCache(key, data) {
+  let dataString;
+  try {
+    dataString = JSON.stringify(data);
+  } catch (err) {
+    log.fatal({ err }, 'error stringifying conversations');
+    throw err;
+  }
 
-        return redis.expire(key, config.messages.cacheTimeout, (err) => {
-          if (err) {
-            log.fatal({ err }, 'error setting conversation in cache');
-            return reject(err);
-          }
-
-          return resolve();
-        });
-      });
-    } catch (err) {
-      log.fatal({ err }, 'error stringifying conversations');
-      return reject(err);
-    }
-  });
+  try {
+    await redis.set(key, dataString);
+    await redis.expire(key, config.messages.cacheTimeout);
+  } catch (err) {
+    log.fatal({ err }, 'error setting conversations in cache');
+    throw err;
+  }
 }
 
-function getFromCache(key) {
-  return new Promise((resolve, reject) => redis.get(key, (err, data) => {
-    if (err) {
-      log.fatal({ err }, 'error getting conversations from cache');
-      return reject(err);
-    }
+async function getFromCache(key) {
+  let data;
+  try {
+    data = await redis.get(key);
+  } catch (err) {
+    log.fatal({ err }, 'error getting conversations from cache');
+    throw err;
+  }
 
-    if (!data) {
-      return resolve();
-    }
+  if (!data) {
+    return undefined;
+  }
 
-    try {
-      const serializedData = JSON.parse(data);
-      return resolve(serializedData);
-    } catch (err) {
-      log.fatal({ err }, 'failed to parse data');
-      return reject(err);
-    }
-  }));
+  try {
+    return JSON.parse(data);
+  } catch (err) {
+    log.fatal({ err }, 'failed to parse data');
+    throw err;
+  }
 }
 
 module.exports.setConversationsInCache = function setConversationsInCache(userId, conversations, page) {

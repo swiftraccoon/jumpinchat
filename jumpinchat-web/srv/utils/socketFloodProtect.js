@@ -3,75 +3,59 @@ const redis = require('../lib/redis.util')();
 const config = require('../config/env');
 const { FloodError } = require('./error.util');
 
-function setKey(key) {
-  return new Promise((resolve, reject) => {
-    redis.set(key, 1, (err) => {
-      if (err) {
-        log.fatal({ err }, 'failed to set flood key');
-        return reject(err);
-      }
+async function setKey(key) {
+  try {
+    await redis.set(key, 1);
+  } catch (err) {
+    log.fatal({ err }, 'failed to set flood key');
+    throw err;
+  }
 
-      // Timer to use if limit not reached.
-      // Lower value, preventing rapid message spam
-      return redis.expire(key, config.room.floodRefresh, (err) => {
-        if (err) {
-          log.fatal({ err }, 'failed to set flood key');
-          return reject(err);
-        }
-
-        log.debug({ key }, 'expire set on flood key');
-        return resolve();
-      });
-    });
-  });
+  try {
+    await redis.expire(key, config.room.floodRefresh);
+    log.debug({ key }, 'expire set on flood key');
+  } catch (err) {
+    log.fatal({ err }, 'failed to set flood key');
+    throw err;
+  }
 }
 
-module.exports = function socketFloodProtect(socket, io) {
-  return new Promise((resolve, reject) => {
-    const key = `flood:${socket.id}`;
-    redis.get(key, async (err, value) => {
-      if (err) {
-        log.fatal({ err }, 'failed to get flood key');
-        return reject(err);
-      }
+module.exports = async function socketFloodProtect(socket, io) {
+  const key = `flood:${socket.id}`;
 
-      log.debug({ value, key }, 'socket flood protect');
+  let value;
+  try {
+    value = await redis.get(key);
+  } catch (err) {
+    log.fatal({ err }, 'failed to get flood key');
+    throw err;
+  }
 
-      if (!value) {
-        try {
-          await setKey(key);
-          log.info({ key }, 'new flood key set');
-          return resolve();
-        } catch (err) {
-          return reject(err);
-        }
-      }
+  log.debug({ value, key }, 'socket flood protect');
 
-      if (Number(value) > config.room.floodLimit) {
-        log.warn({ key }, 'flood limit reached');
-        // Timer to use if user reaches the flood limit
-        // higher value, shuts users up for a while
-        return redis.expire(key, config.room.floodTimeout, (err) => {
-          if (err) {
-            log.fatal({ err, key }, 'failed to reset expire on flood key');
-            return reject(err);
-          }
+  if (!value) {
+    await setKey(key);
+    log.info({ key }, 'new flood key set');
+    return;
+  }
 
-          const e = new FloodError('Flood limit reached. Please enhance your calm.');
-          return reject(e);
-        });
-      }
+  if (Number(value) > config.room.floodLimit) {
+    log.warn({ key }, 'flood limit reached');
+    try {
+      await redis.expire(key, config.room.floodTimeout);
+    } catch (err) {
+      log.fatal({ err, key }, 'failed to reset expire on flood key');
+      throw err;
+    }
 
-      return redis.incr(key, (err) => {
-        if (err) {
-          log.fatal({ err }, 'failed to get flood key');
-          return reject(err);
-        }
+    throw new FloodError('Flood limit reached. Please enhance your calm.');
+  }
 
-        log.debug({ key }, 'key value incremented');
-
-        return resolve();
-      });
-    });
-  });
+  try {
+    await redis.incr(key);
+    log.debug({ key }, 'key value incremented');
+  } catch (err) {
+    log.fatal({ err }, 'failed to get flood key');
+    throw err;
+  }
 };

@@ -103,23 +103,14 @@ module.exports = function handleKickUserSocket(socket, io) {
 
           io.to(user.socket_id).emit('self::banned');
 
-          io.of('/').adapter.remoteDisconnect(user.socket_id, true, (err) => {
-            if (err) {
-              log.fatal({
-                err,
-                socket: user.socket_id,
-              }, 'error disconnecting socket');
+          io.in(user.socket_id).disconnectSockets(true);
 
-              return;
-            }
-
-            log.debug({
-              socketId: user.socket_id,
-              sessionId: user.sessionId,
-              room: socketData.name,
-              bannedById: socketData.userListId,
-            }, 'user kicked');
-          });
+          log.debug({
+            socketId: user.socket_id,
+            sessionId: user.sessionId,
+            room: socketData.name,
+            bannedById: socketData.userListId,
+          }, 'user kicked');
         });
       });
     } catch (err) {

@@ -11,9 +11,7 @@ module.exports = {
   mongo: {
     uri: process.env.MONGODB_URI || 'mongodb://localhost/tc',
     options: {
-      server: {
-        poolSize: process.env.MONGODB_POOL || 10,
-      },
+      maxPoolSize: process.env.MONGODB_POOL || 10,
     },
   },
   redis: {

@@ -32,34 +32,33 @@ module.exports.notifyServerRestart = function notifyServerRestartEndpoint(req, r
 module.exports.notify = function notifyEndpoint(req, res) {
   const schema = Joi.object().keys({
     message: Joi.string().required(),
-    type: Joi.string().valid([
+    type: Joi.string().valid(
       'INFO',
       'SUCCESS',
       'ALERT',
       'WARNING',
-    ]).required(),
+    ).required(),
     room: Joi.string(),
   });
 
-  Joi.validate(req.body, schema, (validateErr, validated) => {
-    if (validateErr) {
-      log.warn({ body: req.body, validateErr }, 'invalid body');
-      return res.status(400).send(validateErr);
+  const { error: validateErr, value: validated } = schema.validate(req.body);
+  if (validateErr) {
+    log.warn({ body: req.body, validateErr }, 'invalid body');
+    return res.status(400).send(validateErr);
+  }
+
+  if (!_io) {
+    log.fatal('socketIO not connected');
+    return res.status(500).send();
+  }
+
+  notify(_io, validated, (notifyErr) => {
+    if (notifyErr) {
+      log.error({ notifyErr });
+      return res.status(500).send('Broke it');
     }
 
-    if (!_io) {
-      log.fatal('socketIO not connected');
-      return res.status(500).send();
-    }
-
-    notify(_io, validated, (notifyErr) => {
-      if (notifyErr) {
-        log.error({ notifyErr });
-        return res.status(500).send('Broke it');
-      }
-
-      return res.status(200).send();
-    });
+    return res.status(200).send();
   });
 };
 

@@ -8,7 +8,7 @@ describe('Room Remove Controller', () => {
   mock.stopAll();
   const remove = sinon.stub().yields();
 
-  const save = sinon.stub().yields();
+  const save = sinon.stub().resolves();
 
   let roomMockData;
 

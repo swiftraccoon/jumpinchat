@@ -1,5 +1,5 @@
 const dns = require('dns');
-const request = require('request');
+const axios = require('axios');
 const log = require('../../utils/logger.util')({ name: 'email.utils' });
 const blacklistModel = require('./blacklist.model');
 
@@ -173,20 +173,20 @@ module.exports.isSubscriptionConfirmation = function isSubscriptionConfirmation(
 };
 
 module.exports.handleSnsSubscription = function handleSnsSubscription(req, res) {
-  return request(req.body.SubscribeURL, (err, response, body) => {
-    if (err) {
+  return axios.get(req.body.SubscribeURL, { validateStatus: () => true })
+    .then((response) => {
+      if (response.status >= 400) {
+        log.error({ body: response.data }, 'bounce notification confirmation failed');
+        return res.status(204).send();
+      }
+
+      log.info({ response: response.status }, 'bounce notification subscription confirmed');
+      return res.status(204).send();
+    })
+    .catch((err) => {
       log.error({ err }, 'error confirming bounce notification subscription');
       return res.status(204).send();
-    }
-
-    if (response.statusCode >= 400) {
-      log.error({ body }, 'bounce notification confirmation failed');
-      return res.status(204).send();
-    }
-
-    log.info({ response: response.statusCode }, 'bounce notification subscription confirmed');
-    return res.status(204).send();
-  });
+    });
 };
 
 

@@ -42,33 +42,32 @@ module.exports = function resetPassword(req, res) {
     userId: Joi.string().required(),
   });
 
-  Joi.validate(req.body, schema, (err, validated) => {
+  const { error, value: validated } = schema.validate(req.body);
+  if (error) {
+    log.warn('invalid email verification token');
+    res.status(400).send({ error: 'ERR_NO_DATA', message: 'required parameters are missing' });
+    return;
+  }
+
+  getUser(validated.userId, (err, user) => {
     if (err) {
-      log.warn('invalid email verification token');
-      res.status(400).send({ error: 'ERR_NO_DATA', message: 'required parameters are missing' });
-      return;
+      return res.status(err.status).send(err.message);
     }
 
-    getUser(validated.userId, (err, user) => {
+    generatePassHash(validated.password, (err, hash) => {
       if (err) {
         return res.status(err.status).send(err.message);
       }
 
-      generatePassHash(validated.password, (err, hash) => {
-        if (err) {
-          return res.status(err.status).send(err.message);
-        }
-
-        user.auth.passhash = hash;
-        user.save((err) => {
-          if (err) {
-            log.fatal({ err }, 'Failed to save user');
-            return res.status(403).send('Forbidden');
-          }
-
+      user.auth.passhash = hash;
+      user.save()
+        .then(() => {
           res.status(200).send();
+        })
+        .catch((saveErr) => {
+          log.fatal({ err: saveErr }, 'Failed to save user');
+          res.status(403).send('Forbidden');
         });
-      });
     });
   });
 };

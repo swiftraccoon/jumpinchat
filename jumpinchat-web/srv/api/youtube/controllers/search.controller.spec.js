@@ -14,21 +14,23 @@ describe('youtube search controller', () => {
   beforeEach(() => {
     SearchYoutube = proxyquire('./search.controller', {
       '../room.utils': {},
-      '../../../lib/redis.util': () => ({ hmset: sinon.stub().yields() }),
+      '../../../lib/redis.util': () => ({ hSet: sinon.stub().resolves() }),
       '../../../utils/utils': {
         encodeUriParams: () => 'foo',
       },
       './playVideo.controller': {
         saveVideoInfoToCache: sinon.stub().yields(),
       },
+      '../utils/ytApiQuery': sinon.stub().resolves([]),
+      '../utils/getCurrentCred': sinon.stub().resolves('mock-api-key'),
     });
 
     searchYoutube = new SearchYoutube();
 
     searchYoutube.redis = {
-      get: sandbox.stub().yields(),
-      set: sandbox.stub().yields(),
-      expire: sandbox.stub().yields(),
+      get: sandbox.stub().resolves(),
+      set: sandbox.stub().resolves(),
+      expire: sandbox.stub().resolves(),
     };
   });
 

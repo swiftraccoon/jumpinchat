@@ -17,14 +17,12 @@ module.exports = function unsubscribe(req, res) {
       }
 
       user.settings.receiveUpdates = false;
-      return user.save((err) => {
-        if (err) {
-          log.fatal({ err, id }, 'failed to save user');
-          return res.status(500).send();
-        }
-
-        return res.status(200).send('Successfully unsubscribed from email updates');
-      });
+      return user.save()
+        .then(() => res.status(200).send('Successfully unsubscribed from email updates'))
+        .catch((saveErr) => {
+          log.fatal({ err: saveErr, id }, 'failed to save user');
+          res.status(500).send();
+        });
     });
   });
 };
