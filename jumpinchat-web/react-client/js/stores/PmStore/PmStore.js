@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 import { PmDispatcher } from '../../dispatcher/AppDispatcher';
 import * as types from '../../constants/ActionTypes';
 import {

@@ -5,7 +5,7 @@
 /* global navigator,Janus,window */
 
 import React from 'react';
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 import request from 'superagent';
 import camStore from '../stores/CamStore/CamStore';
 import {

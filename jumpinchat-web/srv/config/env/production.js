@@ -43,11 +43,11 @@ module.exports = {
   auth: {
     sharedSecret: process.env.SHARED_SECRET,
     cookieSecret: process.env.COOKIE_SECRET,
-    secureSessionCookie: false,
+    secureSessionCookie: true,
     jwt_secret: process.env.JWT_SECRET,
     turnSecret: 'janus',
     activityTokenTimeout: 1000 * 60 * 60 * 24,
-    cookieTimeout: 1000 * 60 * 60 * 24 * 180,
+    cookieTimeout: 1000 * 60 * 60 * 24 * 30,
     rateLimitDuration: 1000 * 30,
   },
   room: {

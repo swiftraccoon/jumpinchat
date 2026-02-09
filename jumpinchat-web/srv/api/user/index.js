@@ -5,6 +5,7 @@
 const express = require('express');
 const settings = require('./controllers/user.settings');
 const utils = require('../../utils/utils');
+const config = require('../../config/env');
 
 const router = express.Router();
 
@@ -74,6 +75,9 @@ router.post('/hasremindedverify', utils.validateAccount, (req, res) => {
   if (!req.cookies[verifyReminderCookieName]) {
     res.cookie(verifyReminderCookieName, Date.now(), {
       maxAge: 1000 * 60 * 60 * 24,
+      httpOnly: true,
+      secure: config.auth.secureSessionCookie,
+      sameSite: 'lax',
     });
   }
 

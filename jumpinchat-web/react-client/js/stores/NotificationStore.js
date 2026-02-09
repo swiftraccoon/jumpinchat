@@ -3,7 +3,7 @@
  */
 
 import { EventEmitter } from 'events';
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 import { NotificationDispatcher } from '../dispatcher/AppDispatcher';
 import {
   ADD_NOTIFICATION,

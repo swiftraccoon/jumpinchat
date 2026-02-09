@@ -1,7 +1,7 @@
 /* global window */
 
 import request from 'superagent';
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 import { trackEvent } from './AnalyticsUtil';
 import SocketUtil from './SocketUtil';
 

@@ -3,7 +3,7 @@
 import { EventEmitter } from 'events';
 import debounce from 'lodash/debounce';
 import moment from 'moment';
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 import { ChatDispatcher } from '../../dispatcher/AppDispatcher';
 import * as types from '../../constants/ActionTypes';
 import { chatTabs } from '../../constants/RoomConstants';

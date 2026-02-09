@@ -47,6 +47,8 @@ module.exports = function createSession(req, res) {
       res.cookie('jic.activity', activityToken, {
         maxAge: config.auth.activityTokenTimeout,
         httpOnly: true,
+        secure: config.auth.secureSessionCookie,
+        sameSite: 'lax',
       });
       responseBody.token = activityToken;
 
@@ -64,6 +66,8 @@ module.exports = function createSession(req, res) {
           res.cookie('jic.activity', activityToken, {
             maxAge: config.auth.activityTokenTimeout,
             httpOnly: true,
+            secure: config.auth.secureSessionCookie,
+            sameSite: 'lax',
           });
         } else {
           log.debug('activity token verified');

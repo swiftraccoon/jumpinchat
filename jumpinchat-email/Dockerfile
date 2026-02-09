@@ -4,7 +4,11 @@ RUN mkdir -p /opt
 
 WORKDIR /opt/
 
-ADD . /opt/
+COPY package.json package-lock.json ./
+
+RUN npm install --production
+
+COPY . .
 
 ENV NODE_ENV=production
 

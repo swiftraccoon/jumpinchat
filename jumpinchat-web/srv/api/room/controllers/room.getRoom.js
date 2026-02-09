@@ -3,6 +3,7 @@
  */
 
 const log = require('../../../utils/logger.util')({ name: 'room.getRoom' });
+const config = require('../../../config/env');
 const RoomUtils = require('../room.utils');
 const roomCreate = require('./room.create');
 const roomController = require('../room.controller');
@@ -78,6 +79,8 @@ function setUp(req, res, name) {
             maxAge: 1000 * 60 * 60 * 24,
             signed: false,
             httpOnly: true,
+            secure: config.auth.secureSessionCookie,
+            sameSite: 'lax',
           });
 
 
@@ -122,6 +125,8 @@ function setUp(req, res, name) {
         maxAge: 1000 * 60 * 60 * 24,
         signed: false,
         httpOnly: true,
+        secure: config.auth.secureSessionCookie,
+        sameSite: 'lax',
       });
 
 

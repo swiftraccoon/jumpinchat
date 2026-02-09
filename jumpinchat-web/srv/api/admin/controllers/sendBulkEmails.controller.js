@@ -22,7 +22,7 @@ module.exports = function sendBulkEmails(req, res) {
     });
   }
 
-  const emailBody = marked(req.body.message);
+  const emailBody = marked.parse(req.body.message);
   const emailSubject = req.body.subject;
 
   return userUtils.getAllUsersNoPaginate((err, users) => {

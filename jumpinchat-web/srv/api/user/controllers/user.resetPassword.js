@@ -38,7 +38,7 @@ const generatePassHash = (password, cb) => bcrypt.genSalt(10, (err, salt) => {
 
 module.exports = function resetPassword(req, res) {
   const schema = Joi.object().keys({
-    password: Joi.string().min(6).required(),
+    password: Joi.string().min(10).required(),
     userId: Joi.string().required(),
   });
 

@@ -68,9 +68,11 @@ module.exports = function login(req, res) {
 
           // create cookie/cookies
           res.cookie('jic.ident', savedUser._id, {
-            maxAge: 1000 * 60 * 60 * 24 * 180,
+            maxAge: config.auth.cookieTimeout,
             signed: true,
             httpOnly: true,
+            secure: config.auth.secureSessionCookie,
+            sameSite: 'lax',
           });
 
           res.status(200).send(new ReturnModel(null, dataToReturn, null));

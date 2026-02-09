@@ -7,6 +7,7 @@ const bodyParser = require('body-parser');
 const methodOverride = require('method-override');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
+const helmet = require('helmet');
 const errorHandler = require('errorhandler');
 const RedisStore = require('connect-redis')(session);
 const path = require('path');
@@ -28,6 +29,7 @@ module.exports = function expressConfig(app, io) {
     secret: config.auth.cookieSecret,
     cookie: {
       secure: config.auth.secureSessionCookie,
+      sameSite: 'lax',
     },
   });
   app.use(sessionInstance);
@@ -37,9 +39,65 @@ module.exports = function expressConfig(app, io) {
     autoSave: true,
   }));
 
+  app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false,
+  }));
+
+  // CSP in report-only mode — logs violations without blocking
+  app.use(helmet.contentSecurityPolicy({
+    useDefaults: false,
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "'unsafe-eval'",
+        'https://cdn.ravenjs.com',
+        'https://www.google-analytics.com',
+        'https://cdn.headwayapp.co',
+      ],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        'https://fonts.googleapis.com',
+        'https://use.fontawesome.com',
+        'https://maxcdn.bootstrapcdn.com',
+        'https://unpkg.com',
+      ],
+      fontSrc: [
+        "'self'",
+        'https://fonts.gstatic.com',
+        'https://use.fontawesome.com',
+      ],
+      imgSrc: [
+        "'self'",
+        'data:',
+        'https://s3.amazonaws.com',
+        'https://unpkg.com',
+        'https://www.google-analytics.com',
+      ],
+      connectSrc: [
+        "'self'",
+        'wss:',
+        'https:',
+        'https://sentry.io',
+        'https://www.google-analytics.com',
+      ],
+      mediaSrc: ["'self'", 'blob:'],
+      workerSrc: ["'self'"],
+      manifestSrc: ["'self'"],
+      frameSrc: ["'self'", 'https://headway-widget.net'],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+    },
+    reportOnly: true,
+  }));
+
   app.set('views', `${config.root}/srv/views`);
   app.set('view engine', 'pug');
-  app.disable('x-powered-by');
   app.engine('ejs', ejs.renderFile);
   app.use((req, res, next) => {
     if (req.headers['x-amz-sns-message-type']) {

@@ -36,6 +36,9 @@ module.exports = async function submitRoomPassword(req, res) {
 
         res.cookie(`jic.password.${room.name}`, token, {
           maxAge: 1000 * 60 * 5,
+          httpOnly: true,
+          secure: config.auth.secureSessionCookie,
+          sameSite: 'lax',
         });
 
         return res.status(200).send();

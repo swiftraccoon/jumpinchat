@@ -85,7 +85,7 @@ module.exports = async function createUser(req, res) {
   const schema = Joi.object().keys({
     username: Joi.string().alphanum().required(),
     email: Joi.string().email().required(),
-    password: Joi.string().min(6).required(),
+    password: Joi.string().min(10).required(),
     settings: Joi.object().keys({
       receiveUpdates: Joi.boolean().required(),
     }).required(),
@@ -184,6 +184,9 @@ module.exports = async function createUser(req, res) {
             res.cookie('jic.ident', createdUser._id, {
               maxAge: config.auth.cookieTimeout,
               signed: true,
+              httpOnly: true,
+              secure: config.auth.secureSessionCookie,
+              sameSite: 'lax',
             });
 
             const result = {
