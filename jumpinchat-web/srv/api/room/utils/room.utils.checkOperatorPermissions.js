@@ -3,7 +3,6 @@
  */
 
 
-const RoomUtils = require('../room.utils');
 const UserUtils = require('../../user/user.utils');
 const log = require('../../../utils/logger.util')({ name: 'room.utils.checkOperatorPermissions' });
 const errors = require('../../../config/constants/errors');
@@ -19,6 +18,8 @@ const getUserRoles = require('../../role/controllers/getUserRoles.controller');
  * @param {function} cb - callback
  */
 module.exports = function checkOperatorPermissions(socketId, action, cb) {
+  // Lazy require to break circular dependency: room.utils → checkOperatorPermissions → room.utils
+  const RoomUtils = require('../room.utils');
   RoomUtils.getSocketCacheInfo(socketId, (err, data) => {
     if (err) {
       log.fatal({ err }, 'failed to get socket cache info');

@@ -1,6 +1,5 @@
 const log = require('../../../utils/logger.util')({ name: 'getUserRoles.controller' });
 const { NotFoundError } = require('../../../utils/error.util');
-const { getRoomByName } = require('../../room/room.utils');
 const { getUserEnrollments } = require('../role.utils');
 
 /**
@@ -13,6 +12,8 @@ const { getUserEnrollments } = require('../role.utils');
  * @return {array} []roles
  */
 module.exports = async function getUserRoles(body) {
+  // Lazy require to break circular dependency: room.utils → checkOperatorPermissions → getUserRoles → room.utils
+  const { getRoomByName } = require('../../room/room.utils');
   const { userListId, roomName } = body;
   let room;
   let roles;

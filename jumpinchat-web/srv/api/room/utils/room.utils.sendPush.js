@@ -1,6 +1,5 @@
 const webPush = require('web-push');
 const uuid = require('uuid');
-const RoomUtils = require('../room.utils');
 const config = require('../../../config/env');
 const log = require('../../../utils/logger.util')({ name: 'sendPush' });
 const { escapeRegExp } = require('lodash');
@@ -41,6 +40,8 @@ function push(endpoint, TTL, p256dh, auth, payload) {
 }
 
 module.exports = function sendPush(message, senderData, recipientSocketId, options = {}) {
+  // Lazy require to break circular dependency: room.utils → sendPush → room.utils
+  const RoomUtils = require('../room.utils');
   RoomUtils.getSocketCacheInfo(recipientSocketId, (err, pushData) => {
     if (err) {
       log.error({ err }, 'error getting session data');

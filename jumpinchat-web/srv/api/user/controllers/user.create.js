@@ -172,7 +172,7 @@ module.exports = async function createUser(req, res) {
               }
 
               // log user in
-              const token = jwt.sign({ id: createdUser._id }, config.auth.jwt_secret);
+              const token = jwt.sign(String(createdUser._id), config.auth.jwt_secret);
 
               // create cookie/cookies
               res.cookie('jic.ident', createdUser._id, {

@@ -1,4 +1,3 @@
-const roomUtils = require('../room/room.utils');
 const roleModel = require('./role.model');
 const { defaultRoles, tagFormat } = require('./role.consts');
 const enrolledModel = require('./enrolled.model');
@@ -166,6 +165,9 @@ module.exports.removeRoleEnrollments = function getRoleEnrollments(roleId) {
 };
 
 async function getUserHasRolePermissions(roomName, ident, permission) {
+  // Lazy require to break circular dependency: room.utils → room.create → role.utils → room.utils
+  const roomUtils = require('../room/room.utils');
+
   if (!roomName || roomName.length === 0) {
     throw new TypeError('roomName is required');
   }

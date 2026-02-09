@@ -2,11 +2,12 @@
  * Created by Zaccary on 19/10/2015.
  */
 
-const RoomUtils = require('../room.utils');
 const log = require('../../../utils/logger.util')({ name: 'room.removeUser' });
 const roomRemove = require('./room.remove');
 
 module.exports = function removeUserFromRoom(socketId, roomData, cb) {
+  // Lazy require to break circular dependency: room.utils → removeUser → room.utils
+  const RoomUtils = require('../room.utils');
   let removedUser;
 
   RoomUtils.getRoomByName(roomData.name, (err, room) => {

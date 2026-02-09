@@ -98,7 +98,7 @@ module.exports = async function banUser(socket, roomName, userListIdToBan, banDu
     && actingOperator.user_id
     && userToBan.user_id === actingOperator.user_id;
 
-  if (config.env !== 'development' && (ipMatch || userIdMatch)) {
+  if (ipMatch || userIdMatch) {
     return cb('ERR_SELF_BAN');
   }
 
