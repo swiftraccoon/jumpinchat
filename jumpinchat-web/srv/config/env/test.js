@@ -2,7 +2,7 @@
  * Created by vivaldi on 25/10/2014.
  */
 
-module.exports = {
+export default {
   appPath: 'react-client',
   analytics: {
     fb: '',

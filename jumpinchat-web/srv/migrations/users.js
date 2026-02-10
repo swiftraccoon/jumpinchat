@@ -1,7 +1,8 @@
-const userModel = require('../api/user/user.model');
-const log = require('../utils/logger.util')({ name: 'migrateUserDocuments' });
 
-module.exports = function migrateUsers() {
+import userModel from '../api/user/user.model.js';
+import logFactory from '../utils/logger.util.js';
+const log = logFactory({ name: 'migrateUserDocuments' });
+export default function migrateUsers() {
   return userModel.find({}).exec()
     .then((users) => {
       users.forEach(u => u.save()

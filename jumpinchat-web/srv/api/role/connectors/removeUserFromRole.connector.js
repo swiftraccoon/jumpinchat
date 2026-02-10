@@ -1,9 +1,10 @@
-const log = require('../../../utils/logger.util')({ name: 'removeUserFromRole.connector' });
-const removeUserFromRole = require('../controllers/removeUserFromRole.controller');
-const errors = require('../../../config/constants/errors');
-const { NotFoundError, PermissionError } = require('../../../utils/error.util');
 
-module.exports = async function removeUserFromRoleConnector(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import removeUserFromRole from '../controllers/removeUserFromRole.controller.js';
+import errors from '../../../config/constants/errors.js';
+import { NotFoundError, PermissionError } from '../../../utils/error.util.js';
+const log = logFactory({ name: 'removeUserFromRole.connector' });
+export default async function removeUserFromRoleConnector(req, res) {
   const { enrollmentId, roomName } = req.params;
 
   try {

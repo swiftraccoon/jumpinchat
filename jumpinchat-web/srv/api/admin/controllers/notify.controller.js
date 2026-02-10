@@ -1,7 +1,8 @@
-const log = require('../../../utils/logger.util')({ name: 'notify.controller' });
-const utils = require('../../../utils/utils');
 
-module.exports = function notify(io, body, cb) {
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+const log = logFactory({ name: 'notify.controller' });
+export default function notify(io, body, cb) {
   if (!io) {
     log.fatal('socket io not available');
     return cb(new Error('socket io not set'));

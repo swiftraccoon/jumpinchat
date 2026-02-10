@@ -1,8 +1,9 @@
-const Joi = require('joi');
-const log = require('../../../utils/logger.util')({ name: 'setPlay.controller' });
-const userUtils = require('../user.utils');
 
-module.exports = async function setTheme(req, res) {
+import Joi from 'joi';
+import logFactory from '../../../utils/logger.util.js';
+import userUtils from '../user.utils.js';
+const log = logFactory({ name: 'setPlay.controller' });
+export default async function setTheme(req, res) {
   const querySchema = Joi.object().keys({
     dark: Joi.boolean().required(),
   });

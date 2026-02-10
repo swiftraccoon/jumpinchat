@@ -1,9 +1,8 @@
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire');
 
-proxyquire.noCallThru();
-proxyquire.noPreserveCache();
+import { expect } from 'chai';
+import sinon from 'sinon';
+import esmock from 'esmock';
+
 
 let handleStripeError;
 const getSessionById = sinon.stub().returns(Promise.resolve({
@@ -28,10 +27,10 @@ const getUserById = sinon.stub().returns(Promise.resolve({
 describe('fulfillPayment controller', () => {
   let session;
   const savePayment = sinon.stub().returns(Promise.resolve({}));
-  const getController = (overrides = {}) => {
+  const getController = async (overrides = {}) => {
     handleStripeError = sinon.spy();
     const mocks = {
-      '../payment.utils': {
+      '../payment.utils.js': {
         savePayment,
         applySupporterTrophy: sinon.spy(),
         getSessionById,
@@ -39,18 +38,18 @@ describe('fulfillPayment controller', () => {
         handleStripeError,
         ...overrides.paymentUtils,
       },
-      '../../user/user.utils': {
+      '../../user/user.utils.js': {
         getUserById,
         ...overrides.userUtils,
       },
-      '../../message/utils/metaSendMessage.util': sinon.stub().returns(Promise.resolve()),
+      '../../message/utils/metaSendMessage.util.js': sinon.stub().returns(Promise.resolve()),
     };
 
-    return proxyquire('./fulfillPayment.controller', mocks);
+    return await esmock('./fulfillPayment.controller.js', mocks);
   };
 
 
-  beforeEach(() => {
+  beforeEach(async () => {
     session = {
       id: 'session',
       customer: 'customer',
@@ -60,15 +59,15 @@ describe('fulfillPayment controller', () => {
   });
 
 
-  it('should retreieve a session', () => {
-    const controller = getController();
+  it('should retreieve a session', async () => {
+    const controller = await getController();
     controller(session);
 
     expect(getSessionById.called).to.equal(true);
     expect(getSessionById.firstCall.args[0]).to.equal(session.id);
   });
-  it('should retreieve a plan', () => {
-    const controller = getController();
+  it('should retreieve a plan', async () => {
+    const controller = await getController();
     controller(session);
 
     expect(getPaymentByCustomerId.called).to.equal(true);
@@ -76,7 +75,7 @@ describe('fulfillPayment controller', () => {
   });
 
   describe('plan', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       session.display_items[0] = {
         plan: {
           id: 'plan',
@@ -94,7 +93,7 @@ describe('fulfillPayment controller', () => {
         save: sinon.stub().returns(Promise.resolve({ _id: 'foo' })),
       }));
 
-      const controller = getController({
+      const controller = await getController({
         userUtils: {
           getUserById: user,
         },
@@ -109,7 +108,7 @@ describe('fulfillPayment controller', () => {
     });
 
     it('should create new payment if none exists', async () => {
-      const controller = getController({
+      const controller = await getController({
         paymentUtils: {
           getPaymentByCustomerId: sinon.stub().returns(Promise.resolve(null)),
         },
@@ -137,7 +136,7 @@ describe('fulfillPayment controller', () => {
         subscription: {},
       };
 
-      const controller = getController({
+      const controller = await getController({
         paymentUtils: {
           getPaymentByCustomerId: sinon.stub().returns(Promise.resolve(payment)),
         },

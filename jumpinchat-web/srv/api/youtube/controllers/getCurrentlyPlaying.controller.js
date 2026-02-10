@@ -1,10 +1,11 @@
-const { isBefore } = require('date-fns');
-const log = require('../../../utils/logger.util')({ name: 'getCurrentlyPlaying.controller' });
-const roomUtils = require('../../room/room.utils');
-const { playVideo } = require('./playVideo.controller');
-const errors = require('../../../config/constants/errors');
 
-module.exports = function getCurrentlyPlaying(socket, cb) {
+import { isBefore } from 'date-fns';
+import logFactory from '../../../utils/logger.util.js';
+import roomUtils from '../../room/room.utils.js';
+import { playVideo } from './playVideo.controller.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'getCurrentlyPlaying.controller' });
+export default function getCurrentlyPlaying(socket, cb) {
   return roomUtils.getSocketCacheInfo(socket.id, async (err, socketInfo) => {
     if (err) {
       log.fatal({ err }, 'failed to get socket cache info');

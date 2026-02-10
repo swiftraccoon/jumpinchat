@@ -1,10 +1,9 @@
 /* global describe,it,beforeEach */
-const { expect } = require('chai');
-const sinon = require('sinon');
-const jwt = require('jsonwebtoken');
-const proxyquire = require('proxyquire').noCallThru();
-const config = require('../../../../config/env');
-
+import { expect } from 'chai';
+import sinon from 'sinon';
+import jwt from 'jsonwebtoken';
+import config from '../../../../config/env/index.js';
+import esmock from 'esmock';
 describe('Get Room', () => {
   let req;
   let res;
@@ -45,7 +44,7 @@ describe('Get Room', () => {
     createJanusRoom: sinon.stub().yields(),
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     sendSpy = new Promise(resolve => resolve());
     req = {
       headers: { authorization: '' },
@@ -71,10 +70,10 @@ describe('Get Room', () => {
       cookie: sinon.spy(),
     };
 
-    controller = proxyquire('../../controllers/room.getRoom.js', {
-      '../room.utils': roomUtilsMock,
-      '../room.controller': roomControllerMock,
-      './room.create': roomCreateSpy,
+    controller = await esmock('../../controllers/room.getRoom.js', {
+      '../../room.utils.js': roomUtilsMock,
+      '../../room.controller.js': roomControllerMock,
+      '../../controllers/room.create.js': roomCreateSpy,
     });
   });
 
@@ -88,20 +87,36 @@ describe('Get Room', () => {
     });
   });
 
-  it('should create a room if no room exists', (done) => {
-    roomUtilsMock.getRoomByName = sinon.stub().yields(null);
-    sendSpy
-      .then(() => {
-        expect(res.status.firstCall.args[0]).to.equal(201);
-        expect(roomCreateSpy.firstCall.args[0]).to.eql({
-          ip: '1.2.3.4',
-          name: 'foo',
-          sessionId: 'foo',
-        });
-        done();
-      })
-      .catch(err => done(err));
+  it('should create a room if no room exists', async () => {
+    const noRoomUtilsMock = {
+      getRoomByName: sinon.stub().yields(null),
+      checkModAssignedBy: sinon.stub().returns(roomMock),
+      filterRoom: sinon.stub().returns(roomMock),
+      createJanusRoom: sinon.stub().yields(),
+    };
 
+    const localRoomCreateSpy = sinon.stub().yields(null, {
+      name: 'bar',
+      attrs: {
+        janusServerId: 'foo',
+      },
+    });
+
+    controller = await esmock('../../controllers/room.getRoom.js', {
+      '../../room.utils.js': { default: noRoomUtilsMock, ...noRoomUtilsMock },
+      '../../room.controller.js': roomControllerMock,
+      '../../controllers/room.create.js': localRoomCreateSpy,
+    });
+
+    res.status.resetHistory();
     controller(req, res);
+
+    await sendSpy;
+    expect(res.status.firstCall.args[0]).to.equal(201);
+    expect(localRoomCreateSpy.firstCall.args[0]).to.eql({
+      ip: '1.2.3.4',
+      name: 'foo',
+      sessionId: 'foo',
+    });
   });
 });

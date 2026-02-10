@@ -1,7 +1,8 @@
-const log = require('../../../utils/logger.util')({ name: 'privateMessage.socket' });
-const roomUtils = require('../room.utils');
-const userUtils = require('../../user/user.utils');
 
+import logFactory from '../../../utils/logger.util.js';
+import roomUtils from '../room.utils.js';
+import userUtils from '../../user/user.utils.js';
+const log = logFactory({ name: 'privateMessage.socket' });
 function sendToExistingUser(target, socketId, userListId, cb) {
   return userUtils.getUserById(target.userId, (err, user) => {
     if (err) {
@@ -32,7 +33,7 @@ function sendToExistingUser(target, socketId, userListId, cb) {
   });
 }
 
-module.exports = function privateMessageController(roomName, socketId, userListId, cb) {
+export default function privateMessageController(roomName, socketId, userListId, cb) {
   roomUtils.getSocketIdFromListId(String(userListId), (err, targetSocketId) => {
     if (err) {
       log.fatal({ err }, 'failed to get list ID data');

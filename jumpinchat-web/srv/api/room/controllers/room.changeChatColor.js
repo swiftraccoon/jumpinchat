@@ -2,12 +2,14 @@
  * Created by Zaccary on 20/10/2015.
  */
 
-const log = require('../../../utils/logger.util')({ name: 'changeChatColor' });
-const redis = require('../../../lib/redis.util')();
-const RoomUtils = require('../room.utils');
-const config = require('../../../config/env');
 
-module.exports = async function changeColor(socketId, color, cb) {
+import logFactory from '../../../utils/logger.util.js';
+import redisFactory from '../../../lib/redis.util.js';
+import RoomUtils from '../room.utils.js';
+import config from '../../../config/env/index.js';
+const log = logFactory({ name: 'changeChatColor' });
+const redis = redisFactory();
+export default async function changeColor(socketId, color, cb) {
   let alteredUser = null;
   let newColor;
 

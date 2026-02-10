@@ -1,7 +1,7 @@
-const { NotFoundError } = require('../../../utils/error.util');
-const mfaRequestEnroll = require('../controllers/mfaRequestEnroll.controller');
 
-module.exports = async function mfaRequestEnrollConnector(req, res) {
+import { NotFoundError } from '../../../utils/error.util.js';
+import mfaRequestEnroll from '../controllers/mfaRequestEnroll.controller.js';
+export default async function mfaRequestEnrollConnector(req, res) {
   const {
     user,
   } = req;

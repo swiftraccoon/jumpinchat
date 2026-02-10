@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'seekVideo.socket' });
-const utils = require('../../../utils/utils');
-const roomUtils = require('../../room/room.utils');
-const { playVideo } = require('../controllers/playVideo.controller');
 
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import roomUtils from '../../room/room.utils.js';
+import { playVideo } from '../controllers/playVideo.controller.js';
+const log = logFactory({ name: 'seekVideo.socket' });
 function getRoomFromSocket(io, socketId) {
   return new Promise((resolve, reject) => {
     utils.getSocketRooms(io, socketId, (err, room) => {
@@ -23,7 +24,7 @@ function getRoomFromSocket(io, socketId) {
   });
 }
 
-module.exports = function seekYoutubeVideoSocket(socket, io) {
+export default function seekYoutubeVideoSocket(socket, io) {
   return async function seekYoutubeVideo(msg) {
     log.debug({ msg }, 'seek video socket');
 

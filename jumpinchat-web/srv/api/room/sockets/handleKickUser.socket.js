@@ -1,10 +1,11 @@
-const log = require('../../../utils/logger.util')({ name: 'handleKickUser.socket' });
-const utils = require('../../../utils/utils');
-const { PermissionError } = require('../../../utils/error.util');
-const RoomUtils = require('../room.utils');
-const { getUserHasRolePermissions } = require('../../role/role.utils');
 
-module.exports = function handleKickUserSocket(socket, io) {
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import { PermissionError } from '../../../utils/error.util.js';
+import RoomUtils from '../room.utils.js';
+import { getUserHasRolePermissions } from '../../role/role.utils.js';
+const log = logFactory({ name: 'handleKickUser.socket' });
+export default function handleKickUserSocket(socket, io) {
   return async function handleKickUser(msg) {
     let socketData;
     try {

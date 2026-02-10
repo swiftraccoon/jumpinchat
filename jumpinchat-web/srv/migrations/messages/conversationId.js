@@ -1,11 +1,9 @@
-const log = require('../../utils/logger.util')({ name: 'migrations.conversationId' });
-const MessageModel = require('../../api/message/message.model');
-const {
-  addConversation,
-  getConversation,
-} = require('../../api/message/message.utils');
+import logFactory from '../../utils/logger.util.js';
+import MessageModel from '../../api/message/message.model.js';
+const log = logFactory({ name: 'migrations.conversationId' });
+import { addConversation, getConversation } from '../../api/message/message.utils.js';
 
-module.exports = async function conversationIdMigration() {
+export default async function conversationIdMigration() {
   log.info('initiate message migrations');
   const cursor = MessageModel.find({}).cursor();
   const handleMessage = async (message) => {

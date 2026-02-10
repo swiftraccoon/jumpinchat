@@ -1,9 +1,11 @@
-const webPush = require('web-push');
-const uuid = require('uuid');
-const config = require('../../../config/env');
-const log = require('../../../utils/logger.util')({ name: 'sendPush' });
-const { escapeRegExp } = require('lodash');
 
+import webPush from 'web-push';
+import * as uuid from 'uuid';
+import config from '../../../config/env/index.js';
+import logFactory from '../../../utils/logger.util.js';
+import _ from 'lodash';
+const { escapeRegExp } = _;
+const log = logFactory({ name: 'sendPush' });
 function push(endpoint, TTL, p256dh, auth, payload) {
   if (!endpoint) {
     log.error('push endpoint missing');
@@ -39,9 +41,9 @@ function push(endpoint, TTL, p256dh, auth, payload) {
     .catch(err => log.error({ err }, 'failed to send push notification'));
 }
 
-module.exports = function sendPush(message, senderData, recipientSocketId, options = {}) {
+export default async function sendPush(message, senderData, recipientSocketId, options = {}) {
   // Lazy require to break circular dependency: room.utils → sendPush → room.utils
-  const RoomUtils = require('../room.utils');
+  const { default: RoomUtils } = await import('../room.utils.js');
   RoomUtils.getSocketCacheInfo(recipientSocketId, (err, pushData) => {
     if (err) {
       log.error({ err }, 'error getting session data');

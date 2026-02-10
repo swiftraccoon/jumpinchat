@@ -1,16 +1,17 @@
-const axios = require('axios');
-const Stripe = require('stripe');
-const config = require('../../config/env');
-const errors = require('../../config/constants/errors');
-const trophyUtils = require('../trophy/trophy.utils');
-const { getUserById } = require('../user/user.utils');
-const log = require('../../utils/logger.util')({ name: 'payment.utils' });
-const paymentModel = require('./payment.model');
-const CheckoutSession = require('./checkoutSession.model');
 
+import axios from 'axios';
+import Stripe from 'stripe';
+import config from '../../config/env/index.js';
+import errors from '../../config/constants/errors.js';
+import trophyUtils from '../trophy/trophy.utils.js';
+import { getUserById } from '../user/user.utils.js';
+import logFactory from '../../utils/logger.util.js';
+import paymentModel from './payment.model.js';
+import CheckoutSession from './checkoutSession.model.js';
+const log = logFactory({ name: 'payment.utils' });
 const stripeClient = new Stripe(config.payment.stripe.secretKey);
 
-module.exports.savePayment = function savePayment(userId, customerId, subscriptionId, planId) {
+export function savePayment(userId, customerId, subscriptionId, planId) {
   const payment = {
     userId,
     customerId,
@@ -33,7 +34,7 @@ function saveCheckoutSession(userId, checkoutSessionId, beneficiary) {
   return CheckoutSession.create(session);
 }
 
-module.exports.saveCheckoutSession = saveCheckoutSession;
+export { saveCheckoutSession };
 
 function getPaymentByUserId(userId, opts = {}) {
   const {
@@ -54,16 +55,16 @@ function getPaymentByUserId(userId, opts = {}) {
   return paymentModel.findOne(query).exec();
 }
 
-module.exports.getPaymentByUserId = getPaymentByUserId;
+export { getPaymentByUserId };
 
-module.exports.getPaymentByCustomerId = function getPaymentByCustomerId(customerId) {
+export function getPaymentByCustomerId(customerId) {
   return paymentModel.findOne({
     customerId,
   })
     .exec();
 };
 
-module.exports.getSessionById = function getSessionById(checkoutSessionId) {
+export function getSessionById(checkoutSessionId) {
   return CheckoutSession
     .findOne({
       checkoutSessionId,
@@ -79,7 +80,7 @@ module.exports.getSessionById = function getSessionById(checkoutSessionId) {
     .exec();
 };
 
-module.exports.getCustomerByUserId = async function getCustomerByUserId(userId) {
+export async function getCustomerByUserId(userId) {
   try {
     const payment = await paymentModel.findOne({ userId }).exec();
     const { customerId } = payment;
@@ -110,9 +111,9 @@ async function deletePayment(id) {
   return paymentModel.deleteOne({ _id: id }).exec();
 }
 
-module.exports.deletePayment = deletePayment;
+export { deletePayment };
 
-module.exports.cancelSubscription = async function cancelSubscription(userId) {
+export async function cancelSubscription(userId) {
   const payment = await getPaymentByUserId(userId, { isSubscription: true });
 
   if (!payment) {
@@ -130,7 +131,7 @@ module.exports.cancelSubscription = async function cancelSubscription(userId) {
   return true;
 };
 
-module.exports.updateExpire = async function updateExpire(id, userId) {
+export async function updateExpire(id, userId) {
   try {
     const user = await getUserById(userId, { lean: false });
     const supportDuration = (1000 * 60 * 60 * 24 * 31);
@@ -142,7 +143,7 @@ module.exports.updateExpire = async function updateExpire(id, userId) {
   }
 };
 
-module.exports.notifySlack = function notifySlack(user, plan) {
+export function notifySlack(user, plan) {
   const slackHookUrl = 'https://hooks.slack.com/services/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';
   const text = 'New site supporter';
   const payload = {
@@ -173,7 +174,7 @@ module.exports.notifySlack = function notifySlack(user, plan) {
 };
 
 
-module.exports.createCharge = function createCharge(amount, token, userId) {
+export function createCharge(amount, token, userId) {
   return stripeClient.paymentIntents.create({
     amount,
     currency: 'usd',
@@ -185,7 +186,7 @@ module.exports.createCharge = function createCharge(amount, token, userId) {
   });
 };
 
-module.exports.applySupporterTrophy = function applySupporterTrophy(userId, isGold = false) {
+export function applySupporterTrophy(userId, isGold = false) {
   trophyUtils.applyTrophy(userId, 'TROPHY_SITE_SUPPORTER', (err) => {
     if (err) {
       log.fatal({ err }, 'failed to apply trophy');
@@ -207,7 +208,7 @@ module.exports.applySupporterTrophy = function applySupporterTrophy(userId, isGo
   }
 };
 
-module.exports.applyGiftTrophies = function applyGiftTrophies(senderId, recipientId) {
+export function applyGiftTrophies(senderId, recipientId) {
   trophyUtils.applyTrophy(senderId, 'TROPHY_DID_GIFT', (err) => {
     if (err) {
       log.fatal({ err }, 'failed to apply trophy');
@@ -227,7 +228,7 @@ module.exports.applyGiftTrophies = function applyGiftTrophies(senderId, recipien
   });
 };
 
-module.exports.createCustomer = async function createCustomer(userId, sourceId) {
+export async function createCustomer(userId, sourceId) {
   try {
     const user = await getUserById(userId, { lean: true });
     return stripeClient.customers.create({
@@ -243,18 +244,18 @@ module.exports.createCustomer = async function createCustomer(userId, sourceId) 
   }
 };
 
-module.exports.updateCustomer = function updateCustomer(customerId, body) {
+export function updateCustomer(customerId, body) {
   return stripeClient.customers.update(customerId, body);
 };
 
-module.exports.subscribeToPlan = function subscribeToPlan(customerId, planId) {
+export function subscribeToPlan(customerId, planId) {
   return stripeClient.subscriptions.create({
     customer: customerId,
-    items: [{ plan: planId }],
+    items: [{ price: planId }],
   });
 };
 
-module.exports.handleStripeError = function handleStripeError(err, res) {
+export function handleStripeError(err, res) {
   const { type, message } = err;
   switch (type) {
     case 'StripeCardError':
@@ -282,6 +283,8 @@ module.exports.handleStripeError = function handleStripeError(err, res) {
   }
 };
 
-module.exports.getPlan = function getPlan(planId) {
-  return stripeClient.plans.retrieve(planId);
+export function getPlan(planId) {
+  return stripeClient.prices.retrieve(planId);
 };
+
+export default { savePayment, saveCheckoutSession, getPaymentByUserId, getPaymentByCustomerId, getSessionById, getCustomerByUserId, deletePayment, cancelSubscription, updateExpire, notifySlack, createCharge, applySupporterTrophy, applyGiftTrophies, createCustomer, updateCustomer, subscribeToPlan, handleStripeError, getPlan };

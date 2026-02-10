@@ -1,6 +1,6 @@
-const roleUtils = require('../role.utils');
 
-module.exports = async function getRoleController(body) {
+import roleUtils from '../role.utils.js';
+export default async function getRoleController(body) {
   const {
     tag,
     roleId,

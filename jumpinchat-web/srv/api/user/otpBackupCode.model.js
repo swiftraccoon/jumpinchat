@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
 
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const OtpBackupCodeSchema = new Schema({
@@ -8,4 +8,4 @@ const OtpBackupCodeSchema = new Schema({
   userId: Schema.Types.ObjectId,
 });
 
-module.exports = mongoose.model('OtpBackupCode', OtpBackupCodeSchema);
+export default mongoose.model('OtpBackupCode', OtpBackupCodeSchema);

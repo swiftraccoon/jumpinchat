@@ -1,10 +1,11 @@
-const { authenticator } = require('otplib');
-const { getUserById } = require('../user.utils');
-const OtpRequestModel = require('../otpRequest.model');
-const { NotFoundError, ValidationError } = require('../../../utils/error.util');
-const log = require('../../../utils/logger.util')({ name: 'mfaConfirmEnroll' });
 
-module.exports = async function mfaConfirmEnroll(body) {
+import { authenticator } from 'otplib';
+import { getUserById } from '../user.utils.js';
+import OtpRequestModel from '../otpRequest.model.js';
+import { NotFoundError, ValidationError } from '../../../utils/error.util.js';
+import logFactory from '../../../utils/logger.util.js';
+const log = logFactory({ name: 'mfaConfirmEnroll' });
+export default async function mfaConfirmEnroll(body) {
   const {
     userId,
     token,

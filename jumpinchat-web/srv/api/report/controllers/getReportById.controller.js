@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'getReportById' });
-const reportModel = require('../report.model');
-const errors = require('../../../config/constants/errors');
 
-module.exports = function getReports(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import reportModel from '../report.model.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'getReportById' });
+export default function getReports(req, res) {
   const { reportId } = req.params;
 
   return reportModel

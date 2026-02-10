@@ -1,9 +1,10 @@
-const log = require('../../../utils/logger.util')({ name: 'getMessageReports' });
-const config = require('../../../config/env');
-const messageReportModel = require('../messageReport.model');
-const errors = require('../../../config/constants/errors');
 
-module.exports = async function getMessageReports(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import config from '../../../config/env/index.js';
+import messageReportModel from '../messageReport.model.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'getMessageReports' });
+export default async function getMessageReports(req, res) {
   const { page } = req.query;
   const countPerPage = config.admin.userList.itemsPerPage;
   const start = ((page - 1) * countPerPage);

@@ -2,12 +2,13 @@
  * Created by Zaccary on 19/10/2015.
  */
 
-const log = require('../../../utils/logger.util')({ name: 'room.getRoom' });
-const config = require('../../../config/env');
-const RoomUtils = require('../room.utils');
-const roomCreate = require('./room.create');
-const roomController = require('../room.controller');
 
+import logFactory from '../../../utils/logger.util.js';
+import config from '../../../config/env/index.js';
+import RoomUtils from '../room.utils.js';
+import roomCreate from './room.create.js';
+import roomController from '../room.controller.js';
+const log = logFactory({ name: 'room.getRoom' });
 function initializeJanusRoom(room, cb) {
   const janusRoomId = room.attrs.janus_id;
   const { janusServerId } = room.attrs;
@@ -147,7 +148,7 @@ function setUp(req, res, name) {
  * @param req
  * @param res
  */
-module.exports = function getRoom(req, res) {
+export default function getRoom(req, res) {
   const name = req.params.room;
 
   setUp(req, res, name);

@@ -1,7 +1,8 @@
-const log = require('../../../utils/logger.util')({ name: 'setUserIsBroadcasting.socket' });
-const RoomUtils = require('../room.utils');
 
-module.exports = function setUserIsBroadcastingSocket(socket, io) {
+import logFactory from '../../../utils/logger.util.js';
+import RoomUtils from '../room.utils.js';
+const log = logFactory({ name: 'setUserIsBroadcasting.socket' });
+export default function setUserIsBroadcastingSocket(socket, io) {
   return function setUserIsBroadcasting(msg) {
     log.debug({ message: msg }, 'setUserIsBroadcasting');
     const getRoomNameBySocketId = () => [...socket.rooms].find(room => room !== socket.id);

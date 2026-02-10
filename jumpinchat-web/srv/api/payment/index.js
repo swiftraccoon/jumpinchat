@@ -1,13 +1,13 @@
-const express = require('express');
-const createPayment = require('./controllers/createPayment.controller');
-const getSubscription = require('./controllers/getSubscription.controller');
-const deleteSubscription = require('./controllers/deleteSubscription.controller');
-const updateSource = require('./controllers/updateSource.controller');
-const stripeHook = require('./controllers/stripeHook.controller');
-const addMissingSubId = require('./controllers/addMissingSubId.controller');
-const createCheckoutSession = require('./controllers/createCheckoutSession.controller');
-const { validateAccount, rateLimit } = require('../../utils/utils');
 
+import express from 'express';
+import createPayment from './controllers/createPayment.controller.js';
+import getSubscription from './controllers/getSubscription.controller.js';
+import deleteSubscription from './controllers/deleteSubscription.controller.js';
+import updateSource from './controllers/updateSource.controller.js';
+import stripeHook from './controllers/stripeHook.controller.js';
+import addMissingSubId from './controllers/addMissingSubId.controller.js';
+import createCheckoutSession from './controllers/createCheckoutSession.controller.js';
+import { validateAccount, rateLimit } from '../../utils/utils.js';
 const router = express.Router();
 
 router.post('/create', rateLimit, validateAccount, createPayment);
@@ -19,4 +19,4 @@ router.put('/source/update/:userId', validateAccount, updateSource);
 router.post('/migrate/missingsubid', addMissingSubId);
 
 
-module.exports = router;
+export default router;

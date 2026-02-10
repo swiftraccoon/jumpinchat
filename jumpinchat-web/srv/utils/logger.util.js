@@ -1,6 +1,6 @@
-const bunyan = require('bunyan');
 
-module.exports = function createLogger(opts = {}) {
+import bunyan from 'bunyan';
+export default function createLogger(opts = {}) {
   if (!opts.name) {
     throw new Error('Logger requires a `name` parameter');
   }

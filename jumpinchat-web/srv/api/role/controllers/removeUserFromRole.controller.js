@@ -1,19 +1,12 @@
-const log = require('../../../utils/logger.util')({ name: 'removeUserFromRole.controller' });
-const enrolledModel = require('../enrolled.model');
-const { NotFoundError } = require('../../../utils/error.util');
-const {
-  getRoomById,
-  filterClientUser,
-  filterRoomUser,
-} = require('../../room/room.utils');
-const {
-  getSocketIo,
-  getUserHasRolePermissions,
-  getEnrollmentById,
-} = require('../role.utils');
-const utils = require('../../../utils/utils');
+import logFactory from '../../../utils/logger.util.js';
+import enrolledModel from '../enrolled.model.js';
+import { NotFoundError } from '../../../utils/error.util.js';
+import utils from '../../../utils/utils.js';
+const log = logFactory({ name: 'removeUserFromRole.controller' });
+import { getRoomById, filterClientUser, filterRoomUser } from '../../room/room.utils.js';
+import { getSocketIo, getUserHasRolePermissions, getEnrollmentById } from '../role.utils.js';
 
-module.exports = async function removeUserFromRole(body) {
+export default async function removeUserFromRole(body) {
   const {
     enrollingUser,
     enrollmentId,

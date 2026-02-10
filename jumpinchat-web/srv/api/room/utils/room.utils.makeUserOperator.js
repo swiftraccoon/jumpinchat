@@ -67,7 +67,7 @@ function setPermanentMod(userId, permissions = null) {
  * @param {object} (opts.permissions) object with permissions to set for the operator, if needed
  * @param {string} (assignedBy) the userListId of the assigning user
  */
-module.exports = function makeUserModerator(opts, assignedBy = null) {
+export default function makeUserModerator(opts, assignedBy = null) {
   let permissions = null;
 
   if (opts.permissions) {

@@ -1,14 +1,13 @@
 /* global it,describe */
 
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire').noCallThru();
-
+import { expect } from 'chai';
+import sinon from 'sinon';
+import esmock from 'esmock';
 describe('sendPush', () => {
   let controller;
   let webPush;
   let roomUtils;
-  beforeEach(() => {
+  beforeEach(async () => {
     webPush = {
       sendNotification: sinon.stub().returns(Promise.resolve()),
     };
@@ -22,18 +21,22 @@ describe('sendPush', () => {
       }),
     };
 
-    controller = proxyquire('../../utils/room.utils.sendPush', {
+    controller = await esmock.p('../../utils/room.utils.sendPush.js', {
       'web-push': webPush,
-      '../room.utils': roomUtils,
+      '../../room.utils.js': { default: roomUtils, ...roomUtils },
     });
   });
 
-  it('should send a push notification', () => {
+  afterEach(() => {
+    esmock.purge(controller);
+  });
+
+  it('should send a push notification', async () => {
     const sender = {
       handle: 'handle',
       name: 'room',
     };
-    controller('foo', sender, 'socket');
+    await controller('foo', sender, 'socket');
     expect(webPush.sendNotification.called).to.equal(true);
   });
 });

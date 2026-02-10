@@ -1,9 +1,10 @@
-const axios = require('axios');
-const log = require('../../../utils/logger.util')({ name: 'ytAPiQuery' });
-const encodeUriParams = require('../../../utils/encodeUriParams');
-const getCurrentCred = require('./getCurrentCred');
 
-module.exports = async function ytApiQuery(url, urlParams, method = 'GET') {
+import axios from 'axios';
+import logFactory from '../../../utils/logger.util.js';
+import encodeUriParams from '../../../utils/encodeUriParams.js';
+import getCurrentCred from './getCurrentCred.js';
+const log = logFactory({ name: 'ytAPiQuery' });
+export default async function ytApiQuery(url, urlParams, method = 'GET') {
   if (typeof urlParams !== 'object') {
     throw new TypeError('url params must be an object');
   }

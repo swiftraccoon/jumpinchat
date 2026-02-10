@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'mfaDisable' });
-const { NotFoundError } = require('../../../utils/error.util');
-const { getUserById } = require('../user.utils');
 
-module.exports = async function mfaDisableConnector(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import { NotFoundError } from '../../../utils/error.util.js';
+import { getUserById } from '../user.utils.js';
+const log = logFactory({ name: 'mfaDisable' });
+export default async function mfaDisableConnector(req, res) {
   const {
     user: {
       _id: userId,

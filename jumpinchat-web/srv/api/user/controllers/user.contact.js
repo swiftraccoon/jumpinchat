@@ -1,8 +1,9 @@
-const uuid = require('uuid');
-const log = require('../../../utils/logger.util')({ name: 'user.verifyEmail' });
-const email = require('../../../config/email.config');
 
-module.exports = function contactForm(req, res) {
+import * as uuid from 'uuid';
+import logFactory from '../../../utils/logger.util.js';
+import email from '../../../config/email.config.js';
+const log = logFactory({ name: 'user.verifyEmail' });
+export default function contactForm(req, res) {
   const {
     message,
     email: from,

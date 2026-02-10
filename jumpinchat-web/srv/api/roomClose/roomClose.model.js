@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
-const config = require('../../config/env');
 
+import mongoose from 'mongoose';
+import config from '../../config/env/index.js';
 const { Schema } = mongoose;
 
 const RoomCloseSchema = new Schema({
@@ -21,4 +21,4 @@ const RoomCloseSchema = new Schema({
   ],
 });
 
-module.exports = mongoose.model('RoomClose', RoomCloseSchema);
+export default mongoose.model('RoomClose', RoomCloseSchema);

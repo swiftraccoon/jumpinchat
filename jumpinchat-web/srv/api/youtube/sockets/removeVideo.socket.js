@@ -1,10 +1,11 @@
-const log = require('../../../utils/logger.util')({ name: 'removeVideo.socket' });
-const utils = require('../../../utils/utils');
-const { getMediaByRoomId } = require('../playlist.utils');
-const roomUtils = require('../../room/room.utils');
-const { playVideo } = require('../controllers/playVideo.controller');
 
-module.exports = function removeVideoSocket(socket, io) {
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import { getMediaByRoomId } from '../playlist.utils.js';
+import roomUtils from '../../room/room.utils.js';
+import { playVideo } from '../controllers/playVideo.controller.js';
+const log = logFactory({ name: 'removeVideo.socket' });
+export default function removeVideoSocket(socket, io) {
   return function removeVideo({ id }) {
     roomUtils.getSocketCacheInfo(socket.id, async (err, data) => {
       if (err) {

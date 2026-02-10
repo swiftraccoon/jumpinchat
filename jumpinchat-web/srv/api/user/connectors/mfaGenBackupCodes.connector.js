@@ -1,7 +1,8 @@
-const log = require('../../../utils/logger.util')({ name: 'mfaGenBackupCodes' });
-const mfaGenBackupCodes = require('../controllers/mfaGenBackupCodes.controller');
 
-module.exports = async function mfaGenBackupCodesConnector(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import mfaGenBackupCodes from '../controllers/mfaGenBackupCodes.controller.js';
+const log = logFactory({ name: 'mfaGenBackupCodes' });
+export default async function mfaGenBackupCodesConnector(req, res) {
   const {
     user,
   } = req;

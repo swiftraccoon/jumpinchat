@@ -1,8 +1,9 @@
-const messageUtils = require('../message.utils');
-const log = require('../../../utils/logger.util')({ name: 'getUnread' });
-const errors = require('../../../config/constants/errors');
 
-module.exports = async function getUnread(req, res) {
+import messageUtils from '../message.utils.js';
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'getUnread' });
+export default async function getUnread(req, res) {
   const { userId } = req.params;
 
   try {

@@ -1,15 +1,13 @@
-const Stripe = require('stripe');
-const log = require('../../../utils/logger.util')({ name: 'getSubscription.controller' });
-const config = require('../../../config/env');
-const errors = require('../../../config/constants/errors');
-const {
-  getPaymentByUserId,
-  getCustomerByUserId,
-} = require('../payment.utils');
+import Stripe from 'stripe';
+import logFactory from '../../../utils/logger.util.js';
+import config from '../../../config/env/index.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'getSubscription.controller' });
+import { getPaymentByUserId, getCustomerByUserId } from '../payment.utils.js';
 
 const stripeClient = new Stripe(config.payment.stripe.secretKey);
 
-module.exports = async function getSubscription(req, res) {
+export default async function getSubscription(req, res) {
   const { userId } = req.params;
 
   if (String(req.user._id) !== userId) {
@@ -69,7 +67,7 @@ module.exports = async function getSubscription(req, res) {
   }
 
   try {
-    plan = await stripeClient.plans.retrieve(payment.subscription.planId);
+    plan = await stripeClient.prices.retrieve(payment.subscription.planId);
 
     if (!plan) {
       return res.status(404).send();
@@ -80,9 +78,9 @@ module.exports = async function getSubscription(req, res) {
       plan: {
         id: plan.id,
         name: plan.nickname,
-        amount: plan.amount,
+        amount: plan.unit_amount,
         created: payment.createdAt,
-        interval: plan.interval,
+        interval: plan.recurring && plan.recurring.interval,
       },
       source: {
         last4: card.last4,

@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
 
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const ModActivityModel = new Schema({
@@ -11,4 +11,4 @@ const ModActivityModel = new Schema({
   },
 });
 
-module.exports = mongoose.model('ModActivity', ModActivityModel);
+export default mongoose.model('ModActivity', ModActivityModel);

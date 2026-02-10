@@ -1,7 +1,8 @@
-const log = require('../../../utils/logger.util')({ name: 'getRoomRoles.controller' });
-const roleUtils = require('../role.utils');
 
-module.exports = async function getRolesController(roomId) {
+import logFactory from '../../../utils/logger.util.js';
+import roleUtils from '../role.utils.js';
+const log = logFactory({ name: 'getRoomRoles.controller' });
+export default async function getRolesController(roomId) {
   log.debug({ roomId }, 'getRolesController');
   return roleUtils.getAllRoomRoles(roomId);
 };

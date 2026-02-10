@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   appPath: 'react-client',
   analytics: {
     fb: '',

@@ -1,19 +1,19 @@
-const express = require('express');
-const utils = require('../../utils/utils');
 
-const createRole = require('./connectors/createRole.connector');
-const getRoomRoles = require('./connectors/getRoomRoles.connector');
-const getRoomRole = require('./connectors/getRoomRole.connector');
-const getUserRoles = require('./connectors/getUserRoles.connector');
-const addUserToRole = require('./connectors/addUserToRole.connector');
-const updateRoomRole = require('./connectors/updateRoomRole.connector');
-const removeRoomRole = require('./connectors/removeRoomRole.connector');
-const getRoomUserRoleList = require('./connectors/getRoomUserRoleList.connector');
-const removeUserFromRole = require('./connectors/removeUserFromRole.connector');
-const getUserHasPermissions = require('./connectors/getUserHasPermissions.connector');
 
-const migrateDefaultRoles = require('../../migrations/roles/defaultRoles');
 
+import express from 'express';
+import utils from '../../utils/utils.js';
+import createRole from './connectors/createRole.connector.js';
+import getRoomRoles from './connectors/getRoomRoles.connector.js';
+import getRoomRole from './connectors/getRoomRole.connector.js';
+import getUserRoles from './connectors/getUserRoles.connector.js';
+import addUserToRole from './connectors/addUserToRole.connector.js';
+import updateRoomRole from './connectors/updateRoomRole.connector.js';
+import removeRoomRole from './connectors/removeRoomRole.connector.js';
+import getRoomUserRoleList from './connectors/getRoomUserRoleList.connector.js';
+import removeUserFromRole from './connectors/removeUserFromRole.connector.js';
+import getUserHasPermissions from './connectors/getUserHasPermissions.connector.js';
+import migrateDefaultRoles from '../../migrations/roles/defaultRoles.js';
 const router = express.Router();
 
 router.get('/room/:roomName', utils.validateSession, getRoomRole);
@@ -34,4 +34,4 @@ router.post('/migrate/defaultRoles', (req, res) => {
   return res.status(200).send();
 });
 
-module.exports = router;
+export default router;

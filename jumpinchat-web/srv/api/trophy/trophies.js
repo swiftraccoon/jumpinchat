@@ -5,9 +5,9 @@ const types = {
   TYPE_ACTION: 'TYPE_ACTION',
 };
 
-module.exports.types = types;
+export { types };
 
-module.exports.trophies = [
+export const trophies = [
   // one-off and manual trophies
   {
     name: 'TROPHY_EMAIL_VERIFIED',
@@ -322,3 +322,5 @@ module.exports.trophies = [
     },
   },
 ];
+
+export default { types, trophies };

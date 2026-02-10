@@ -1,7 +1,8 @@
-const redisUtils = require('../../../utils/redis.util');
-const log = require('../../../utils/logger.util')({ name: 'janusEventHandler' });
-const { getUserByListId } = require('../../room/room.utils');
 
+import redisUtils from '../../../utils/redis.util.js';
+import logFactory from '../../../utils/logger.util.js';
+import { getUserByListId } from '../../room/room.utils.js';
+const log = logFactory({ name: 'janusEventHandler' });
 async function handleSetJanusSession(sessionId, userListId) {
   let socketId;
   try {
@@ -47,7 +48,7 @@ function handleEvent(eventWrapper) {
   }
 }
 
-module.exports = function handleJanusEvents(req, res) {
+export default function handleJanusEvents(req, res) {
   const { body } = req;
 
   if (Array.isArray(body)) {

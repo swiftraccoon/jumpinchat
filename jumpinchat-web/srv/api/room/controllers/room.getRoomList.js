@@ -2,11 +2,12 @@
  * Created by Zaccary on 17/03/2017.
  */
 
-const log = require('../../../utils/logger.util')({ name: 'room.getRoomList' });
-const roomUtils = require('../../room/room.utils');
-const redisUtils = require('../../../utils/redis.util');
-const errors = require('../../../config/constants/errors');
 
+import logFactory from '../../../utils/logger.util.js';
+import roomUtils from '../../room/room.utils.js';
+import redisUtils from '../../../utils/redis.util.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'room.getRoomList' });
 const roomsCacheKey = 'roomspublic';
 const countCacheKey = 'roomscount';
 const ttl = 5;
@@ -33,7 +34,7 @@ async function setCountCache(count) {
   return redisUtils.callPromise('expire', countCacheKey, ttl);
 }
 
-module.exports = async function getRoomList(req, res) {
+export default async function getRoomList(req, res) {
   const { start, end } = req.query;
 
   try {

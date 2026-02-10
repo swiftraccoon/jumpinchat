@@ -1,9 +1,3 @@
-const log = require('../../../utils/logger.util')({ name: 'updateRoleController.controller' });
-const roleUtils = require('../role.utils');
-const roleModel = require('../role.model');
-const createRole = require('./createRole.controller');
-const { getRoomByName } = require('../../room/room.utils');
-const { ValidationError } = require('../../../utils/error.util');
 
 /**
  * updateRoleController
@@ -16,7 +10,14 @@ const { ValidationError } = require('../../../utils/error.util');
  *
  * @return {...}
  */
-module.exports = async function updateRolesController(body) {
+import logFactory from '../../../utils/logger.util.js';
+import roleUtils from '../role.utils.js';
+import roleModel from '../role.model.js';
+import createRole from './createRole.controller.js';
+import { getRoomByName } from '../../room/room.utils.js';
+import { ValidationError } from '../../../utils/error.util.js';
+const log = logFactory({ name: 'updateRoleController.controller' });
+export default async function updateRolesController(body) {
   const {
     roomName,
     roles: updatedRoles,

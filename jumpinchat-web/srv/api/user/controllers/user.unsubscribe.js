@@ -1,9 +1,10 @@
-const jwt = require('jsonwebtoken');
-const log = require('../../../utils/logger.util')({ name: 'user.remove' });
-const config = require('../../../config/env');
-const userUtils = require('../user.utils');
 
-module.exports = function unsubscribe(req, res) {
+import jwt from 'jsonwebtoken';
+import logFactory from '../../../utils/logger.util.js';
+import config from '../../../config/env/index.js';
+import userUtils from '../user.utils.js';
+const log = logFactory({ name: 'user.remove' });
+export default function unsubscribe(req, res) {
   return jwt.verify(req.params.token, config.auth.jwt_secret, (err, { id }) => {
     if (err) {
       log.error({ err }, 'invalid token');

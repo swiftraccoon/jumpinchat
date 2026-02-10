@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
 
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const CheckoutSessionSchema = new Schema({
@@ -9,4 +9,4 @@ const CheckoutSessionSchema = new Schema({
   beneficiary: { type: Schema.Types.ObjectId, ref: 'User' },
 });
 
-module.exports = mongoose.model('CheckoutSession', CheckoutSessionSchema);
+export default mongoose.model('CheckoutSession', CheckoutSessionSchema);

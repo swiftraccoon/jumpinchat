@@ -2,13 +2,14 @@
  * Created by Zaccary on 24/05/2016.
  */
 
-const log = require('../../../utils/logger.util')({ name: 'changeHandle.socket' });
-const utils = require('../../../utils/utils');
-const errors = require('../../../config/constants/errors');
-const socketFloodProtect = require('../../../utils/socketFloodProtect');
-const roomController = require('../room.controller');
 
-module.exports = function changeHandleSocket(socket, io) {
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import errors from '../../../config/constants/errors.js';
+import socketFloodProtect from '../../../utils/socketFloodProtect.js';
+import roomController from '../room.controller.js';
+const log = logFactory({ name: 'changeHandle.socket' });
+export default function changeHandleSocket(socket, io) {
   return async function changeHandle(msg, context = 'modal') {
     try {
       await socketFloodProtect(socket);

@@ -1,11 +1,10 @@
 /* global describe,it,beforeEach */
 
-const { expect } = require('chai');
-const sinon = require('sinon');
-const mock = require('mock-require');
 
+import { expect } from 'chai';
+import sinon from 'sinon';
+import esmock from 'esmock';
 describe('Room Remove Controller', () => {
-  mock.stopAll();
   const remove = sinon.stub().yields();
 
   const save = sinon.stub().resolves();
@@ -19,9 +18,7 @@ describe('Room Remove Controller', () => {
 
   let roomUtilsStubs;
 
-  const getController = () => mock.reRequire('./room.remove');
-
-  beforeEach(() => {
+  beforeEach(async () => {
     roomMockData = {
       _id: 'abc',
       name: 'foo',
@@ -42,22 +39,19 @@ describe('Room Remove Controller', () => {
       removeJanusRoom,
     };
 
-    mock('../room.utils', roomUtilsStubs);
-
-    mock('../room.model', {
-      deleteOne: remove,
-    });
-
-    mock('../../youtube/playlist.utils', {
-      removePlaylistByRoomId,
-    });
-
-    mock('../../role/role.utils', {
-      removeRoomRoles: () => Promise.resolve(),
-      removeRoomEnrollments: () => Promise.resolve(),
-    });
-
-    controller = getController();
+    controller = (await esmock('./room.remove.js', {
+      '../room.utils.js': { default: roomUtilsStubs },
+      '../room.model.js': { default: {
+        deleteOne: remove,
+      } },
+      '../../youtube/playlist.utils.js': {
+        removePlaylistByRoomId,
+      },
+      '../../role/role.utils.js': {
+        removeRoomRoles: () => Promise.resolve(),
+        removeRoomEnrollments: () => Promise.resolve(),
+      },
+    })).default;
   });
 
   it('should remove the Janus room', (done) => {
@@ -75,8 +69,8 @@ describe('Room Remove Controller', () => {
     });
   });
 
-  it('should remove a room without an owner ID', (done) => {
-    roomUtilsStubs = {
+  it('should remove a room without an owner ID', async () => {
+    const newRoomUtilsStubs = {
       ...roomUtilsStubs,
       getRoomByName: sinon.stub().returns(Promise.resolve({
         ...roomMockData,
@@ -87,12 +81,25 @@ describe('Room Remove Controller', () => {
       })),
     };
 
-    mock('../room.utils', roomUtilsStubs);
+    controller = (await esmock('./room.remove.js', {
+      '../room.utils.js': { default: newRoomUtilsStubs },
+      '../room.model.js': { default: {
+        deleteOne: remove,
+      } },
+      '../../youtube/playlist.utils.js': {
+        removePlaylistByRoomId,
+      },
+      '../../role/role.utils.js': {
+        removeRoomRoles: () => Promise.resolve(),
+        removeRoomEnrollments: () => Promise.resolve(),
+      },
+    })).default;
 
-    controller = getController();
-    controller(roomMockData, () => {
-      expect(remove.called).to.equal(true);
-      done();
+    await new Promise((resolve) => {
+      controller(roomMockData, () => {
+        expect(remove.called).to.equal(true);
+        resolve();
+      });
     });
   });
 

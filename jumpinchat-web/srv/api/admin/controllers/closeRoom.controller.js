@@ -1,10 +1,11 @@
-const log = require('../../../utils/logger.util')({ name: 'admin.closeRoom' });
-const errors = require('../../../config/constants/errors');
-const roomCloseUtils = require('../../roomClose/roomClose.utils');
-const adminUtils = require('../admin.utils');
-const adminConstants = require('../admin.constants');
 
-module.exports = async function closeRoom(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+import roomCloseUtils from '../../roomClose/roomClose.utils.js';
+import adminUtils from '../admin.utils.js';
+import adminConstants from '../admin.constants.js';
+const log = logFactory({ name: 'admin.closeRoom' });
+export default async function closeRoom(req, res) {
   const { roomName } = req.params;
   const {
     reason,

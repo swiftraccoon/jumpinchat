@@ -1,16 +1,14 @@
-const jwt = require('jsonwebtoken');
-const {
-  getSocketCacheInfo,
-  getRoomByName,
-} = require('../room.utils');
-const { PermissionError, NotFoundError } = require('../../../utils/error.util');
-const redisUtils = require('../../../utils/redis.util');
-const log = require('../../../utils/logger.util')({ name: 'handleSilenceUser.socket' });
-const utils = require('../../../utils/utils');
-const { getUserHasRolePermissions } = require('../../role/role.utils');
-const config = require('../../../config/env');
+import jwt from 'jsonwebtoken';
+import { PermissionError, NotFoundError } from '../../../utils/error.util.js';
+import redisUtils from '../../../utils/redis.util.js';
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import { getUserHasRolePermissions } from '../../role/role.utils.js';
+import config from '../../../config/env/index.js';
+const log = logFactory({ name: 'handleSilenceUser.socket' });
+import { getSocketCacheInfo, getRoomByName } from '../room.utils.js';
 
-module.exports = function handleSilenceUserSocket(socket, io) {
+export default function handleSilenceUserSocket(socket, io) {
   return async function handleSilenceUser({ user_list_id: targetUserListId }) {
     let socketData;
     try {

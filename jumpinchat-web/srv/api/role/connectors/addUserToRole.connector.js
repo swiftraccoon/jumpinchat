@@ -1,9 +1,10 @@
-const log = require('../../../utils/logger.util')({ name: 'addUserToRole.connector' });
-const errors = require('../../../config/constants/errors');
-const { NotFoundError, PermissionError } = require('../../../utils/error.util');
-const addUserToRole = require('../controllers/addUserToRole.controller');
 
-module.exports = async function addUserToRoleConnector(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+import { NotFoundError, PermissionError } from '../../../utils/error.util.js';
+import addUserToRole from '../controllers/addUserToRole.controller.js';
+const log = logFactory({ name: 'addUserToRole.connector' });
+export default async function addUserToRoleConnector(req, res) {
   const {
     roomName,
     roleId,

@@ -1,10 +1,11 @@
-const Joi = require('joi');
-const bcrypt = require('bcrypt');
-const log = require('../../../utils/logger.util')({ name: 'user.changeEmail' });
-const userUtils = require('../user.utils');
-const { createEmailVerification } = require('../../verify/verify.utils');
 
-module.exports = function changeEmail(req, res) {
+import Joi from 'joi';
+import bcrypt from 'bcrypt';
+import logFactory from '../../../utils/logger.util.js';
+import userUtils from '../user.utils.js';
+import { createEmailVerification } from '../../verify/verify.utils.js';
+const log = logFactory({ name: 'user.changeEmail' });
+export default function changeEmail(req, res) {
   const schema = Joi.object().keys({
     email: Joi.string().email().required(),
     password: Joi.string().required(),

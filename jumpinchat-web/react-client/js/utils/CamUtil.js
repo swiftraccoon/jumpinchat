@@ -37,6 +37,12 @@ let slowlinkTimeout;
 
 
 const closeBroadcast = () => {
+  // Stop all local media tracks to ensure camera/mic are released
+  if (janusMcuPlugin && janusMcuPlugin.webrtcStuff && janusMcuPlugin.webrtcStuff.myStream) {
+    const tracks = janusMcuPlugin.webrtcStuff.myStream.getTracks();
+    tracks.forEach(track => track.stop());
+  }
+
   destroyLocalStream(null);
   setMediaDeviceId(null, 'video');
   setMediaDeviceId(null, 'audio');
@@ -326,6 +332,12 @@ export function unpublishOwnFeed() {
   const message = { request: 'unpublish' };
   janusMcuPlugin.send({ message });
   sendUserBroadcastState(false);
+
+  // Tear down the PeerConnection and stop local media tracks immediately.
+  // This ensures camera/mic are released even if Janus rejects the unpublish
+  // (e.g. "Can't unpublish, not published" due to race conditions).
+  // Without this, the WebRTC media continues streaming to subscribers.
+  janusMcuPlugin.hangup();
 }
 
 function checkVideoSupported() {

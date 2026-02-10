@@ -2,8 +2,6 @@
  * Created by Zaccary on 24/01/2016.
  */
 
-const { getRoomByName } = require('../../room.utils');
-const log = require('../../../../utils/logger.util')({ name: 'room.moderation.unbanUser' });
 
 /**
  * Ban a user.
@@ -15,7 +13,10 @@ const log = require('../../../../utils/logger.util')({ name: 'room.moderation.un
  * @param {string} banlistId the ID banlist item
  * @param {function} cb
  */
-module.exports = async function unbanUser(roomName, banlistId, cb) {
+import { getRoomByName } from '../../room.utils.js';
+import logFactory from '../../../../utils/logger.util.js';
+const log = logFactory({ name: 'room.moderation.unbanUser' });
+export default async function unbanUser(roomName, banlistId, cb) {
   let room;
   try {
     room = await getRoomByName(roomName);

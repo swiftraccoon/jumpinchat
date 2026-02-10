@@ -1,9 +1,10 @@
-const axios = require('axios');
-const inlineCss = require('inline-css');
-const log = require('../utils/logger.util')({ name: 'email.config' });
-const config = require('./env');
-const emailUtils = require('../api/email/email.utils');
 
+import axios from 'axios';
+import inlineCss from 'inline-css';
+import logFactory from '../utils/logger.util.js';
+import config from './env/index.js';
+import emailUtils from '../api/email/email.utils.js';
+const log = logFactory({ name: 'email.config' });
 const prepareEmail = function prepareEmail(html, cb) {
   const opts = {
     url: 'https://jumpin.chat',
@@ -25,7 +26,7 @@ function postMail(message) {
   });
 }
 
-module.exports.sendMail = async function sendMail(message, cb = () => {}) {
+export async function sendMail(message, cb = () => {}) {
   if (!message.to) {
     log.error('Missing mail destination');
     return cb(new Error('Missing mail destination'));
@@ -83,3 +84,5 @@ module.exports.sendMail = async function sendMail(message, cb = () => {}) {
     }
   });
 };
+
+export default { sendMail };

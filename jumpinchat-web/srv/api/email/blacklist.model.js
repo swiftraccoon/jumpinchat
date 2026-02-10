@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
 
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const EmailBlacklistSchema = new Schema({
@@ -11,4 +11,4 @@ const EmailBlacklistSchema = new Schema({
   expiresAt: { type: Date, default: null },
 });
 
-module.exports = mongoose.model('EmailBlacklist', EmailBlacklistSchema);
+export default mongoose.model('EmailBlacklist', EmailBlacklistSchema);

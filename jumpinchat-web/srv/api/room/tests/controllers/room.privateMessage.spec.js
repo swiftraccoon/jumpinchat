@@ -1,9 +1,8 @@
 /* global describe,it,beforeEach */
 
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire').noCallThru().noPreserveCache();
-
+import { expect } from 'chai';
+import sinon from 'sinon';
+import esmock from 'esmock';
 let privateMessage;
 
 const roomMockData = {
@@ -44,10 +43,10 @@ const roomUtilsStubs = {
 
 
 describe('Private message controller', () => {
-  beforeEach(() => {
-    privateMessage = proxyquire('../../controllers/room.privateMessage', {
-      '../room.utils': roomUtilsStubs,
-      '../../user/user.utils': {
+  beforeEach(async () => {
+    privateMessage = await esmock('../../controllers/room.privateMessage.js', {
+      '../../room.utils.js': roomUtilsStubs,
+      '../../../user/user.utils.js': {
         getUserById,
       },
     });
@@ -61,44 +60,55 @@ describe('Private message controller', () => {
     });
   });
 
-  it('should get socket ID from room if not set in cache', (done) => {
-    privateMessage = proxyquire('../../controllers/room.privateMessage', {
-      '../room.utils': Object.assign({}, roomUtilsStubs, {
+  it('should get socket ID from room if not set in cache', async () => {
+    privateMessage = await esmock('../../controllers/room.privateMessage.js', {
+      '../../room.utils.js': Object.assign({}, roomUtilsStubs, {
         getSocketIdFromListId: sinon.stub().yields(),
       }),
-      '../../user/user.utils': {
+      '../../../user/user.utils.js': {
         getUserById,
       },
     });
 
-    privateMessage('room', 'socketId', 'userId', () => {
-      expect(getSocketIdFromRoom.called).to.equal(true);
-      done();
+    await new Promise((resolve, reject) => {
+      privateMessage('room', 'socketId', 'userId', () => {
+        try {
+          expect(getSocketIdFromRoom.called).to.equal(true);
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      });
     });
   });
 
-  it('should fail if user does not allow messages', (done) => {
+  it('should fail if user does not allow messages', async () => {
     const getUserByIdNoMsg = sinon.stub().yields(null, {
       settings: {
         allowPrivateMessages: false,
       },
     });
 
-    privateMessage = proxyquire('../../controllers/room.privateMessage', {
-      '../room.utils': Object.assign({}, roomUtilsStubs, {
+    privateMessage = await esmock('../../controllers/room.privateMessage.js', {
+      '../../room.utils.js': Object.assign({}, roomUtilsStubs, {
         getSocketIdFromListId: sinon.stub().yields(),
       }),
-      '../../user/user.utils': {
+      '../../../user/user.utils.js': {
         getUserById: getUserByIdNoMsg,
       },
     });
 
-    privateMessage('room', 'socketId', 'userId', (err) => {
-      expect(err).to.eql({
-        message: 'user does not allow private messages',
+    await new Promise((resolve, reject) => {
+      privateMessage('room', 'socketId', 'userId', (err) => {
+        try {
+          expect(err).to.eql({
+            message: 'user does not allow private messages',
+          });
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
       });
-
-      done();
     });
   });
 

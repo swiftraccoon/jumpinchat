@@ -1,9 +1,10 @@
-const log = require('../../../utils/logger.util')({ name: 'room.utils' });
-const errors = require('../../../config/constants/errors');
-const { getRoomByName } = require('../../room/room.utils');
-const { getUserById } = require('../../user/user.utils');
 
-module.exports = async function setAgeRestricted(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+import { getRoomByName } from '../../room/room.utils.js';
+import { getUserById } from '../../user/user.utils.js';
+const log = logFactory({ name: 'room.utils' });
+export default async function setAgeRestricted(req, res) {
   const { roomName } = req.params;
   const identId = String(req.user._id);
 

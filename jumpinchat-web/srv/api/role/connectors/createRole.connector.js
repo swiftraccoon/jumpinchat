@@ -1,13 +1,10 @@
-const log = require('../../../utils/logger.util')({ name: 'createRole.connector' });
-const errors = require('../../../config/constants/errors');
-const {
-  NotFoundError,
-  PermissionError,
-  ValidationError,
-} = require('../../../utils/error.util');
-const createRole = require('../controllers/createRole.controller');
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+import createRole from '../controllers/createRole.controller.js';
+const log = logFactory({ name: 'createRole.connector' });
+import { NotFoundError, PermissionError, ValidationError } from '../../../utils/error.util.js';
 
-module.exports = async function createRoleConnector(req, res) {
+export default async function createRoleConnector(req, res) {
   const {
     name,
     tag,

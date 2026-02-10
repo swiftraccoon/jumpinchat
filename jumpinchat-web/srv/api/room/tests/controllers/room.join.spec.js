@@ -1,14 +1,13 @@
 /* global describe,it,beforeEach */
 
-const { expect } = require('chai');
-const sinon = require('sinon');
-const jwt = require('jsonwebtoken');
-const _ = require('lodash');
-const proxyquire = require('proxyquire').noCallThru();
-const roomMockJson = require('../room.mock.json');
-const config = require('../../../../config/env');
-const { PermissionError } = require('../../../../utils/error.util');
-
+import { expect } from 'chai';
+import sinon from 'sinon';
+import jwt from 'jsonwebtoken';
+import _ from 'lodash';
+import roomMockJson from '../room.mock.json' with { type: 'json' };
+import config from '../../../../config/env/index.js';
+import { PermissionError } from '../../../../utils/error.util.js';
+import esmock from 'esmock';
 const sandbox = sinon.createSandbox();
 let roomMock;
 let RoomJoin;
@@ -23,37 +22,38 @@ const sampleNewUser = {
 };
 
 
-const getController = (overrides = {}) => {
-  const Controller = proxyquire('../../controllers/room.join', {
-    '../room.utils': overrides.roomUtils || {},
-    './room.sanitize': overrides.roomSanitize || sinon.stub().yields(),
-    '../../../lib/redis.util': () => overrides.redisUtil || ({ hmset: sinon.stub().yields() }),
-    '../../../utils/redis.util': {
+const getController = async (overrides = {}) => {
+  const Controller = await esmock('../../controllers/room.join.js', {
+    '../../room.utils.js': overrides.roomUtils || {},
+    '../../controllers/room.sanitize.js': overrides.roomSanitize || sinon.stub().yields(),
+    '../../../../lib/redis.util.js': () => overrides.redisUtil || ({ hmset: sinon.stub().yields() }),
+    '../../../../utils/redis.util.js': {
       callPromise: sinon.stub().returns(Promise.resolve()),
     },
-    '../../siteban/siteban.utils': overrides.sitebanUtils || {
+    '../../../siteban/siteban.utils.js': overrides.sitebanUtils || {
       getBanlistItem: () => new Promise(resolve => resolve(null)),
     },
-    jwt: overrides.jwt || {
-      verify: () => Promise.resolve(),
+    'jsonwebtoken': overrides.jwt || {
+      default: { verify: (token, secret) => jwt.verify(token, secret), sign: jwt.sign },
+      verify: (token, secret) => jwt.verify(token, secret),
+      sign: jwt.sign,
     },
-    '../../../utils/utils': overrides.utils || {
+    '../../../../utils/utils.js': overrides.utils || {
       getCookie: () => 'foo',
     },
-    '../../user/user.utils': overrides.userUtils || {
+    '../../../user/user.utils.js': overrides.userUtils || {
       getUserById: () => Promise.resolve({
         _id: { equals: () => true },
       }),
     },
-    '../../roomClose/roomClose.utils': overrides.roomClose || {
+    '../../../roomClose/roomClose.utils.js': overrides.roomClose || {
       getByRoomName: () => Promise.resolve({
         attrs: {
           owner: { equals: () => true },
         },
       }),
     },
-
-    '../../role/role.utils': overrides.roleUtils || {
+    '../../../role/role.utils.js': overrides.roleUtils || {
       getUserEnrollments: () => Promise.resolve([]),
       getDefaultRoles: () => Promise.resolve([]),
       getUserHasRolePermissions: () => Promise.reject(new PermissionError()),
@@ -64,8 +64,8 @@ const getController = (overrides = {}) => {
 };
 
 describe('Room Join Controller', () => {
-  beforeEach(() => {
-    roomJoin = getController();
+  beforeEach(async () => {
+    roomJoin = await getController();
 
     roomJoin.redis = {
       hgetall: sandbox.stub().yields(),
@@ -89,11 +89,13 @@ describe('Room Join Controller', () => {
       createJanusRoom: sandbox.stub().yields(null, '123'),
       makeUserOperator: sinon.stub().returns(roomMock),
       createUniqueIntegerId: sinon.stub().returns(123),
+      addHistoryEntry: sinon.stub().resolves(),
+      addRecentRoom: sinon.stub().resolves(),
     });
   });
 
   describe('getModerator', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       roomJoin.room = {
         settings: {
           moderators: [],
@@ -153,7 +155,7 @@ describe('Room Join Controller', () => {
   });
 
   describe('checkRoomPasswordRequired', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       roomJoin.room = {
         name: 'foo',
         attrs: {
@@ -216,7 +218,7 @@ describe('Room Join Controller', () => {
   });
 
   describe('Join Room', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       roomJoin.checkRoomPasswordRequired = () => Promise.resolve(false);
       roomJoin.checkRoomClosed = () => Promise.resolve(false);
     });
@@ -276,7 +278,7 @@ describe('Room Join Controller', () => {
   });
 
   describe('checkUserIsBanned', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       roomJoin.room = {
         ...roomJoin.room,
         attrs: {},
@@ -343,7 +345,7 @@ describe('Room Join Controller', () => {
 
     it('should return site banlist item when restrictions exists', async () => {
       const getBanlistItem = () => Promise.resolve({ restrictions: { join: true } });
-      const controller = getController({ sitebanUtils: { getBanlistItem } });
+      const controller = await getController({ sitebanUtils: { getBanlistItem } });
       controller.room = roomJoin.room;
       const banned = await controller.checkUserIsBanned({ ...sampleNewUser, ip: 'foo' });
 
@@ -437,7 +439,7 @@ describe('Room Join Controller', () => {
   describe('attachClientToRoom', () => {
     let addedUser;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       addedUser = {
         ...sampleNewUser,
         handle: 'handle1',
@@ -489,7 +491,7 @@ describe('Room Join Controller', () => {
   describe('checkModTimeout', () => {
     let moderator;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       roomJoin.room = {
         attrs: {
           owner: 'foo',

@@ -2,11 +2,12 @@
  * Created by Zaccary on 25/07/2016.
  */
 
-const log = require('../../../utils/logger.util')({ name: 'getUserList.controller' });
-const config = require('../../../config/env');
-const UserUtils = require('../../user/user.utils');
 
-module.exports = function getUserList(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import config from '../../../config/env/index.js';
+import UserUtils from '../../user/user.utils.js';
+const log = logFactory({ name: 'getUserList.controller' });
+export default function getUserList(req, res) {
   const { page } = req.query;
   UserUtils.getUserCount((err, count) => {
     if (err) {

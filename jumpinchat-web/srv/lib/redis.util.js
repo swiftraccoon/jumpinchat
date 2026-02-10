@@ -1,7 +1,8 @@
-const redis = require('redis');
-const config = require('../config/env');
-const log = require('../utils/logger.util')({ name: 'redis.util' });
 
+import redis from 'redis';
+import config from '../config/env/index.js';
+import logFactory from '../utils/logger.util.js';
+const log = logFactory({ name: 'redis.util' });
 let client;
 
 log.debug({ redisConfig: config.redis });
@@ -42,6 +43,6 @@ function createClient() {
 
 createClient();
 
-module.exports = function redisUtil() {
+export default function redisUtil() {
   return client;
 };

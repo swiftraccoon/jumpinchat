@@ -1,22 +1,23 @@
-const path = require('path');
-const axios = require('axios');
-const user = require('./api/user');
-const room = require('./api/room');
-const janus = require('./api/janus');
-const turn = require('./api/turn');
-const admin = require('./api/admin');
-const youtube = require('./api/youtube');
-const report = require('./api/report');
-const trophy = require('./api/trophy');
-const message = require('./api/message');
-const ageVerification = require('./api/ageVerification');
-const payment = require('./api/payment');
-const role = require('./api/role');
-const config = require('./config/env');
-const roomUtils = require('./api/room/room.utils');
-const log = require('./utils/logger.util')({ name: 'routes' });
 
-module.exports = function routes(app) {
+import path from 'path';
+import axios from 'axios';
+import user from './api/user/index.js';
+import room from './api/room/index.js';
+import janus from './api/janus/index.js';
+import turn from './api/turn/index.js';
+import admin from './api/admin/index.js';
+import youtube from './api/youtube/index.js';
+import report from './api/report/index.js';
+import trophy from './api/trophy/index.js';
+import message from './api/message/index.js';
+import ageVerification from './api/ageVerification/index.js';
+import payment from './api/payment/index.js';
+import role from './api/role/index.js';
+import config from './config/env/index.js';
+import roomUtils from './api/room/room.utils.js';
+import logFactory from './utils/logger.util.js';
+const log = logFactory({ name: 'routes' });
+export default function routes(app) {
   app.use('/api/user', user);
   app.use('/api/rooms', room);
   app.use('/api/janus', janus);
@@ -133,14 +134,14 @@ module.exports = function routes(app) {
       }
     });
 
-  app.route(`/:room(${config.roomRegExp})`).post((req, res) => res.redirect(req.path));
+  app.route(`/:room(${config.roomRegExp})`).post((req, res) => res.redirect(302, req.path));
 
   app.route(`/:room(${config.roomRegExp})`)
     .get((req, res, next) => {
       const roomName = req.params.room.toLowerCase().replace('-', '');
 
       if (req.params.room.match(/[A-Z-]/)) {
-        return res.status(301).redirect(roomName);
+        return res.redirect(301, roomName);
       }
 
       log.debug({ roomName }, 'connecting to room');
@@ -153,7 +154,7 @@ module.exports = function routes(app) {
         roomUtils.getRoomByName(roomName, (err, existingRoom) => {
           if (err) {
             log.fatal({ err, room: roomName }, 'error getting room');
-            return res.status(500).redirect('/500');
+            return res.redirect(302, '/500');
           }
 
           let roomObj = existingRoom;
@@ -198,7 +199,7 @@ module.exports = function routes(app) {
       }
     });
 
-  app.route('*')
+  app.route('/{*splat}')
     .get((req, res, next) => {
       res.status(404);
 

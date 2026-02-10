@@ -1,11 +1,12 @@
-const Stripe = require('stripe');
-const log = require('../../../utils/logger.util')({ name: 'migrate trophies' });
-const paymentModel = require('../payment.model');
-const config = require('../../../config/env');
 
+import Stripe from 'stripe';
+import logFactory from '../../../utils/logger.util.js';
+import paymentModel from '../payment.model.js';
+import config from '../../../config/env/index.js';
+const log = logFactory({ name: 'migrate trophies' });
 const stripeClient = new Stripe(config.payment.stripe.secretKey);
 
-module.exports = async function addMissingSubId(req, res) {
+export default async function addMissingSubId(req, res) {
   let payments;
 
   try {

@@ -1,12 +1,13 @@
-const redis = require('../lib/redis.util')();
 
 // Map redis v2 method names to v4 equivalents
+import redisFactory from '../lib/redis.util.js';
+const redis = redisFactory();
 const methodMap = {
   hmset: 'hSet',
   hgetall: 'hGetAll',
 };
 
-module.exports.callPromise = async function callPromise(method, ...args) {
+export async function callPromise(method, ...args) {
   const v4Method = methodMap[method] || method;
   const result = await redis[v4Method](...args);
 
@@ -17,3 +18,5 @@ module.exports.callPromise = async function callPromise(method, ...args) {
 
   return result;
 };
+
+export default { callPromise };

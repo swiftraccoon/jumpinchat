@@ -1,8 +1,8 @@
-const { NotFoundError } = require('../../../utils/error.util');
-const errors = require('../../../config/constants/errors');
-const getUserByName = require('../controllers/user.getUserByName');
 
-module.exports = async function getUserByNameConnector(req, res) {
+import { NotFoundError } from '../../../utils/error.util.js';
+import errors from '../../../config/constants/errors.js';
+import getUserByName from '../controllers/user.getUserByName.js';
+export default async function getUserByNameConnector(req, res) {
   const { username } = req.params;
 
   try {

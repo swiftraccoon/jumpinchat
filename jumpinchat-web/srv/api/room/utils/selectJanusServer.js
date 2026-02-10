@@ -1,7 +1,7 @@
-const log = require('../../../utils/logger.util')({ name: 'selectJanusServer' });
-const config = require('../../../config/env');
-const getAvgUsersInRoom = require('./getAvgUsersInRoom');
-
+import logFactory from '../../../utils/logger.util.js';
+import config from '../../../config/env/index.js';
+import getAvgUsersInRoom from './getAvgUsersInRoom.js';
+const log = logFactory({ name: 'selectJanusServer' });
 /*
   S = sessions on server
   r = rooms
@@ -10,7 +10,7 @@ const getAvgUsersInRoom = require('./getAvgUsersInRoom');
   Est total number of active peer connections (lower = less load)
   (S * u) - S
 */
-module.exports = async function selectJanusServer() {
+export default async function selectJanusServer() {
   const janusServers = config.janus.serverIds;
 
   let userAverages;

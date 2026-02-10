@@ -1,7 +1,8 @@
-const log = require('../../../utils/logger.util')({ name: 'getVerificationRequests' });
-const { getRequests } = require('../ageVerification.utils');
 
-module.exports = async function getVerificationRequests(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import { getRequests } from '../ageVerification.utils.js';
+const log = logFactory({ name: 'getVerificationRequests' });
+export default async function getVerificationRequests(req, res) {
   try {
     const requests = await getRequests();
     return res.status(200).send(requests);

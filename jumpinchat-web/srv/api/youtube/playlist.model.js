@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
 
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const PlaylistSchema = new Schema({
@@ -23,4 +23,4 @@ const PlaylistSchema = new Schema({
   ],
 });
 
-module.exports = mongoose.model('Playlist', PlaylistSchema);
+export default mongoose.model('Playlist', PlaylistSchema);

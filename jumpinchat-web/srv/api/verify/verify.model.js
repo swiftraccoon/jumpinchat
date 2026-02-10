@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
-const config = require('../../config/env');
 
+import mongoose from 'mongoose';
+import config from '../../config/env/index.js';
 const { Schema } = mongoose;
 
 const VerifySchema = new Schema({
@@ -11,4 +11,4 @@ const VerifySchema = new Schema({
   type: String,
 });
 
-module.exports = mongoose.model('Verify', VerifySchema);
+export default mongoose.model('Verify', VerifySchema);

@@ -1,8 +1,8 @@
 /* global it,describe */
 
-const { expect } = require('chai');
-const makeUserOperator = require('../../utils/room.utils.makeUserOperator');
 
+import { expect } from 'chai';
+import makeUserOperator from '../../utils/room.utils.makeUserOperator.js';
 describe('Make user moderator', () => {
   it('should add a temporary operator', () => {
     const opts = {

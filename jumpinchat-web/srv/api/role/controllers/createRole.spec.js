@@ -1,9 +1,9 @@
-const chai = require('chai');
-const sinon = require('sinon');
-const mock = require('mock-require');
-const chaiAsPromised = require('chai-as-promised');
-const { ValidationError } = require('../../../utils/error.util');
 
+import * as chai from 'chai';
+import sinon from 'sinon';
+import chaiAsPromised from 'chai-as-promised';
+import { ValidationError } from '../../../utils/error.util.js';
+import esmock from 'esmock';
 chai.use(chaiAsPromised);
 
 const { expect } = chai;
@@ -13,10 +13,23 @@ describe('createRoleController', () => {
   let roleUtilsStubs;
   let emitStub;
   let ioStub;
-  mock.stopAll();
-  const getController = () => mock.reRequire('./createRole.controller');
 
-  beforeEach(() => {
+  const baseMocks = () => ({
+    '../role.model.js': { default: {
+      create: role => Promise.resolve(role),
+    } },
+    '../role.utils.js': { default: roleUtilsStubs },
+    '../../room/room.utils.js': {
+      getRoomByName: sinon.stub().returns(Promise.resolve({
+        _id: 'foo',
+        attrs: {
+          owner: 'bar',
+        },
+      })),
+    },
+  });
+
+  beforeEach(async () => {
     emitStub = sinon.spy();
 
     ioStub = {
@@ -30,20 +43,8 @@ describe('createRoleController', () => {
       getUserHasRolePermissions: sinon.stub().resolves(true),
       validateTag: () => true,
     };
-    mock('../role.model', {
-      create: role => Promise.resolve(role),
-    });
-    mock('../role.utils', roleUtilsStubs);
-    mock('../../room/room.utils', {
-      getRoomByName: sinon.stub().returns(Promise.resolve({
-        _id: 'foo',
-        attrs: {
-          owner: 'bar',
-        },
-      })),
-    });
 
-    controller = getController();
+    controller = (await esmock('./createRole.controller.js', baseMocks())).default;
   });
 
   it('should error if room name is missing', async () => {
@@ -108,16 +109,29 @@ describe('createRoleController', () => {
     });
 
     it('should throw an error if tag already exists', async () => {
-      mock('../role.utils', {
+      roleUtilsStubs = {
         ...roleUtilsStubs,
         getAllRoomRoles: () => Promise.resolve([
           {
             tag: 'foo_tag',
           },
         ]),
-      });
+      };
 
-      controller = getController();
+      controller = (await esmock('./createRole.controller.js', {
+        '../role.model.js': { default: {
+          create: role => Promise.resolve(role),
+        } },
+        '../role.utils.js': { default: roleUtilsStubs },
+        '../../room/room.utils.js': {
+          getRoomByName: sinon.stub().returns(Promise.resolve({
+            _id: 'foo',
+            attrs: {
+              owner: 'bar',
+            },
+          })),
+        },
+      })).default;
 
       await expect(controller({
         name: 'Such a role name',

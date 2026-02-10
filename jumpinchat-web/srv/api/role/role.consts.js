@@ -1,4 +1,4 @@
-module.exports.defaultRoles = {
+export const defaultRoles = {
   mods: {
     name: 'Moderators',
     tag: 'mods',
@@ -50,4 +50,4 @@ module.exports.defaultRoles = {
   },
 };
 
-module.exports.tagFormat = /^\w+$/;
+export const tagFormat = /^\w+$/;

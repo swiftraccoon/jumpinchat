@@ -1,9 +1,10 @@
-const log = require('../../../utils/logger.util')({ name: 'getRoomRoles.connector' });
-const errors = require('../../../config/constants/errors');
-const getRoomRoles = require('../controllers/getRoomRoles.controller');
-const { getRoomIdFromName } = require('../../room/room.utils');
 
-module.exports = async function getRoomRolesConnector(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+import getRoomRoles from '../controllers/getRoomRoles.controller.js';
+import { getRoomIdFromName } from '../../room/room.utils.js';
+const log = logFactory({ name: 'getRoomRoles.connector' });
+export default async function getRoomRolesConnector(req, res) {
   const { roomName } = req.params;
   let roomId;
 

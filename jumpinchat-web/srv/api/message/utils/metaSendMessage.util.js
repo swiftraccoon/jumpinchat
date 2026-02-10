@@ -1,9 +1,10 @@
-const log = require('../../../utils/logger.util')({ name: 'metaSendMessage.util' });
-const messageUtils = require('../message.utils');
-const userUtils = require('../../user/user.utils');
-const errors = require('../../../config/constants/errors');
 
-module.exports = function metaSendMessage(userId, message) {
+import logFactory from '../../../utils/logger.util.js';
+import messageUtils from '../message.utils.js';
+import userUtils from '../../user/user.utils.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'metaSendMessage.util' });
+export default function metaSendMessage(userId, message) {
   return new Promise(async (resolve, reject) => {
     let sender;
 

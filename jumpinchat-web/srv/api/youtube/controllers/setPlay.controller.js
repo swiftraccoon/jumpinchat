@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'setPlay.controller' });
-const Joi = require('joi');
-const { getUserById } = require('../../user/user.utils');
 
-module.exports = function (req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import Joi from 'joi';
+import { getUserById } from '../../user/user.utils.js';
+const log = logFactory({ name: 'setPlay.controller' });
+export default function(req, res) {
   const userId = req.signedCookies['jic.ident'];
 
   if (!userId) {

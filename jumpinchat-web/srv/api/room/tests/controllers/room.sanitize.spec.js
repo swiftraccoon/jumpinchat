@@ -1,9 +1,8 @@
 /* global describe,it,beforeEach */
 
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire').noCallThru().noPreserveCache();
-
+import { expect } from 'chai';
+import sinon from 'sinon';
+import esmock from 'esmock';
 let roomSanitize;
 let leaveRoom;
 
@@ -25,7 +24,7 @@ describe('Room Sanitize Controller', () => {
 
   let stubs;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     roomMockData = {
       name: 'foo',
       janus_id: 1234,
@@ -44,18 +43,18 @@ describe('Room Sanitize Controller', () => {
     getRoomByName = sinon.stub().yields(null, roomMockData);
     leaveRoom = sinon.stub().yields();
     stubs = {
-      '../room.controller': {
+      '../../room.controller.js': {
         getSocketIo,
         leaveRoom,
       },
-      '../room.utils': {
+      '../../room.utils.js': {
         getRoomByName,
       },
-      '../sockets/disconnectUser.socket': disconnectUserSocket,
-      '../../../lib/redis.util': () => ({ del: sinon.stub().resolves() }),
+      '../../sockets/disconnectUser.socket.js': disconnectUserSocket,
+      '../../../../lib/redis.util.js': () => ({ del: sinon.stub().resolves() }),
     };
 
-    roomSanitize = proxyquire('../../controllers/room.sanitize.js', stubs);
+    roomSanitize = await esmock('../../controllers/room.sanitize.js', stubs);
   });
 
   it('should call disconnect for each socket not in the global list', (done) => {

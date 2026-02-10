@@ -1,9 +1,11 @@
-const log = require('../../../utils/logger.util')({ name: 'updateSession' });
-const RoomUtils = require('../../room/room.utils');
-const UserSocket = require('../user.socket');
-const redis = require('../../../lib/redis.util')();
-const { NotFoundError } = require('../../../utils/error.util');
 
+import logFactory from '../../../utils/logger.util.js';
+import RoomUtils from '../../room/room.utils.js';
+import UserSocket from '../user.socket.js';
+import redisFactory from '../../../lib/redis.util.js';
+import { NotFoundError } from '../../../utils/error.util.js';
+const log = logFactory({ name: 'updateSession' });
+const redis = redisFactory();
 function updateRoomSocketInfo(roomName, oldSocket, newSocket, cb) {
   RoomUtils.getRoomByName(roomName, (err, room) => {
     if (err) {
@@ -93,7 +95,7 @@ async function setNewId(newId, oldId, roomData, cb) {
       });
 }
 
-module.exports = function updateSession(req, res) {
+export default function updateSession(req, res) {
   const { oldId, newId } = req.params;
 
   RoomUtils.getSocketCacheInfo(oldId, (err, socketData) => {

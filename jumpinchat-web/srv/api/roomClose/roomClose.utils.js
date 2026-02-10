@@ -1,10 +1,11 @@
-const config = require('../../config/env');
-const log = require('../../utils/logger.util')({ name: 'roomClose.utils' });
-const RoomCloseModel = require('./roomClose.model');
-const roomUtils = require('../room/room.utils');
-const { getSocketIo } = require('../admin/admin.controller');
 
-module.exports.getByRoomName = function getByRoomName(name) {
+import config from '../../config/env/index.js';
+import logFactory from '../../utils/logger.util.js';
+import RoomCloseModel from './roomClose.model.js';
+import roomUtils from '../room/room.utils.js';
+import { getSocketIo } from '../admin/admin.controller.js';
+const log = logFactory({ name: 'roomClose.utils' });
+export function getByRoomName(name) {
   return RoomCloseModel
     .findOne({ name })
     .where('expiresAt').gt(new Date())
@@ -17,7 +18,7 @@ function banUser(socketId) {
   return io.to(socketId).emit('self::banned');
 }
 
-module.exports.closeRoom = async function closeRoom(roomName, reason, duration) {
+export async function closeRoom(roomName, reason, duration) {
   try {
     const room = await roomUtils.getRoomByName(roomName);
 
@@ -47,3 +48,5 @@ module.exports.closeRoom = async function closeRoom(roomName, reason, duration) 
     return Promise.reject(err);
   }
 };
+
+export default { getByRoomName, closeRoom };

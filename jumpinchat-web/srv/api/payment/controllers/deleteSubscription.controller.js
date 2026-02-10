@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'deleteSubscription.controller' });
-const errors = require('../../../config/constants/errors');
-const { cancelSubscription } = require('../payment.utils');
 
-module.exports = async function deleteSubscription(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+import { cancelSubscription } from '../payment.utils.js';
+const log = logFactory({ name: 'deleteSubscription.controller' });
+export default async function deleteSubscription(req, res) {
   const { userId } = req.params;
 
   if (String(req.user._id) !== userId) {

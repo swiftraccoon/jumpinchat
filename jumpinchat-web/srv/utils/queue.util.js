@@ -1,6 +1,7 @@
-const { EventEmitter } = require('events');
-const log = require('./logger.util')({ name: 'queue.util' });
 
+import { EventEmitter } from 'events';
+import logFactory from './logger.util.js';
+const log = logFactory({ name: 'queue.util' });
 class Queue extends EventEmitter {
   constructor(func, interval = 1000) {
     super();
@@ -61,4 +62,4 @@ class Queue extends EventEmitter {
   }
 }
 
-module.exports = Queue;
+export default Queue;

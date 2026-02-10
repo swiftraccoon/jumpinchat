@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   VIDEO_240: {
     id: 'VIDEO_240',
     label: '240p',

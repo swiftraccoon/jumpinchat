@@ -2,8 +2,13 @@
  * Created by vivaldi on 25/10/2014.
  */
 
-const _ = require('lodash');
-const path = require('path');
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+import _ from 'lodash';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const all = {
   env: process.env.NODE_ENV || 'development',
@@ -79,7 +84,8 @@ const all = {
   },
 };
 
-module.exports = _.merge(
-  all,
-    require(`./${all.env}.js`) // eslint-disable-line
-);
+// Dynamic import to load only the matching environment config
+// (production.js accesses env vars that don't exist in dev/test)
+const envModule = await import(`./${all.env}.js`);
+
+export default _.merge(all, envModule.default || {});

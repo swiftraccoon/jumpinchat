@@ -1,9 +1,8 @@
 /* global describe,it,beforeEach */
 
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire').noCallThru();
-
+import { expect } from 'chai';
+import sinon from 'sinon';
+import esmock from 'esmock';
 describe('Disconnect user socket', () => {
   let socket;
   const socketEmitSpy = sinon.spy();
@@ -26,17 +25,17 @@ describe('Disconnect user socket', () => {
   const filterRoomUser = sinon.stub().callsFake(u => u);
   const messageFactory = sinon.stub().callsFake(m => m);
 
-  beforeEach(function beforeEach() {
+  beforeEach(async function beforeEach() {
     this.timeout(5000);
 
-    socket = proxyquire('../../sockets/disconnectUser.socket.js', {
-      '../room.controller': {
+    socket = await esmock('../../sockets/disconnectUser.socket.js', {
+      '../../room.controller.js': {
         leaveRoom,
       },
-      '../../../utils/utils': {
+      '../../../../utils/utils.js': {
         messageFactory,
       },
-      '../room.utils': {
+      '../../room.utils.js': {
         filterRoomUser,
       },
     });

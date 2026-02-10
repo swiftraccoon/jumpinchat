@@ -2,9 +2,9 @@
  * Created by Zaccary on 14/12/2015.
  */
 
-const express = require('express');
-const controller = require('./turn.controller.js');
 
+import express from 'express';
+import controller from './turn.controller.js';
 const router = express.Router();
 
 
@@ -12,4 +12,4 @@ const router = express.Router();
 router.get('/', controller.getTurnCreds);
 router.post('/', controller.getTurnCreds);
 
-module.exports = router;
+export default router;

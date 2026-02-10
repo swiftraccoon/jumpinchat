@@ -1,11 +1,10 @@
 /* global describe,it,beforeEach */
 
-const { expect } = require('chai');
-const sinon = require('sinon');
-const jwt = require('jsonwebtoken');
-const proxyquire = require('proxyquire').noCallThru();
-const config = require('../config/env');
-
+import { expect } from 'chai';
+import sinon from 'sinon';
+import jwt from 'jsonwebtoken';
+import config from '../config/env/index.js';
+import esmock from 'esmock';
 describe('utils', () => {
   let req;
   let res;
@@ -16,7 +15,7 @@ describe('utils', () => {
   let userUtilsMock;
   let awsMock;
 
-  beforeEach(function beforeEach() {
+  beforeEach(async function beforeEach() {
     this.timeout(5000);
     sendSpy = new Promise(resolve => resolve());
     redisMock = () => ({});
@@ -51,11 +50,11 @@ describe('utils', () => {
 
     next = sinon.spy();
 
-    controller = proxyquire('./utils.js', {
-      '../api/user/user.utils': userUtilsMock,
-      '../api/room/room.utils': {},
-      './redis.util': { callPromise: sinon.stub() },
-      './rateLimit': sinon.stub(),
+    controller = await esmock('./utils.js', {
+      '../api/user/user.utils.js': userUtilsMock,
+      '../api/room/room.utils.js': {},
+      './redis.util.js': { callPromise: sinon.stub() },
+      './rateLimit.js': sinon.stub(),
       '@aws-sdk/client-s3': awsMock,
       '@aws-sdk/s3-request-presigner': { getSignedUrl: sinon.stub().resolves('https://signed-url') },
     });
@@ -90,19 +89,28 @@ describe('utils', () => {
       });
     });
 
-    it('should respond with a 401 if there is no user', (done) => {
+    it('should respond with a 401 if there is no user', async () => {
       req.signedCookies = {
         'jic.ident': 'foo',
       };
 
-      userUtilsMock.getUserById = sinon.stub().yields(null);
+      const noUserUtilsMock = {
+        getUserById: sinon.stub().yields(null),
+      };
 
-      controller.validateAccount(req, res, next);
-
-      sendSpy.then(() => {
-        expect(res.status.firstCall.args[0]).to.equal(401);
-        done();
+      const ctrl = await esmock('./utils.js', {
+        '../api/user/user.utils.js': { default: noUserUtilsMock, ...noUserUtilsMock },
+        '../api/room/room.utils.js': {},
+        './redis.util.js': { callPromise: sinon.stub() },
+        './rateLimit.js': sinon.stub(),
+        '@aws-sdk/client-s3': awsMock,
+        '@aws-sdk/s3-request-presigner': { getSignedUrl: sinon.stub().resolves('https://signed-url') },
       });
+
+      ctrl.validateAccount(req, res, next);
+
+      await sendSpy;
+      expect(res.status.firstCall.args[0]).to.equal(401);
     });
 
     it('should call `next` if user found', (done) => {

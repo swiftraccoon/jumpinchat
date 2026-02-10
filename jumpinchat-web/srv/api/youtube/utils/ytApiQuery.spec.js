@@ -1,23 +1,23 @@
-const { expect } = require('chai');
-const sinon = require('sinon');
-const mock = require('mock-require');
 
+import { expect } from 'chai';
+import sinon from 'sinon';
+import esmock from 'esmock';
 describe('ytApiQuery', () => {
   let axiosStub;
-  const getController = () => mock.reRequire('./ytApiQuery');
-  beforeEach(() => {
+  let controller;
+
+  beforeEach(async () => {
     axiosStub = sinon.stub().resolves({ status: 200, data: { items: [] } });
-    mock('axios', axiosStub);
-    mock('./getCurrentCred', () => Promise.resolve('foo'));
+    controller = (await esmock('./ytApiQuery.js', {
+      'axios': { default: axiosStub },
+      './getCurrentCred.js': { default: () => Promise.resolve('foo') },
+    })).default;
   });
 
   afterEach(() => {
-    mock.stopAll();
   });
 
   it('it should call api with correct key', async () => {
-    const controller = getController();
-
     try {
       await controller('http://api', {});
     } catch (err) {
@@ -40,8 +40,10 @@ describe('ytApiQuery', () => {
       },
     });
 
-    mock('axios', axiosStub);
-    const controller = getController();
+    controller = (await esmock('./ytApiQuery.js', {
+      'axios': { default: axiosStub },
+      './getCurrentCred.js': { default: () => Promise.resolve('foo') },
+    })).default;
 
     try {
       await controller('foo', {});
@@ -52,8 +54,6 @@ describe('ytApiQuery', () => {
   });
 
   it('should resolve with item array', async () => {
-    const controller = getController();
-
     try {
       const result = await controller('http://api', {});
       expect(result).to.eql([]);

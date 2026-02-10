@@ -1,7 +1,7 @@
-const OtpBackupCodeSchema = require('../otpBackupCode.model');
-const { ValidationError } = require('../../../utils/error.util');
 
-module.exports = async function mfaGenBackupCodes(body) {
+import OtpBackupCodeSchema from '../otpBackupCode.model.js';
+import { ValidationError } from '../../../utils/error.util.js';
+export default async function mfaGenBackupCodes(body) {
   const { userId, code } = body;
   const codeDoc = await OtpBackupCodeSchema.findOne({
     userId,

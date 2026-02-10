@@ -1,14 +1,11 @@
-const log = require('../../../utils/logger.util')({ name: 'admin.bounceNotification' });
-const config = require('../../../config/env');
-const { getUserByEmail } = require('../../user/user.utils');
-const {
-  addToBlacklist,
-  isSubscriptionConfirmation,
-  handleSnsSubscription,
-} = require('../../email/email.utils');
+import logFactory from '../../../utils/logger.util.js';
+import config from '../../../config/env/index.js';
+import { getUserByEmail } from '../../user/user.utils.js';
+const log = logFactory({ name: 'admin.bounceNotification' });
+import { addToBlacklist, isSubscriptionConfirmation, handleSnsSubscription } from '../../email/email.utils.js';
 
 
-module.exports = function bounceNotification(req, res) {
+export default function bounceNotification(req, res) {
   if (isSubscriptionConfirmation(req.headers)) {
     return handleSnsSubscription(req, res);
   }

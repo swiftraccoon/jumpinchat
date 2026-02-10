@@ -1,7 +1,8 @@
-const adminUtils = require('../admin.utils');
-const log = require('../../../utils/logger.util')({ name: 'admin.getStats' });
 
-module.exports = async function getStats(req, res) {
+import adminUtils from '../admin.utils.js';
+import logFactory from '../../../utils/logger.util.js';
+const log = logFactory({ name: 'admin.getStats' });
+export default async function getStats(req, res) {
   let stats;
 
   try {

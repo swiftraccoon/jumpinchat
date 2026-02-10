@@ -1,9 +1,8 @@
 /* global describe,it,beforeEach */
 
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire').noCallThru();
-
+import { expect } from 'chai';
+import sinon from 'sinon';
+import esmock from 'esmock';
 const socketId = 'socketId';
 let changeHandle;
 
@@ -23,12 +22,12 @@ const roomSaveStub = sinon.stub().resolves(roomMockData);
 const roomMock = Object.assign({}, roomMockData, { save: roomSaveStub });
 
 describe('Room Change Handle Controller', () => {
-  beforeEach(() => {
-    changeHandle = proxyquire('../../controllers/room.changeHandle', {
-      '../room.utils': {
+  beforeEach(async () => {
+    changeHandle = await esmock('../../controllers/room.changeHandle.js', {
+      '../../room.utils.js': {
         getRoomByName: sinon.stub().yields(null, roomMock),
       },
-      '../../../lib/redis.util': () => ({
+      '../../../../lib/redis.util.js': () => ({
         hSet: sinon.stub().resolves(),
         hGetAll: sinon.stub().resolves({
           name: 'roomName',

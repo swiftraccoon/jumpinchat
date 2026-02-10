@@ -2,14 +2,12 @@
  * Created by Zaccary on 19/10/2015.
  */
 
-const RoomModel = require('../room.model');
-const roomUtils = require('../room.utils');
-const { removePlaylistByRoomId } = require('../../youtube/playlist.utils');
-const log = require('../../../utils/logger.util')({ name: 'room.remove' });
-const {
-  removeRoomRoles,
-  removeRoomEnrollments,
-} = require('../../role/role.utils');
+import RoomModel from '../room.model.js';
+import roomUtils from '../room.utils.js';
+import { removePlaylistByRoomId } from '../../youtube/playlist.utils.js';
+import logFactory from '../../../utils/logger.util.js';
+const log = logFactory({ name: 'room.remove' });
+import { removeRoomRoles, removeRoomEnrollments } from '../../role/role.utils.js';
 
 /**
  * Remove room and associated data.
@@ -19,7 +17,7 @@ const {
  *
  * @callback
  */
-module.exports = async function removeRoom(roomData, cb) {
+export default async function removeRoom(roomData, cb) {
   let room;
 
   try {

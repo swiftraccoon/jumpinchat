@@ -2,11 +2,12 @@
  * Created by Zaccary on 24/07/2016.
  */
 
-const log = require('../../../utils/logger.util')({ name: 'getActiveRooms.controller' });
-const config = require('../../../config/env');
-const roomUtils = require('../../room/room.utils');
 
-module.exports = async function getActiveRooms(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import config from '../../../config/env/index.js';
+import roomUtils from '../../room/room.utils.js';
+const log = logFactory({ name: 'getActiveRooms.controller' });
+export default async function getActiveRooms(req, res) {
   log.info('attempting to get room list');
   const { page } = req.query;
   const countPerPage = config.admin.userList.itemsPerPage;

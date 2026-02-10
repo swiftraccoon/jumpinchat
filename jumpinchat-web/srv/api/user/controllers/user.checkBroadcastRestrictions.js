@@ -1,14 +1,15 @@
-const log = require('../../../utils/logger.util')({ name: 'user.checkBroadcastRestrictions' });
-const { getBanlistItem } = require('../../siteban/siteban.utils');
-const { getRemoteIpFromReq } = require('../../../utils/utils');
-const errors = require('../../../config/constants/errors');
-const videoQuality = require('../../../config/constants/videoQuality');
-const { getRoomByName } = require('../../room/room.utils');
-const { getUserHasRolePermissions } = require('../../role/role.utils');
-const { getUserById } = require('../user.utils');
-const { PermissionError } = require('../../../utils/error.util');
 
-module.exports = async function checkBroadcastRestrictions(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import { getBanlistItem } from '../../siteban/siteban.utils.js';
+import { getRemoteIpFromReq } from '../../../utils/utils.js';
+import errors from '../../../config/constants/errors.js';
+import videoQuality from '../../../config/constants/videoQuality.js';
+import { getRoomByName } from '../../room/room.utils.js';
+import { getUserHasRolePermissions } from '../../role/role.utils.js';
+import { getUserById } from '../user.utils.js';
+import { PermissionError } from '../../../utils/error.util.js';
+const log = logFactory({ name: 'user.checkBroadcastRestrictions' });
+export default async function checkBroadcastRestrictions(req, res) {
   const { sessionID } = req;
   const { roomName } = req.params;
   const ip = getRemoteIpFromReq(req);

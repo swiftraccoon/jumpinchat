@@ -1,17 +1,17 @@
-const mongoose = require('mongoose');
-const MessageModel = require('./message.model');
-const ConversationModel = require('./conversation.model');
-const redis = require('../../lib/redis.util')();
-const log = require('../../utils/logger.util')({ name: 'message.utils' });
-const errors = require('../../config/constants/errors');
-const config = require('../../config/env');
-const email = require('../../config/email.config');
-const { getUserById } = require('../user/user.utils');
-const {
-  newMessageTemplate,
-} = require('../../config/constants/emailTemplates');
+import mongoose from 'mongoose';
+import MessageModel from './message.model.js';
+import ConversationModel from './conversation.model.js';
+import redisFactory from '../../lib/redis.util.js';
+import logFactory from '../../utils/logger.util.js';
+import errors from '../../config/constants/errors.js';
+import config from '../../config/env/index.js';
+import email from '../../config/email.config.js';
+import { getUserById } from '../user/user.utils.js';
+const redis = redisFactory();
+const log = logFactory({ name: 'message.utils' });
+import { newMessageTemplate } from '../../config/constants/emailTemplates.js';
 
-module.exports.addConversation = function addConversation(participants) {
+export function addConversation(participants) {
   const conversation = {
     participants,
     archived: participants.map(participant => ({
@@ -23,7 +23,7 @@ module.exports.addConversation = function addConversation(participants) {
   return ConversationModel.create(conversation);
 };
 
-module.exports.getConversations = async function getConversations(userId, start, limit) {
+export async function getConversations(userId, start, limit) {
   const query = {
     participants: {
       $in: [mongoose.Types.ObjectId(userId)],
@@ -74,7 +74,7 @@ async function getConversationId(userId, participantId) {
   return null;
 }
 
-module.exports.getConversationId = getConversationId;
+export { getConversationId };
 
 function getConversation(userId, participantId) {
   const query = {
@@ -92,7 +92,7 @@ function getConversation(userId, participantId) {
     .exec();
 }
 
-module.exports.getConversation = getConversation;
+export { getConversation };
 
 async function getSingleConversation(userId, participantId, page) {
   const limit = config.messages.pageSize * page;
@@ -135,9 +135,9 @@ async function getSingleConversation(userId, participantId, page) {
     .limit(limit)
     .exec();
 }
-module.exports.getSingleConversation = getSingleConversation;
+export { getSingleConversation };
 
-module.exports.getAllUnread = function getAllUnread(userId) {
+export function getAllUnread(userId) {
   return MessageModel.countDocuments({
     recipient: userId,
     'attrs.unread': true,
@@ -161,9 +161,9 @@ async function getConversationMessages(userId, participantId) {
     .exec();
 }
 
-module.exports.getConversationMessages = getConversationMessages;
+export { getConversationMessages };
 
-module.exports.getConversationUnread = async function getAllUnread(userId, participantId) {
+export async function getConversationUnread(userId, participantId) {
   const query = {
     recipient: userId,
     sender: participantId,
@@ -194,7 +194,7 @@ module.exports.getConversationUnread = async function getAllUnread(userId, parti
   return Promise.all([total, unread]);
 };
 
-module.exports.getConversationCount = async function getConversationCount(userId) {
+export async function getConversationCount(userId) {
   return ConversationModel.countDocuments({ participants: { $in: [userId] } }).exec();
 };
 
@@ -237,22 +237,22 @@ async function getFromCache(key) {
   }
 }
 
-module.exports.setConversationsInCache = function setConversationsInCache(userId, conversations, page) {
+export function setConversationsInCache(userId, conversations, page) {
   const key = `messages:${String(userId)}:${page}`;
   return setInCache(key, conversations);
 };
 
-module.exports.setConversationInCache = function setConversationInCache(userId, recipientId, conversation, page) {
+export function setConversationInCache(userId, recipientId, conversation, page) {
   const key = `messages:${String(userId)}:${String(recipientId)}:${page}`;
   return setInCache(key, conversation);
 };
 
-module.exports.getConversationsFromCache = function getConversationsFromCache(userId, page) {
+export function getConversationsFromCache(userId, page) {
   const key = `messages:${String(userId)}:${page}`;
   return getFromCache(key);
 };
 
-module.exports.getConversationFromCache = function getConversationsFromCache(userId, recipientId, page) {
+export function getConversationFromCache(userId, recipientId, page) {
   const key = `messages:${String(userId)}:${String(recipientId)}:${page}`;
   return getFromCache(key);
 };
@@ -320,9 +320,9 @@ async function addMessage(conversationId, senderId, recipientId, message) {
   return createdMessage;
 }
 
-module.exports.addMessage = addMessage;
+export { addMessage };
 
-module.exports.getMessageById = function getMessageById(id) {
+export function getMessageById(id) {
   return MessageModel
     .findOne({ _id: id })
     .populate({
@@ -336,8 +336,10 @@ module.exports.getMessageById = function getMessageById(id) {
     .exec();
 };
 
-module.exports.setMessagesRead = function setMessagesRead(userId) {
+export function setMessagesRead(userId) {
   return MessageModel
     .updateMany({ recipient: userId }, { $set: { 'attrs.unread': false } })
     .exec();
 };
+
+export default { addConversation, getConversations, getConversationId, getConversation, getSingleConversation, getAllUnread, getConversationMessages, getConversationUnread, getConversationCount, setConversationsInCache, setConversationInCache, getConversationsFromCache, getConversationFromCache, addMessage, getMessageById, setMessagesRead };

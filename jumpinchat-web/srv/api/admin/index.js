@@ -2,23 +2,24 @@
  * Created by Zaccary on 14/12/2015.
  */
 
-const express = require('express');
-const log = require('../../utils/logger.util')({ name: 'admin.api' });
-const { verifyAdmin, verifySiteMod } = require('../../utils/utils');
-const controller = require('./admin.controller.js');
-const sendBulkEmails = require('./controllers/sendBulkEmails.controller');
-const bounceNotification = require('./controllers/bounceNotification.controller');
-const openNotification = require('./controllers/openNotification.controller');
-const removeUser = require('./controllers/removeUser.controller');
-const siteBan = require('./controllers/siteBan.controller');
-const getBanItem = require('./controllers/getBanItem.controller');
-const closeRoom = require('./controllers/closeRoom.controller');
-const getStats = require('./controllers/stats.controller');
-const addSiteMod = require('./controllers/addSiteMod.controller');
-const removeSiteMod = require('./controllers/removeSiteMod.controller');
-const getSiteMods = require('./controllers/getSiteMods.controller');
-const getModActivity = require('./controllers/getModActivity.controller');
 
+import express from 'express';
+import logFactory from '../../utils/logger.util.js';
+import { verifyAdmin, verifySiteMod } from '../../utils/utils.js';
+import controller from './admin.controller.js';
+import sendBulkEmails from './controllers/sendBulkEmails.controller.js';
+import bounceNotification from './controllers/bounceNotification.controller.js';
+import openNotification from './controllers/openNotification.controller.js';
+import removeUser from './controllers/removeUser.controller.js';
+import siteBan from './controllers/siteBan.controller.js';
+import getBanItem from './controllers/getBanItem.controller.js';
+import closeRoom from './controllers/closeRoom.controller.js';
+import getStats from './controllers/stats.controller.js';
+import addSiteMod from './controllers/addSiteMod.controller.js';
+import removeSiteMod from './controllers/removeSiteMod.controller.js';
+import getSiteMods from './controllers/getSiteMods.controller.js';
+import getModActivity from './controllers/getModActivity.controller.js';
+const log = logFactory({ name: 'admin.api' });
 const router = express.Router();
 
 router.post('/notify/restart/:seconds', controller.notifyServerRestart);
@@ -39,4 +40,4 @@ router.delete('/sitemod/:modId', verifyAdmin, removeSiteMod);
 router.get('/sitemods', verifyAdmin, getSiteMods);
 router.get('/modactivity', verifyAdmin, getModActivity);
 
-module.exports = router;
+export default router;

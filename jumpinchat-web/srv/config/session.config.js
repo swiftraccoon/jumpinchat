@@ -1,7 +1,9 @@
-const { merge } = require('lodash');
-const log = require('../utils/logger.util')({ name: 'session.config' });
 
-module.exports.initialSession = function initialSession(session) {
+import _ from 'lodash';
+const { merge } = _;
+import logFactory from '../utils/logger.util.js';
+const log = logFactory({ name: 'session.config' });
+export function initialSession(session) {
   return merge({
     ageConfirmed: false,
     ignoreList: [],

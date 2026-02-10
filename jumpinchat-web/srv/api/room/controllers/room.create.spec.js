@@ -1,44 +1,36 @@
-const { expect } = require('chai');
-const sinon = require('sinon');
-const mock = require('mock-require');
 
+import { expect } from 'chai';
+import sinon from 'sinon';
+import esmock from 'esmock';
 describe('Room Create Controller', () => {
-  mock.stopAll();
   let createJanusRoomSpy;
   let getRoomSpy;
   let roomSaveSpy;
   let createSpy;
   let controller;
 
-  const getController = () => mock.reRequire('./room.create');
-
-  beforeEach(() => {
+  beforeEach(async () => {
     roomSaveSpy = sinon.stub().resolves();
     createJanusRoomSpy = sinon.stub().returns(Promise.resolve({ janusRoomId: 123, serverId: 'server' }));
     getRoomSpy = sinon.stub().returns(Promise.resolve(null));
     createSpy = sinon.stub().returns(Promise.resolve());
 
-    mock('../room.utils', {
-      createJanusRoomAsync: createJanusRoomSpy,
-      getRoomByName: getRoomSpy,
-    });
-
-    mock('../room.model', {
-      create: createSpy,
-    });
-
-    mock('../../role/controllers/createRole.controller', () => Promise.resolve());
-
-    mock('../../role/role.utils', {
-      createDefaultRoles: () => ({
-        tag: 'mods',
-      }),
-    });
-
-    mock('../../role/controllers/createRole.controller', () => Promise.resolve({ tag: 'mods', _id: 'modId' }));
-    mock('../../role/controllers/addUserToRole.controller', () => Promise.resolve());
-
-    controller = getController();
+    controller = (await esmock('./room.create.js', {
+      '../room.utils.js': { default: {
+        createJanusRoomAsync: createJanusRoomSpy,
+        getRoomByName: getRoomSpy,
+      } },
+      '../room.model.js': { default: {
+        create: createSpy,
+      } },
+      '../../role/controllers/createRole.controller.js': { default: () => Promise.resolve({ tag: 'mods', _id: 'modId' }) },
+      '../../role/role.utils.js': {
+        createDefaultRoles: () => ({
+          tag: 'mods',
+        }),
+      },
+      '../../role/controllers/addUserToRole.controller.js': { default: () => Promise.resolve() },
+    })).default;
   });
 
   describe('new room', () => {
@@ -124,19 +116,29 @@ describe('Room Create Controller', () => {
 
 
   describe('existing room', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       getRoomSpy = sinon.stub().returns(Promise.resolve({
         attrs: {},
         save: roomSaveSpy,
         settings: {},
       }));
 
-      mock('../room.utils', {
-        createJanusRoom: createJanusRoomSpy,
-        getRoomByName: getRoomSpy,
-      });
-
-      controller = getController();
+      controller = (await esmock('./room.create.js', {
+        '../room.utils.js': { default: {
+          createJanusRoom: createJanusRoomSpy,
+          getRoomByName: getRoomSpy,
+        } },
+        '../room.model.js': { default: {
+          create: createSpy,
+        } },
+        '../../role/controllers/createRole.controller.js': { default: () => Promise.resolve({ tag: 'mods', _id: 'modId' }) },
+        '../../role/role.utils.js': {
+          createDefaultRoles: () => ({
+            tag: 'mods',
+          }),
+        },
+        '../../role/controllers/addUserToRole.controller.js': { default: () => Promise.resolve() },
+      })).default;
     });
 
     it('should set owner ID', (done) => {

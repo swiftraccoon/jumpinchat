@@ -1,9 +1,10 @@
-const log = require('../../../utils/logger.util')({ name: 'unignoreUser.socket' });
-const { getUserById } = require('../../user/user.utils');
-const { getSocketCacheInfo } = require('../room.utils');
-const errors = require('../../../config/constants/errors');
 
-module.exports = function unignoreUserController(id, socketId, cb) {
+import logFactory from '../../../utils/logger.util.js';
+import { getUserById } from '../../user/user.utils.js';
+import { getSocketCacheInfo } from '../room.utils.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'unignoreUser.socket' });
+export default function unignoreUserController(id, socketId, cb) {
   log.debug({ id, socketId }, 'unignore user');
   return getSocketCacheInfo(socketId, async (err, socketData) => {
     if (err) {

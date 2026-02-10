@@ -1,17 +1,14 @@
-const Stripe = require('stripe');
-const log = require('../../../utils/logger.util')({ name: 'createCheckoutSession.controller' });
-const { getHostDomain } = require('../../../utils/utils');
-const errors = require('../../../config/constants/errors');
-const config = require('../../../config/env');
-const {
-  productIds,
-  productTypes,
-  products,
-} = require('../payment.constants');
-const { getUserById } = require('../../user/user.utils');
-const paymentUtils = require('../payment.utils');
+import Stripe from 'stripe';
+import logFactory from '../../../utils/logger.util.js';
+import { getHostDomain } from '../../../utils/utils.js';
+import errors from '../../../config/constants/errors.js';
+import config from '../../../config/env/index.js';
+import { getUserById } from '../../user/user.utils.js';
+import paymentUtils from '../payment.utils.js';
+const log = logFactory({ name: 'createCheckoutSession.controller' });
+import { productIds, productTypes, products } from '../payment.constants.js';
 
-module.exports = async function createCheckoutSession(req, res) {
+export default async function createCheckoutSession(req, res) {
   const { product, amount, beneficiary } = req.body;
   const stripeClient = new Stripe(config.payment.stripe.secretKey);
   const domain = getHostDomain(req);

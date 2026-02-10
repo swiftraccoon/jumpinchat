@@ -1,23 +1,20 @@
-const chai = require('chai');
-const sinon = require('sinon');
-const mock = require('mock-require');
-const chaiAsPromised = require('chai-as-promised');
-const { NotFoundError } = require('../../../utils/error.util');
 
+import * as chai from 'chai';
+import sinon from 'sinon';
+import chaiAsPromised from 'chai-as-promised';
+import { NotFoundError } from '../../../utils/error.util.js';
+import esmock from 'esmock';
 chai.use(chaiAsPromised);
 
 const { expect } = chai;
 
 describe('addUserToRoleController', () => {
-  const getController = () => mock.reRequire('./addUserToRole.controller');
-
-  mock.stopAll();
   let controller;
   let room;
   let roleUtilsStubs;
   let ioStub;
   let emitStub;
-  beforeEach(() => {
+  beforeEach(async () => {
     room = {
       _id: 'roomId',
       attrs: {
@@ -52,30 +49,37 @@ describe('addUserToRoleController', () => {
       getUserHasRolePermissions: sinon.stub().resolves(true),
     };
 
-
-    mock('../enrolled.model', {
-      create: enrollment => Promise.resolve(enrollment),
-    });
-    mock('../role.utils', roleUtilsStubs);
-    mock('../../room/room.utils', {
-      getRoomByName: sinon.stub().returns(Promise.resolve(room)),
-      filterClientUser: u => u,
-      filterRoomUser: u => u,
-    });
-
-    mock('../../../utils/utils', {
-      messageFactory: m => m,
-    });
-
-    controller = getController();
+    controller = (await esmock('./addUserToRole.controller.js', {
+      '../enrolled.model.js': { default: {
+        create: enrollment => Promise.resolve(enrollment),
+      } },
+      '../role.utils.js': roleUtilsStubs,
+      '../../room/room.utils.js': {
+        getRoomByName: sinon.stub().returns(Promise.resolve(room)),
+        filterClientUser: u => u,
+        filterRoomUser: u => u,
+      },
+      '../../../utils/utils.js': { default: {
+        messageFactory: m => m,
+      } },
+    })).default;
   });
 
   it('should fail if the room is not found', async () => {
-    mock('../../room/room.utils', {
-      getRoomByName: sinon.stub().returns(Promise.resolve(null)),
-    });
-
-    controller = getController();
+    controller = (await esmock('./addUserToRole.controller.js', {
+      '../enrolled.model.js': { default: {
+        create: enrollment => Promise.resolve(enrollment),
+      } },
+      '../role.utils.js': roleUtilsStubs,
+      '../../room/room.utils.js': {
+        getRoomByName: sinon.stub().returns(Promise.resolve(null)),
+        filterClientUser: u => u,
+        filterRoomUser: u => u,
+      },
+      '../../../utils/utils.js': { default: {
+        messageFactory: m => m,
+      } },
+    })).default;
 
     await expect(controller({
       roomName: 'foo',
@@ -95,12 +99,23 @@ describe('addUserToRoleController', () => {
   });
 
   it('should fail if role not found', async () => {
-    mock('../role.utils', {
-      ...roleUtilsStubs,
-      getRoleById: () => Promise.resolve(null),
-    });
-
-    controller = getController();
+    controller = (await esmock('./addUserToRole.controller.js', {
+      '../enrolled.model.js': { default: {
+        create: enrollment => Promise.resolve(enrollment),
+      } },
+      '../role.utils.js': {
+        ...roleUtilsStubs,
+        getRoleById: () => Promise.resolve(null),
+      },
+      '../../room/room.utils.js': {
+        getRoomByName: sinon.stub().returns(Promise.resolve(room)),
+        filterClientUser: u => u,
+        filterRoomUser: u => u,
+      },
+      '../../../utils/utils.js': { default: {
+        messageFactory: m => m,
+      } },
+    })).default;
 
     await expect(controller({
       roomName: 'foo',

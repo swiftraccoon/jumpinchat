@@ -1,7 +1,8 @@
-const log = require('../../../utils/logger.util')({ name: 'getAvgUsersInRoom' });
-const roomModel = require('../room.model');
 
-module.exports = function getAvgUsersInRoom(janusServer) {
+import logFactory from '../../../utils/logger.util.js';
+import roomModel from '../room.model.js';
+const log = logFactory({ name: 'getAvgUsersInRoom' });
+export default function getAvgUsersInRoom(janusServer) {
   return new Promise(async (resolve, reject) => {
     let total = 0;
     let count = 0;

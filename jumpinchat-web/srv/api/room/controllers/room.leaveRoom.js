@@ -2,13 +2,14 @@
  * Created by Zaccary on 20/10/2015.
  */
 
-const log = require('../../../utils/logger.util')({ name: 'room.leaveRoom' });
-const redisUtil = require('../../../utils/redis.util');
-const janusUtil = require('../../../lib/janus.util');
-const roomUtils = require('../room.utils');
-const { NotFoundError } = require('../../../utils/error.util');
 
-module.exports = async function leaveRoom(socketId, cb) {
+import logFactory from '../../../utils/logger.util.js';
+import redisUtil from '../../../utils/redis.util.js';
+import janusUtil from '../../../lib/janus.util.js';
+import roomUtils from '../room.utils.js';
+import { NotFoundError } from '../../../utils/error.util.js';
+const log = logFactory({ name: 'room.leaveRoom' });
+export default async function leaveRoom(socketId, cb) {
   let socketData;
 
   try {

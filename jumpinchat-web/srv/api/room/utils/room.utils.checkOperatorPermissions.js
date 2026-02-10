@@ -3,10 +3,6 @@
  */
 
 
-const UserUtils = require('../../user/user.utils');
-const log = require('../../../utils/logger.util')({ name: 'room.utils.checkOperatorPermissions' });
-const errors = require('../../../config/constants/errors');
-const getUserRoles = require('../../role/controllers/getUserRoles.controller');
 
 /**
  * Check the user has the permissions required to perform
@@ -17,9 +13,14 @@ const getUserRoles = require('../../role/controllers/getUserRoles.controller');
  * @param {string} action - Action to be taken. Should be same as mod permissions key from room obj
  * @param {function} cb - callback
  */
-module.exports = function checkOperatorPermissions(socketId, action, cb) {
+import UserUtils from '../../user/user.utils.js';
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+import getUserRoles from '../../role/controllers/getUserRoles.controller.js';
+const log = logFactory({ name: 'room.utils.checkOperatorPermissions' });
+export default async function checkOperatorPermissions(socketId, action, cb) {
   // Lazy require to break circular dependency: room.utils → checkOperatorPermissions → room.utils
-  const RoomUtils = require('../room.utils');
+  const { default: RoomUtils } = await import('../room.utils.js');
   RoomUtils.getSocketCacheInfo(socketId, (err, data) => {
     if (err) {
       log.fatal({ err }, 'failed to get socket cache info');

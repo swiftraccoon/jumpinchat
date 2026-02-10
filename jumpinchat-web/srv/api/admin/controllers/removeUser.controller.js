@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'utils' });
-const userUtils = require('../../user/user.utils');
-const roomUtils = require('../../room/room.utils');
 
-module.exports = function removeUser(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import userUtils from '../../user/user.utils.js';
+import roomUtils from '../../room/room.utils.js';
+const log = logFactory({ name: 'utils' });
+export default function removeUser(req, res) {
   const { userId } = req.params;
 
   return userUtils.removeUser(userId, (err) => {

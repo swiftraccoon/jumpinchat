@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
-const config = require('../../config/env');
 
+import mongoose from 'mongoose';
+import config from '../../config/env/index.js';
 const { Schema } = mongoose;
 
 const RoomHistorySchema = new Schema({
@@ -21,4 +21,4 @@ const RoomHistorySchema = new Schema({
   },
 });
 
-module.exports = mongoose.model('RoomHistory', RoomHistorySchema);
+export default mongoose.model('RoomHistory', RoomHistorySchema);

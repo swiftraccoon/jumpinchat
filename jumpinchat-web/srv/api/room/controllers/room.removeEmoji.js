@@ -1,11 +1,12 @@
-const roomEmojiModel = require('../roomEmoji.model');
-const { getRoomById } = require('../room.utils');
-const log = require('../../../utils/logger.util')({ name: 'removeEmoji' });
-const config = require('../../../config/env');
-const { s3RemoveObject } = require('../../../utils/utils');
-const errors = require('../../../config/constants/errors');
 
-module.exports = async function getEmoji(req, res) {
+import roomEmojiModel from '../roomEmoji.model.js';
+import { getRoomById } from '../room.utils.js';
+import logFactory from '../../../utils/logger.util.js';
+import config from '../../../config/env/index.js';
+import { s3RemoveObject } from '../../../utils/utils.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'removeEmoji' });
+export default async function getEmoji(req, res) {
   const { bucket } = config.aws.s3.jicUploads;
   const {
     emojiId,

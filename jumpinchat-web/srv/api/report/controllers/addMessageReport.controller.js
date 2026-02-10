@@ -1,12 +1,11 @@
-const messageReportModel = require('../messageReport.model');
-const log = require('../../../utils/logger.util')({ name: 'addMessageReport' });
-const email = require('../../../config/email.config');
-const { getMessageById } = require('../../message/message.utils');
-const {
-  messageReportTemplate,
-} = require('../../../config/constants/emailTemplates');
+import messageReportModel from '../messageReport.model.js';
+import logFactory from '../../../utils/logger.util.js';
+import email from '../../../config/email.config.js';
+import { getMessageById } from '../../message/message.utils.js';
+const log = logFactory({ name: 'addMessageReport' });
+import { messageReportTemplate } from '../../../config/constants/emailTemplates.js';
 
-module.exports = async function addMessageReport(req, res) {
+export default async function addMessageReport(req, res) {
   const {
     messageId,
     reason,

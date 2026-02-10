@@ -1,14 +1,11 @@
-const log = require('../../../utils/logger.util')({ name: 'updateRequest' });
-const { findById } = require('../ageVerification.utils');
-const { applyTrophy } = require('../../trophy/trophy.utils');
-const { getUserById } = require('../../user/user.utils');
-const ageVerificationConstants = require('../ageVerification.const');
-const email = require('../../../config/email.config');
-const {
-  ageVerifyApprovedTemplate,
-  ageVerifyRejectedTemplate,
-  ageVerifyDeniedTemplate,
-} = require('../../../config/constants/emailTemplates');
+import logFactory from '../../../utils/logger.util.js';
+import { findById } from '../ageVerification.utils.js';
+import { applyTrophy } from '../../trophy/trophy.utils.js';
+import { getUserById } from '../../user/user.utils.js';
+import ageVerificationConstants from '../ageVerification.const.js';
+import email from '../../../config/email.config.js';
+const log = logFactory({ name: 'updateRequest' });
+import { ageVerifyApprovedTemplate, ageVerifyRejectedTemplate, ageVerifyDeniedTemplate } from '../../../config/constants/emailTemplates.js';
 
 function handleApprove(userId) {
   return applyTrophy(userId, 'TROPHY_AGE_VERIFIED', async (err) => {
@@ -101,7 +98,7 @@ async function handleDeny(userId) {
   }
 }
 
-module.exports = async function updateRequest(req, res) {
+export default async function updateRequest(req, res) {
   const { id } = req.params;
   const { status } = req.query;
   const { reason } = req.body;

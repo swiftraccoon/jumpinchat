@@ -1,8 +1,7 @@
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire').noCallThru();
-const { types } = require('./trophies');
-
+import { expect } from 'chai';
+import sinon from 'sinon';
+import { types } from './trophies.js';
+import esmock from 'esmock';
 describe('trophyUtils', () => {
   const trophyModel = {
     find: sinon.stub().yields(null, {
@@ -35,20 +34,23 @@ describe('trophyUtils', () => {
     },
   ];
 
-  function getController(overrides = {}) {
+  async function getController(overrides = {}) {
     const mocks = {
-      './trophy.model': Object.assign(trophyModel, overrides.trophyModel),
-      '../user/user.utils': Object.assign(userUtils, overrides.userUtils),
-      '../message/utils/metaSendMessage.util': sinon.stub().returns(Promise.resolve()),
+      './trophy.model.js': Object.assign(trophyModel, overrides.trophyModel),
+      '../user/user.utils.js': Object.assign(userUtils, overrides.userUtils),
+      '../message/utils/metaSendMessage.util.js': sinon.stub().returns(Promise.resolve()),
     };
 
-    return proxyquire('./trophy.utils.js', mocks);
+    return await esmock('./trophy.utils.js', mocks);
   }
 
   let clock;
 
-  beforeEach(() => {
-    clock = sinon.useFakeTimers(new Date('2018-01-01T00:00:00.000Z').getTime());
+  beforeEach(async () => {
+    clock = sinon.useFakeTimers({
+      now: new Date('2018-01-01T12:00:00.000Z').getTime(),
+      toFake: ['Date'],
+    });
 
     userUtils = {
       getUserById: sinon.stub().yields(null, {}),
@@ -60,8 +62,8 @@ describe('trophyUtils', () => {
   });
 
   describe('checkDateMatchesCondition', () => {
-    it('should return true if date and month matches', () => {
-      const { checkDateMatchesCondition } = getController();
+    it('should return true if date and month matches', async () => {
+      const { checkDateMatchesCondition } = await getController();
 
       const condition = {
         date: 1,
@@ -71,8 +73,8 @@ describe('trophyUtils', () => {
       expect(checkDateMatchesCondition(condition)).to.equal(true);
     });
 
-    it('should return true if date, month and year matches', () => {
-      const { checkDateMatchesCondition } = getController();
+    it('should return true if date, month and year matches', async () => {
+      const { checkDateMatchesCondition } = await getController();
 
       const condition = {
         date: 1,
@@ -83,8 +85,8 @@ describe('trophyUtils', () => {
       expect(checkDateMatchesCondition(condition)).to.equal(true);
     });
 
-    it('should return false if date does not match', () => {
-      const { checkDateMatchesCondition } = getController();
+    it('should return false if date does not match', async () => {
+      const { checkDateMatchesCondition } = await getController();
 
       const condition = {
         date: 10,
@@ -94,8 +96,8 @@ describe('trophyUtils', () => {
       expect(checkDateMatchesCondition(condition)).to.equal(false);
     });
 
-    it('should return false if month does not match', () => {
-      const { checkDateMatchesCondition } = getController();
+    it('should return false if month does not match', async () => {
+      const { checkDateMatchesCondition } = await getController();
 
       const condition = {
         date: 1,
@@ -105,8 +107,8 @@ describe('trophyUtils', () => {
       expect(checkDateMatchesCondition(condition)).to.equal(false);
     });
 
-    it('should return false if year does not match', () => {
-      const { checkDateMatchesCondition } = getController();
+    it('should return false if year does not match', async () => {
+      const { checkDateMatchesCondition } = await getController();
 
       const condition = {
         date: 1,
@@ -119,8 +121,8 @@ describe('trophyUtils', () => {
   });
 
   describe('checkMembershipDuration', () => {
-    it('should return an array of applicable trophies', () => {
-      const { checkMembershipDuration } = getController();
+    it('should return an array of applicable trophies', async () => {
+      const { checkMembershipDuration } = await getController();
 
       const joinDate = new Date('2016-01-01T00:00:00.000Z');
 
@@ -129,16 +131,19 @@ describe('trophyUtils', () => {
   });
 
   describe('checkOccasion', () => {
-    it('should return occasion matching current date', () => {
-      const { checkOccasion } = getController();
+    it('should return occasion matching current date', async () => {
+      const { checkOccasion } = await getController();
 
       expect(checkOccasion(trophies)).to.eql([trophies[0]]);
     });
 
-    it('should return occasion matching current date if in tz range', () => {
+    it('should return occasion matching current date if in tz range', async () => {
       clock.restore();
-      clock = sinon.useFakeTimers(new Date('2017-12-31T18:00:00.000Z').getTime());
-      const { checkOccasion } = getController();
+      clock = sinon.useFakeTimers({
+        now: new Date('2017-12-31T18:00:00.000Z').getTime(),
+        toFake: ['Date'],
+      });
+      const { checkOccasion } = await getController();
 
       expect(checkOccasion(trophies)).to.eql([trophies[0]]);
     });
@@ -160,7 +165,7 @@ describe('trophyUtils', () => {
         })),
       };
 
-      const { dedupe } = getController({ userUtils });
+      const { dedupe } = await getController({ userUtils });
       const res = await dedupe('foo');
       expect(res).to.eql([
         {
@@ -190,7 +195,7 @@ describe('trophyUtils', () => {
         })),
       };
 
-      const { dedupe } = getController({ userUtils });
+      const { dedupe } = await getController({ userUtils });
       const res = await dedupe('foo');
       expect(res).to.eql([
         {

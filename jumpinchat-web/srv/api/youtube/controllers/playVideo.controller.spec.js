@@ -1,9 +1,8 @@
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire').noCallThru();
-const { PermissionError } = require('../../../utils/error.util');
-const config = require('../../../config/env');
-
+import { expect } from 'chai';
+import sinon from 'sinon';
+import { PermissionError } from '../../../utils/error.util.js';
+import config from '../../../config/env/index.js';
+import esmock from 'esmock';
 const sandbox = sinon.createSandbox();
 
 describe('youtube play controller', () => {
@@ -23,7 +22,7 @@ describe('youtube play controller', () => {
     thumb: 'https://example.com/foo.png',
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     playlistMock = {
       room: 'foo',
       media: [
@@ -51,21 +50,21 @@ describe('youtube play controller', () => {
       _id: 'foo',
     };
 
-    playVideoController = proxyquire('./playVideo.controller', {
-      '../../room/room.utils': {
+    playVideoController = await esmock('./playVideo.controller.js', {
+      '../../room/room.utils.js': {
         getRoomByName: sinon.stub().returns(Promise.resolve({
           ...roomMock,
         })),
         getMediaByRoomName: () => Promise.resolve(roomMock),
         getRoomIdFromName: () => Promise.resolve(),
       },
-      '../../user/user.utils': {},
-      '../../../lib/redis.util': () => ({ hSet: sinon.stub().resolves() }),
-      '../../../utils/encodeUriParams': () => 'foo',
-      '../../role/role.utils': {
+      '../../user/user.utils.js': {},
+      '../../../lib/redis.util.js': () => ({ hSet: sinon.stub().resolves() }),
+      '../../../utils/encodeUriParams.js': () => 'foo',
+      '../../role/role.utils.js': {
         getUserHasRolePermissions: () => Promise.resolve(true),
       },
-      '../playlist.utils': {
+      '../playlist.utils.js': {
 
         getMediaByRoomId: () => Promise.resolve({
           ...playlistMock,
@@ -158,7 +157,7 @@ describe('youtube play controller', () => {
   });
 
   describe('pause', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       PlayVideo.checkSocketPermission = sinon.stub().returns(true);
       playVideo = new PlayVideo();
     });
@@ -181,7 +180,7 @@ describe('youtube play controller', () => {
   });
 
   describe('resume', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       PlayVideo.checkSocketPermission = sinon.stub().resolves(true);
       playVideo = new PlayVideo();
     });

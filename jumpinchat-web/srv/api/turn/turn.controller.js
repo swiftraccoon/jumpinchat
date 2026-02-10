@@ -1,7 +1,8 @@
-const crypto = require('crypto');
-const config = require('../../config/env');
-const log = require('../../utils/logger.util')({ name: 'api.turn' });
 
+import crypto from 'crypto';
+import config from '../../config/env/index.js';
+import logFactory from '../../utils/logger.util.js';
+const log = logFactory({ name: 'api.turn' });
 const generateTurnCredentials = function generateTurnCredentials(name) {
   const { ttl } = config.turn;
   const timestamp = parseInt(Date.now() / 1000, 10) + ttl;
@@ -18,7 +19,7 @@ const generateTurnCredentials = function generateTurnCredentials(name) {
   };
 };
 
-module.exports.getTurnCreds = function getTurnCreds(req, res) {
+export function getTurnCreds(req, res) {
   const uris = config.turn.uris
     .map(uri => ([
       `turn:${uri}:5349`,
@@ -39,3 +40,5 @@ module.exports.getTurnCreds = function getTurnCreds(req, res) {
 
   res.status(200).send(responseObj);
 };
+
+export default { getTurnCreds };

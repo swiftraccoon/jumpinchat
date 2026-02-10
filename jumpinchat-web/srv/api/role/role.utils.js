@@ -1,27 +1,28 @@
-const roleModel = require('./role.model');
-const { defaultRoles, tagFormat } = require('./role.consts');
-const enrolledModel = require('./enrolled.model');
-const { NotFoundError, PermissionError } = require('../../utils/error.util');
-const log = require('../../utils/logger.util')({ name: 'role.utils' });
 
+import roleModel from './role.model.js';
+import { defaultRoles, tagFormat } from './role.consts.js';
+import enrolledModel from './enrolled.model.js';
+import { NotFoundError, PermissionError } from '../../utils/error.util.js';
+import logFactory from '../../utils/logger.util.js';
+const log = logFactory({ name: 'role.utils' });
 let _io;
 
-module.exports.setSocketIo = function setSocketIo(io) {
+export function setSocketIo(io) {
   _io = io;
 };
 
-module.exports.getSocketIo = function getSocketIo() {
+export function getSocketIo() {
   return _io;
 };
 
-module.exports.getAllRoomRoles = function getRoomRoles(roomId) {
+export function getAllRoomRoles(roomId) {
   return roleModel
     .find({ roomId })
     .sort({ order: -1 })
     .exec();
 };
 
-module.exports.getRoleById = function getRoleById(roleId) {
+export function getRoleById(roleId) {
   return roleModel.findOne({ _id: roleId }).exec();
 };
 
@@ -44,7 +45,7 @@ function getRoleByTag(roomId, tag) {
     .exec();
 }
 
-module.exports.getRoleByTag = getRoleByTag;
+export { getRoleByTag };
 
 /**
  * Get enrollments for user in specified room
@@ -103,9 +104,9 @@ function getUserEnrollments(body) {
     .exec();
 }
 
-module.exports.getUserEnrollments = getUserEnrollments;
+export { getUserEnrollments };
 
-module.exports.getEnrollmentById = function getEnrollmentById(enrollmentId) {
+export function getEnrollmentById(enrollmentId) {
   return enrolledModel
     .findOne({ _id: enrollmentId })
     .populate({
@@ -119,7 +120,7 @@ module.exports.getEnrollmentById = function getEnrollmentById(enrollmentId) {
     .exec();
 };
 
-module.exports.getAllRoomEnrollments = function getAllRoomEnrollments(roomId) {
+export function getAllRoomEnrollments(roomId) {
   return enrolledModel.find({ room: roomId })
     .populate({
       path: 'user',
@@ -136,9 +137,9 @@ function getDefaultRoles(roomId) {
   return roleModel.find({ roomId, isDefault: true }).exec();
 }
 
-module.exports.getDefaultRoles = getDefaultRoles;
+export { getDefaultRoles };
 
-module.exports.createDefaultRoles = function createDefaultRoles(roomName) {
+export function createDefaultRoles(roomName) {
   const everybodyRole = {
     ...defaultRoles.everybody,
     roomName,
@@ -152,21 +153,21 @@ module.exports.createDefaultRoles = function createDefaultRoles(roomName) {
   return { modRole, everybodyRole };
 };
 
-module.exports.removeRoomRoles = function removeRoomRoles(roomId) {
+export function removeRoomRoles(roomId) {
   return roleModel.deleteMany({ roomId }).exec();
 };
 
-module.exports.removeRoomEnrollments = function removeRoomEnrollments(roomId) {
+export function removeRoomEnrollments(roomId) {
   return enrolledModel.deleteMany({ room: roomId }).exec();
 };
 
-module.exports.removeRoleEnrollments = function getRoleEnrollments(roleId) {
+export function removeRoleEnrollments(roleId) {
   return enrolledModel.deleteMany({ role: roleId }).exec();
 };
 
 async function getUserHasRolePermissions(roomName, ident, permission) {
   // Lazy require to break circular dependency: room.utils → room.create → role.utils → room.utils
-  const roomUtils = require('../room/room.utils');
+  const { default: roomUtils } = await import('../room/room.utils.js');
 
   if (!roomName || roomName.length === 0) {
     throw new TypeError('roomName is required');
@@ -224,8 +225,10 @@ async function getUserHasRolePermissions(roomName, ident, permission) {
   return true;
 }
 
-module.exports.getUserHasRolePermissions = getUserHasRolePermissions;
+export { getUserHasRolePermissions };
 
-module.exports.validateTag = function validateTag(tag) {
+export function validateTag(tag) {
   return tagFormat.test(tag);
 };
+
+export default { setSocketIo, getSocketIo, getAllRoomRoles, getRoleById, getRoleByTag, getUserEnrollments, getEnrollmentById, getAllRoomEnrollments, getDefaultRoles, createDefaultRoles, removeRoomRoles, removeRoomEnrollments, removeRoleEnrollments, getUserHasRolePermissions, validateTag };

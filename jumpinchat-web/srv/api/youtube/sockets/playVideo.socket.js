@@ -1,11 +1,12 @@
-const log = require('../../../utils/logger.util')({ name: 'playVideo.socket' });
-const utils = require('../../../utils/utils');
-const { PermissionError } = require('../../../utils/error.util');
-const roomUtils = require('../../room/room.utils');
-const { getUserHasRolePermissions } = require('../../role/role.utils');
-const { playVideo } = require('../controllers/playVideo.controller');
 
-module.exports = function playYoutubeVideoSocket(socket, io) {
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import { PermissionError } from '../../../utils/error.util.js';
+import roomUtils from '../../room/room.utils.js';
+import { getUserHasRolePermissions } from '../../role/role.utils.js';
+import { playVideo } from '../controllers/playVideo.controller.js';
+const log = logFactory({ name: 'playVideo.socket' });
+export default function playYoutubeVideoSocket(socket, io) {
   return async function playYoutubeVideo(msg) {
     const roomName = [...socket.rooms].find(k => k !== socket.id);
 

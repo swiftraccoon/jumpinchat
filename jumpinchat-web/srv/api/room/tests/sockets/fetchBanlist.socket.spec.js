@@ -1,7 +1,6 @@
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire').noCallThru();
-
+import { expect } from 'chai';
+import sinon from 'sinon';
+import esmock from 'esmock';
 describe('Fetch banlist socket', () => {
   let socket;
   const socketEmitSpy = sinon.spy();
@@ -33,22 +32,22 @@ describe('Fetch banlist socket', () => {
     operatorPermissions: true,
   };
 
-  const createController = (opts = defaultControllerOpts) => {
+  const createController = async (opts = defaultControllerOpts) => {
     checkOperatorPermissions = sinon.stub().yields(null, opts.operatorPermissions);
     fetchBanlist = sinon.stub().yields(null, ['foo', 'bar']);
 
-    return proxyquire('../../sockets/fetchBanlist.socket.js', {
-      '../../role/role.utils': {
+    return await esmock('../../sockets/fetchBanlist.socket.js', {
+      '../../../role/role.utils.js': {
         getUserHasRolePermissions: sinon.stub().resolves(true),
       },
-      '../room.utils': {
+      '../../room.utils.js': {
         getSocketCacheInfo,
         checkOperatorPermissions,
       },
-      '../room.controller': {
+      '../../room.controller.js': {
         fetchBanlist,
       },
-      '../../../utils/utils': {
+      '../../../../utils/utils.js': {
         messageFactory,
       },
     });
@@ -58,19 +57,21 @@ describe('Fetch banlist socket', () => {
     this.timeout(5000);
   });
 
-  it('should emit the banlist to the client', (done) => {
-    socket = createController();
-    const emit = (msg, body) => {
-      if (msg === 'client::banlist') {
-        expect(body).to.eql({ list: ['foo', 'bar'] });
-        done();
-      }
+  it('should emit the banlist to the client', async () => {
+    socket = await createController();
+    await new Promise((resolve, reject) => {
+      const emit = (msg, body) => {
+        if (msg === 'client::banlist') {
+          expect(body).to.eql({ list: ['foo', 'bar'] });
+          resolve();
+        }
 
-      if (msg === 'client::error') {
-        done(Error(msg));
-      }
-    };
-    const controller = socket(socketMock(emit));
-    controller();
+        if (msg === 'client::error') {
+          reject(Error(msg));
+        }
+      };
+      const controller = socket(socketMock(emit));
+      controller();
+    });
   });
 });

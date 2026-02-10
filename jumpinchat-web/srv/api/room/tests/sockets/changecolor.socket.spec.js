@@ -1,9 +1,8 @@
 /* global describe,it,beforeEach */
 
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire').noCallThru();
-
+import { expect } from 'chai';
+import sinon from 'sinon';
+import esmock from 'esmock';
 describe('Change Color Socket', () => {
   let socket;
   const socketEmitSpy = sinon.spy();
@@ -20,16 +19,16 @@ describe('Change Color Socket', () => {
     }),
   });
 
-  beforeEach(function beforeEach() {
+  beforeEach(async function beforeEach() {
     this.timeout(5000);
 
-    socket = proxyquire('../../sockets/changeColor.socket.js', {
-      '../controllers/room.changeChatColor': sinon.stub().yields(null, {
+    socket = await esmock('../../sockets/changeColor.socket.js', {
+      '../../controllers/room.changeChatColor.js': sinon.stub().yields(null, {
         color: '#000',
         user: {},
 
       }),
-      '../../../utils/utils': {
+      '../../../../utils/utils.js': {
         messageFactory: sinon.stub().returns(),
       },
     });

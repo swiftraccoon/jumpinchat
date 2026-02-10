@@ -1,8 +1,9 @@
-const messageUtils = require('../message.utils');
-const log = require('../../../utils/logger.util')({ name: 'archiveMessages' });
-const errors = require('../../../config/constants/errors');
 
-module.exports = async function archiveMessages(req, res) {
+import messageUtils from '../message.utils.js';
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'archiveMessages' });
+export default async function archiveMessages(req, res) {
   const { participantId } = req.params;
   const userId = String(req.user._id);
 

@@ -1,28 +1,28 @@
 
 /* global describe,it,beforeEach,after */
 
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire').noCallThru();
-const log = require('../../../utils/logger.util')({ name: 'search.controller.spec' });
-
+import { expect } from 'chai';
+import sinon from 'sinon';
+import logFactory from '../../../utils/logger.util.js';
+import esmock from 'esmock';
+const log = logFactory({ name: 'search.controller.spec' });
 const sandbox = sinon.createSandbox();
 
 describe('youtube search controller', () => {
   let SearchYoutube;
   let searchYoutube;
-  beforeEach(() => {
-    SearchYoutube = proxyquire('./search.controller', {
-      '../room.utils': {},
-      '../../../lib/redis.util': () => ({ hSet: sinon.stub().resolves() }),
-      '../../../utils/utils': {
+  beforeEach(async () => {
+    SearchYoutube = await esmock('./search.controller.js', {
+      '../../room/room.utils.js': {},
+      '../../../lib/redis.util.js': () => ({ hSet: sinon.stub().resolves() }),
+      '../../../utils/utils.js': {
         encodeUriParams: () => 'foo',
       },
-      './playVideo.controller': {
+      './playVideo.controller.js': {
         saveVideoInfoToCache: sinon.stub().yields(),
       },
-      '../utils/ytApiQuery': sinon.stub().resolves([]),
-      '../utils/getCurrentCred': sinon.stub().resolves('mock-api-key'),
+      '../utils/ytApiQuery.js': sinon.stub().resolves([]),
+      '../utils/getCurrentCred.js': sinon.stub().resolves('mock-api-key'),
     });
 
     searchYoutube = new SearchYoutube();

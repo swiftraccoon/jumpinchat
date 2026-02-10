@@ -1,6 +1,6 @@
-const roomSanitize = require('../controllers/room.sanitize');
 
-module.exports = function roomSanitizeConnector(req, res) {
+import roomSanitize from '../controllers/room.sanitize.js';
+export default function roomSanitizeConnector(req, res) {
   const { roomName } = req.params;
 
   return roomSanitize(roomName, (err) => {

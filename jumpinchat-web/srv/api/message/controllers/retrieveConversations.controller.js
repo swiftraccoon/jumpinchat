@@ -1,9 +1,10 @@
-const messageUtils = require('../message.utils');
-const config = require('../../../config/env');
-const log = require('../../../utils/logger.util')({ name: 'message.utils' });
-const errors = require('../../../config/constants/errors');
 
-module.exports = async function retrieveConversations(req, res) {
+import messageUtils from '../message.utils.js';
+import config from '../../../config/env/index.js';
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'message.utils' });
+export default async function retrieveConversations(req, res) {
   const { userId } = req.params;
   const { page } = req.query;
   const countPerPage = config.admin.userList.itemsPerPage;

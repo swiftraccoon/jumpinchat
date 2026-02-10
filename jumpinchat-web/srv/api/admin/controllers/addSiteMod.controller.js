@@ -1,12 +1,13 @@
-const log = require('../../../utils/logger.util')({ name: 'admin.addSiteMod' });
-const errors = require('../../../config/constants/errors');
-const adminUtils = require('../admin.utils');
-const userUtils = require('../../user/user.utils');
-const metaSendMessage = require('../../message/utils/metaSendMessage.util');
-const { SITEMOD_ADDED } = require('../../message/message.constants');
-const trophyUtils = require('../../trophy/trophy.utils');
 
-module.exports = async function addSiteMod(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+import adminUtils from '../admin.utils.js';
+import userUtils from '../../user/user.utils.js';
+import metaSendMessage from '../../message/utils/metaSendMessage.util.js';
+import { SITEMOD_ADDED } from '../../message/message.constants.js';
+import trophyUtils from '../../trophy/trophy.utils.js';
+const log = logFactory({ name: 'admin.addSiteMod' });
+export default async function addSiteMod(req, res) {
   const { user } = req;
   const { username } = req.body;
   const userLevel = 20;

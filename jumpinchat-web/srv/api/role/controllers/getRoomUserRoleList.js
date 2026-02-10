@@ -1,8 +1,8 @@
-const { getRoomByName } = require('../../room/room.utils');
-const { getAllRoomEnrollments, getDefaultRoles } = require('../role.utils');
-const { NotFoundError } = require('../../../utils/error.util');
 
-module.exports = async function getRoomUserRoleList(body) {
+import { getRoomByName } from '../../room/room.utils.js';
+import { getAllRoomEnrollments, getDefaultRoles } from '../role.utils.js';
+import { NotFoundError } from '../../../utils/error.util.js';
+export default async function getRoomUserRoleList(body) {
   const { roomName } = body;
 
   let room;

@@ -1,8 +1,9 @@
-const config = require('../../../config/env');
-const log = require('../../../utils/logger.util')({ name: 'getCurrentCred' });
-const redis = require('../../../utils/redis.util');
 
-module.exports = async function getCurrentCred(args = {}) {
+import config from '../../../config/env/index.js';
+import logFactory from '../../../utils/logger.util.js';
+import * as redis from '../../../utils/redis.util.js';
+const log = logFactory({ name: 'getCurrentCred' });
+export default async function getCurrentCred(args = {}) {
   log.debug({ args }, 'getCurrentCred');
   const { hasExpired = false } = args;
   const apiKeys = config.yt.keys;

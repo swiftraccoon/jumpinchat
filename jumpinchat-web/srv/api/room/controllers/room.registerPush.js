@@ -1,7 +1,9 @@
-const redis = require('../../../lib/redis.util')();
-const log = require('../../../utils/logger.util')({ name: 'room.registerPush' });
 
-module.exports = function registerPush(req, res) {
+import redisFactory from '../../../lib/redis.util.js';
+import logFactory from '../../../utils/logger.util.js';
+const redis = redisFactory();
+const log = logFactory({ name: 'room.registerPush' });
+export default function registerPush(req, res) {
   const { socketId } = req.params;
   const {
     endpoint,

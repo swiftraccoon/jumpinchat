@@ -3,28 +3,28 @@
  */
 
 
-const changeHandleSocket = require('./sockets/changeHandle.socket');
-const handleMessageSocket = require('./sockets/handleMessage.socket');
-const handleJoinRoomSocket = require('./sockets/handleJoinRoom.socket');
-const handleDisconnectSocket = require('./sockets/handleDisconnect.socket');
-const handleBanUserSocket = require('./sockets/handleBanUser.socket');
-const handleuUnbanUserSocket = require('./sockets/handleUnbanUser.socket');
-const fetchBanlistSocket = require('./sockets/fetchBanlist.socket');
-const runCommandSocket = require('./sockets/runCommand.socket');
-const setUserIsBroadcastingSocket = require('./sockets/setUserIsBroadcasting.socket');
-const changeColorSocket = require('./sockets/changeColor.socket');
-const handleCloseBroadcast = require('./sockets/handleCloseBroadcast.socket');
-const privateMessageSocket = require('./sockets/privateMessage.socket');
-const isStillJoinedSocket = require('./sockets/isStillJoined.socket');
-const ignoreUserSocket = require('./sockets/ignoreUser.socket');
-const unignoreUserSocket = require('./sockets/unignoreUser.socket');
-const updateIgnoreListSocket = require('./sockets/updateIgnoreList.socket');
-const handleSilenceUserSocket = require('./sockets/handleSilenceUser.socket');
-const handleKickUserSocket = require('./sockets/handleKickUser.socket');
-const setTopicSocket = require('./sockets/setTopic.socket');
-const getRoomUsersSocket = require('./sockets/getRoomUsers.socket');
 
-module.exports.register = function register(socket, io) {
+import changeHandleSocket from './sockets/changeHandle.socket.js';
+import handleMessageSocket from './sockets/handleMessage.socket.js';
+import handleJoinRoomSocket from './sockets/handleJoinRoom.socket.js';
+import handleDisconnectSocket from './sockets/handleDisconnect.socket.js';
+import handleBanUserSocket from './sockets/handleBanUser.socket.js';
+import handleuUnbanUserSocket from './sockets/handleUnbanUser.socket.js';
+import fetchBanlistSocket from './sockets/fetchBanlist.socket.js';
+import runCommandSocket from './sockets/runCommand.socket.js';
+import setUserIsBroadcastingSocket from './sockets/setUserIsBroadcasting.socket.js';
+import changeColorSocket from './sockets/changeColor.socket.js';
+import handleCloseBroadcast from './sockets/handleCloseBroadcast.socket.js';
+import privateMessageSocket from './sockets/privateMessage.socket.js';
+import isStillJoinedSocket from './sockets/isStillJoined.socket.js';
+import ignoreUserSocket from './sockets/ignoreUser.socket.js';
+import unignoreUserSocket from './sockets/unignoreUser.socket.js';
+import updateIgnoreListSocket from './sockets/updateIgnoreList.socket.js';
+import handleSilenceUserSocket from './sockets/handleSilenceUser.socket.js';
+import handleKickUserSocket from './sockets/handleKickUser.socket.js';
+import setTopicSocket from './sockets/setTopic.socket.js';
+import getRoomUsersSocket from './sockets/getRoomUsers.socket.js';
+export function register(socket, io) {
   const changeHandle = changeHandleSocket(socket, io);
   const handleMessage = handleMessageSocket(socket, io);
   const handleJoinRoom = handleJoinRoomSocket(socket, io);
@@ -78,3 +78,5 @@ module.exports.register = function register(socket, io) {
   socket.on('room::setTopic', setTopic);
   socket.on('room::users', getRoomUsers);
 };
+
+export default { register };

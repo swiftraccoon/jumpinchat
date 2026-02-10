@@ -2,12 +2,14 @@
  * Created by Zaccary on 19/10/2015.
  */
 
-const RoomUtils = require('../room.utils');
-const redis = require('../../../lib/redis.util')();
-const log = require('../../../utils/logger.util')({ name: 'room.changeHandle' });
-const errors = require('../../../config/constants/errors');
 
-module.exports = async function changeHandle(socketId, newHandle, cb) {
+import RoomUtils from '../room.utils.js';
+import redisFactory from '../../../lib/redis.util.js';
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+const redis = redisFactory();
+const log = logFactory({ name: 'room.changeHandle' });
+export default async function changeHandle(socketId, newHandle, cb) {
   let oldHandle;
   let userId;
   const re = /^[a-zA-Z0-9_\-|[\]]+$/;

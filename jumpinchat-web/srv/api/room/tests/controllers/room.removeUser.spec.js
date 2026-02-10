@@ -1,9 +1,8 @@
 /* global describe,it,beforeEach */
 
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire').noCallThru().noPreserveCache();
-
+import { expect } from 'chai';
+import sinon from 'sinon';
+import esmock from 'esmock';
 let removeUser;
 
 const roomSave = sinon.stub().resolves({ users: [{ handle: 'foo' }] });
@@ -17,7 +16,7 @@ describe('Room Remove User Controller', () => {
 
   let stubs;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     roomRemove = sinon.stub().yields();
     roomMockData = {
       name: 'foo',
@@ -38,23 +37,31 @@ describe('Room Remove User Controller', () => {
 
     getRoomByName = sinon.stub().yields(null, roomMockData);
     stubs = {
-      '../room.utils': {
-        getRoomByName,
-      },
-      './room.remove': roomRemove,
+      '../../room.utils.js': { default: { getRoomByName }, getRoomByName },
+      '../../controllers/room.remove.js': roomRemove,
     };
 
-    removeUser = proxyquire('../../controllers/room.removeUser.js', stubs);
+    removeUser = await esmock.p('../../controllers/room.removeUser.js', stubs);
   });
 
-  it('should return the removed user', (done) => {
-    removeUser('socketId', { name: 'foo' }, (err, removedUser) => {
-      expect(removedUser).to.eql({ handle: 'foo', socket_id: 'socketId' });
-      done();
+  afterEach(() => {
+    esmock.purge(removeUser);
+  });
+
+  it('should return the removed user', async () => {
+    await new Promise((resolve, reject) => {
+      removeUser('socketId', { name: 'foo' }, (err, removedUser) => {
+        try {
+          expect(removedUser).to.eql({ handle: 'foo', socket_id: 'socketId' });
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      });
     });
   });
 
-  it('should not remove the room if user count > 0', (done) => {
+  it('should not remove the room if user count > 0', async () => {
     const roomWithOwner = Object.assign({}, roomMockData, {
       users: [
         {
@@ -70,20 +77,25 @@ describe('Room Remove User Controller', () => {
       save: sinon.stub().resolves({ users: ['foo'] }),
     });
 
+    const roomUtilsMock = { getRoomByName: sinon.stub().yields(null, roomWithOwner) };
     stubs = Object.assign({}, stubs, {
-      '../room.utils': {
-        getRoomByName: sinon.stub().yields(null, roomWithOwner),
-      },
+      '../../room.utils.js': { default: roomUtilsMock, ...roomUtilsMock },
     });
 
-    removeUser = proxyquire('../../controllers/room.removeUser.js', stubs);
-    removeUser('socketId', { name: 'foo' }, () => {
-      expect(roomRemove.called).to.equal(false);
-      done();
+    removeUser = await esmock.p('../../controllers/room.removeUser.js', stubs);
+    await new Promise((resolve, reject) => {
+      removeUser('socketId', { name: 'foo' }, () => {
+        try {
+          expect(roomRemove.called).to.equal(false);
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      });
     });
   });
 
-  it('should remove the room if users.length === 0 and has no owner', (done) => {
+  it('should remove the room if users.length === 0 and has no owner', async () => {
     const roomWithOwner = Object.assign({}, roomMockData, {
       users: [
         {
@@ -95,17 +107,22 @@ describe('Room Remove User Controller', () => {
       save: sinon.stub().resolves({ users: [] }),
     });
 
+    const roomUtilsMock = { getRoomByName: sinon.stub().yields(null, roomWithOwner) };
     stubs = Object.assign({}, stubs, {
-      '../room.utils': {
-        getRoomByName: sinon.stub().yields(null, roomWithOwner),
-      },
+      '../../room.utils.js': { default: roomUtilsMock, ...roomUtilsMock },
     });
 
-    removeUser = proxyquire('../../controllers/room.removeUser.js', stubs);
+    removeUser = await esmock.p('../../controllers/room.removeUser.js', stubs);
 
-    removeUser('socketId', { name: 'foo' }, () => {
-      expect(roomRemove.called).to.equal(true);
-      done();
+    await new Promise((resolve, reject) => {
+      removeUser('socketId', { name: 'foo' }, () => {
+        try {
+          expect(roomRemove.called).to.equal(true);
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      });
     });
   });
 });

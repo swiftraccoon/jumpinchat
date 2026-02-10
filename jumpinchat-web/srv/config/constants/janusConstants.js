@@ -1,4 +1,4 @@
-module.exports.janusEvents = {
+export const janusEvents = {
   JANUS_EVENT_TYPE_NONE: 0,
   /* Session related events (e.g., session created/destroyed, etc.) */
   JANUS_EVENT_TYPE_SESSION: 1,

@@ -2,12 +2,13 @@
  * Created by Zaccary on 19/10/2015.
  */
 
-const log = require('../../../utils/logger.util')({ name: 'room.removeUser' });
-const roomRemove = require('./room.remove');
 
-module.exports = function removeUserFromRoom(socketId, roomData, cb) {
+import logFactory from '../../../utils/logger.util.js';
+import roomRemove from './room.remove.js';
+const log = logFactory({ name: 'room.removeUser' });
+export default async function removeUserFromRoom(socketId, roomData, cb) {
   // Lazy require to break circular dependency: room.utils → removeUser → room.utils
-  const RoomUtils = require('../room.utils');
+  const { default: RoomUtils } = await import('../room.utils.js');
   let removedUser;
 
   RoomUtils.getRoomByName(roomData.name, (err, room) => {

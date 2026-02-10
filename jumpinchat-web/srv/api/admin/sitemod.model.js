@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
 
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const SiteModSchema = new Schema({
@@ -9,4 +9,4 @@ const SiteModSchema = new Schema({
   userLevel: Number,
 });
 
-module.exports = mongoose.model('SiteMod', SiteModSchema);
+export default mongoose.model('SiteMod', SiteModSchema);

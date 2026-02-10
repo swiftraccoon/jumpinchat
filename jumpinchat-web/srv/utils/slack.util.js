@@ -1,6 +1,7 @@
-const axios = require('axios');
-const log = require('./logger.util')({ name: 'SlackBot' });
 
+import axios from 'axios';
+import logFactory from './logger.util.js';
+const log = logFactory({ name: 'SlackBot' });
 class SlackBot {
   constructor(url, username, icon, channel = '#general') {
     this.url = url;
@@ -27,4 +28,4 @@ class SlackBot {
   }
 }
 
-module.exports = SlackBot;
+export default SlackBot;

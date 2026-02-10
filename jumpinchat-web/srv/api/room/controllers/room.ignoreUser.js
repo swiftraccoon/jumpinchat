@@ -1,16 +1,17 @@
-const uuid = require('uuid');
-const log = require('../../../utils/logger.util')({ name: 'ignoreUser' });
-const { getRoomByName } = require('../room.utils');
-const { getUserById } = require('../../user/user.utils');
-const config = require('../../../config/env');
-const errors = require('../../../config/constants/errors');
 
 /**
  * @param {String} roomName - name of the room
  * @param {String} socketId - socket ID of the user who wants to ignore the target
  * @param {String} targetListId - user list ID of the user to be ignored in the room
  */
-module.exports = async function ignoreUser(roomName, socketId, targetListId, cb) {
+import * as uuid from 'uuid';
+import logFactory from '../../../utils/logger.util.js';
+import { getRoomByName } from '../room.utils.js';
+import { getUserById } from '../../user/user.utils.js';
+import config from '../../../config/env/index.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'ignoreUser' });
+export default async function ignoreUser(roomName, socketId, targetListId, cb) {
   try {
     const room = await getRoomByName(roomName);
 

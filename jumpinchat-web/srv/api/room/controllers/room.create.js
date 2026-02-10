@@ -2,13 +2,7 @@
  * Created by Zaccary on 22/09/2015.
  */
 
-const log = require('../../../utils/logger.util')({ name: 'room.create.controller' });
 
-const RoomModel = require('../room.model');
-const roomUtils = require('../room.utils');
-const createRole = require('../../role/controllers/createRole.controller');
-const addUserToRole = require('../../role/controllers/addUserToRole.controller');
-const { createDefaultRoles } = require('../../role/role.utils');
 
 /**
  * Creates a room.
@@ -27,7 +21,14 @@ const { createDefaultRoles } = require('../../role/role.utils');
  * @param {Object} (user)
  * @callback cb
  */
-module.exports = async function createRoom(room, user, cb) {
+import logFactory from '../../../utils/logger.util.js';
+import RoomModel from '../room.model.js';
+import roomUtils from '../room.utils.js';
+import createRole from '../../role/controllers/createRole.controller.js';
+import addUserToRole from '../../role/controllers/addUserToRole.controller.js';
+import { createDefaultRoles } from '../../role/role.utils.js';
+const log = logFactory({ name: 'room.create.controller' });
+export default async function createRoom(room, user, cb) {
   let roomName;
   let roomOwnerId = null;
   const roomSettings = { moderators: [] };

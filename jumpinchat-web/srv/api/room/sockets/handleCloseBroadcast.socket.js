@@ -1,12 +1,13 @@
-const jwt = require('jsonwebtoken');
-const log = require('../../../utils/logger.util')({ name: 'handleCloseBroadcast.socket' });
-const utils = require('../../../utils/utils');
-const { PermissionError } = require('../../../utils/error.util');
-const RoomUtils = require('../room.utils');
-const { getUserHasRolePermissions } = require('../../role/role.utils');
-const closeBroadcast = require('../controllers/moderation/room.closeBroadcast.controller');
 
-module.exports = function handleCloseBroadcastSocket(socket, io) {
+import jwt from 'jsonwebtoken';
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import { PermissionError } from '../../../utils/error.util.js';
+import RoomUtils from '../room.utils.js';
+import { getUserHasRolePermissions } from '../../role/role.utils.js';
+import closeBroadcast from '../controllers/moderation/room.closeBroadcast.controller.js';
+const log = logFactory({ name: 'handleCloseBroadcast.socket' });
+export default function handleCloseBroadcastSocket(socket, io) {
   return async function handleCloseBroadcast(msg) {
     let socketData;
     try {

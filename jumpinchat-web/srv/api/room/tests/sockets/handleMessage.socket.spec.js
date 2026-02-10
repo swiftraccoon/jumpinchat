@@ -1,9 +1,8 @@
 /* global describe,it,beforeEach */
 
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire').noCallThru();
-
+import { expect } from 'chai';
+import sinon from 'sinon';
+import esmock from 'esmock';
 describe('Handle message socket', () => {
   let socket;
   const socketEmitSpy = sinon.spy();
@@ -37,19 +36,19 @@ describe('Handle message socket', () => {
 
   const messageFactory = sinon.stub().callsFake(msg => msg);
 
-  beforeEach(function beforeEach() {
+  beforeEach(async function beforeEach() {
     this.timeout(5000);
 
-    socket = proxyquire('../../sockets/handleMessage.socket.js', {
-      '../room.utils': {
+    socket = await esmock('../../sockets/handleMessage.socket.js', {
+      '../../room.utils.js': {
         getSocketCacheInfo,
         checkUserSilenced: sinon.stub().returns(Promise.resolve()),
       },
-      '../../../utils/utils': {
+      '../../../../utils/utils.js': {
         messageFactory,
       },
-      '../../../utils/socketFloodProtect': () => Promise.resolve(),
-      '../utils/room.utils.sendPush': sinon.spy(),
+      '../../../../utils/socketFloodProtect.js': () => Promise.resolve(),
+      '../../utils/room.utils.sendPush.js': sinon.spy(),
     });
   });
 

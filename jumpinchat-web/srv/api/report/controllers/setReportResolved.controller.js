@@ -1,9 +1,10 @@
-const log = require('../../../utils/logger.util')({ name: 'setReportResolved' });
-const errors = require('../../../config/constants/errors');
-const reportUtils = require('../report.utils');
-const { resolutionOutcomes } = require('../report.constants');
 
-module.exports = async function setReportResolved(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+import reportUtils from '../report.utils.js';
+import { resolutionOutcomes } from '../report.constants.js';
+const log = logFactory({ name: 'setReportResolved' });
+export default async function setReportResolved(req, res) {
   const {
     reportId,
   } = req.body;

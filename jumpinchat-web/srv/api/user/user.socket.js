@@ -1,9 +1,11 @@
 let _io = null;
 
-module.exports.getIo = function getIo() {
+export function getIo() {
   return _io;
 };
 
-module.exports.register = function register(socket, io) {
+export function register(socket, io) {
   _io = io;
 };
+
+export default { getIo, register };

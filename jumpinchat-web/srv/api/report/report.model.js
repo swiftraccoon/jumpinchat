@@ -1,7 +1,7 @@
 
-const mongoose = require('mongoose');
-const config = require('../../config/env');
 
+import mongoose from 'mongoose';
+import config from '../../config/env/index.js';
 const { Schema } = mongoose;
 const ReportSchema = new Schema({
   createdAt: { type: Date, default: Date.now },
@@ -58,4 +58,4 @@ const ReportSchema = new Schema({
   },
 });
 
-module.exports = mongoose.model('Report', ReportSchema);
+export default mongoose.model('Report', ReportSchema);

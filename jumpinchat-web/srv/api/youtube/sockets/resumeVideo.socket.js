@@ -1,9 +1,10 @@
-const log = require('../../../utils/logger.util')({ name: 'resumeVideo.socket' });
-const utils = require('../../../utils/utils');
-const roomUtils = require('../../room/room.utils');
-const { playVideo } = require('../controllers/playVideo.controller');
 
-module.exports = function playYoutubeVideoSocket(socket, io) {
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import roomUtils from '../../room/room.utils.js';
+import { playVideo } from '../controllers/playVideo.controller.js';
+const log = logFactory({ name: 'resumeVideo.socket' });
+export default function playYoutubeVideoSocket(socket, io) {
   return function playYoutubeVideo(msg) {
     return utils.getSocketRooms(io, socket.id, (err, room) => {
       if (err) {

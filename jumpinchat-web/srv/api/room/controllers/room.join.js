@@ -2,26 +2,23 @@
  * Created by Zaccary on 23/09/2015.
  */
 
-const jwt = require('jsonwebtoken');
-const { intervalToDuration } = require('date-fns');
-const log = require('../../../utils/logger.util')({ name: 'room.join' });
-const { getCookie } = require('../../../utils/utils');
-const { customError } = require('../../../utils/error.util');
-const config = require('../../../config/env');
-const errors = require('../../../config/constants/errors');
-const roomUtils = require('../room.utils');
-const sitebanUtils = require('../../siteban/siteban.utils');
-const redis = require('../../../lib/redis.util');
-const redisUtils = require('../../../utils/redis.util');
-const sanitizeUserList = require('./room.sanitize');
-const { getUserById } = require('../../user/user.utils');
-const roomCloseUtils = require('../../roomClose/roomClose.utils');
-const { PermissionError } = require('../../../utils/error.util');
-const {
-  getUserEnrollments,
-  getDefaultRoles,
-  getUserHasRolePermissions,
-} = require('../../role/role.utils');
+import jwt from 'jsonwebtoken';
+import { intervalToDuration } from 'date-fns';
+import logFactory from '../../../utils/logger.util.js';
+import { getCookie } from '../../../utils/utils.js';
+import { customError } from '../../../utils/error.util.js';
+import config from '../../../config/env/index.js';
+import errors from '../../../config/constants/errors.js';
+import roomUtils from '../room.utils.js';
+import sitebanUtils from '../../siteban/siteban.utils.js';
+import redis from '../../../lib/redis.util.js';
+import redisUtils from '../../../utils/redis.util.js';
+import sanitizeUserList from './room.sanitize.js';
+import { getUserById } from '../../user/user.utils.js';
+import roomCloseUtils from '../../roomClose/roomClose.utils.js';
+import { PermissionError } from '../../../utils/error.util.js';
+const log = logFactory({ name: 'room.join' });
+import { getUserEnrollments, getDefaultRoles, getUserHasRolePermissions } from '../../role/role.utils.js';
 
 /**
  * Behaviour:
@@ -549,4 +546,4 @@ class RoomJoin {
   }
 }
 
-module.exports = RoomJoin;
+export default RoomJoin;

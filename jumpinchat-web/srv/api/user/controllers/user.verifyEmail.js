@@ -1,11 +1,12 @@
-const log = require('../../../utils/logger.util')({ name: 'user.verifyEmail' });
-const Joi = require('joi');
-const VerifyModel = require('../../verify/verify.model');
-const trophyUtils = require('../../trophy/trophy.utils');
-const UserUtils = require('../user.utils');
-const { types: verifyTypes } = require('../../verify/verify.constants');
 
-module.exports = function verifyEmail(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import Joi from 'joi';
+import VerifyModel from '../../verify/verify.model.js';
+import trophyUtils from '../../trophy/trophy.utils.js';
+import UserUtils from '../user.utils.js';
+import { types as verifyTypes } from '../../verify/verify.constants.js';
+const log = logFactory({ name: 'user.verifyEmail' });
+export default function verifyEmail(req, res) {
   const schema = Joi.object().keys({
     token: Joi.string().required(),
   });

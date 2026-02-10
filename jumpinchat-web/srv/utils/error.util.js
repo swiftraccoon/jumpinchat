@@ -1,4 +1,4 @@
-module.exports.customError = function customError(name = 'Error', message) {
+export function customError(name = 'Error', message) {
   const error = new Error();
   error.name = name;
   error.message = message;
@@ -11,7 +11,7 @@ class ValidationError extends Error {
     this.name = 'ValidationError';
   }
 }
-module.exports.ValidationError = ValidationError;
+export { ValidationError };
 
 class NotFoundError extends Error {
   constructor(message) {
@@ -20,7 +20,7 @@ class NotFoundError extends Error {
   }
 }
 
-module.exports.NotFoundError = NotFoundError;
+export { NotFoundError };
 
 class JanusError extends Error {
   constructor(message) {
@@ -29,7 +29,7 @@ class JanusError extends Error {
   }
 }
 
-module.exports.JanusError = JanusError;
+export { JanusError };
 
 class PermissionError extends Error {
   constructor(message) {
@@ -38,7 +38,7 @@ class PermissionError extends Error {
   }
 }
 
-module.exports.PermissionError = PermissionError;
+export { PermissionError };
 
 class FloodError extends Error {
   constructor(message) {
@@ -47,7 +47,7 @@ class FloodError extends Error {
   }
 }
 
-module.exports.FloodError = FloodError;
+export { FloodError };
 
 class UnsupportedError extends Error {
   constructor(message) {
@@ -56,4 +56,4 @@ class UnsupportedError extends Error {
   }
 }
 
-module.exports.UnsupportedError = UnsupportedError;
+export { UnsupportedError };

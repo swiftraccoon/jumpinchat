@@ -1,14 +1,13 @@
 /* global it,describe,beforeEach,afterEach */
 
-const jwt = require('jsonwebtoken');
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire');
-const _ = require('lodash');
-const roomMockJson = require('../room.mock');
 
-proxyquire.noCallThru();
-proxyquire.noPreserveCache();
+import jwt from 'jsonwebtoken';
+import { expect } from 'chai';
+import sinon from 'sinon';
+import _ from 'lodash';
+import roomMockJson from '../room.mock.json' with { type: 'json' };
+import esmock from 'esmock';
+
 
 let socket;
 let roomMock;
@@ -17,7 +16,7 @@ let roomUtilsStub;
 let roomSaveStub;
 
 describe('banUser', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     socket = {
       id: 'socket',
       handshake: {
@@ -37,13 +36,13 @@ describe('banUser', () => {
       getRoomByName: () => Promise.resolve(roomMock),
       getSocketCacheInfo: sinon.stub().resolves({ name: 'room' }),
     };
-    controller = proxyquire('../../controllers/moderation/room.moderation.banUser', {
-      '../../room.utils': roomUtilsStub,
-      '../../../../utils/utils': {
+    controller = await esmock('../../controllers/moderation/room.moderation.banUser.js', {
+      '../../room.utils.js': roomUtilsStub,
+      '../../../../utils/utils.js': {
         createError: () => new Error(),
         getIpFromSocket: () => '1.2.3.4',
       },
-      '../../../role/role.utils': {
+      '../../../role/role.utils.js': {
         getUserHasRolePermissions: sinon.stub().resolves(true),
       },
     });

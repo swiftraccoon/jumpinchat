@@ -1,11 +1,12 @@
-const log = require('../../../utils/logger.util')({ name: 'privateMessage.socket' });
-const utils = require('../../../utils/utils');
-const roomUtils = require('../room.utils');
-const sendPush = require('../utils/room.utils.sendPush');
-const privateMessageController = require('../controllers/room.privateMessage');
-const socketFloodProtect = require('../../../utils/socketFloodProtect');
 
-module.exports = function privateMessage(socket, io) {
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import roomUtils from '../room.utils.js';
+import sendPush from '../utils/room.utils.sendPush.js';
+import privateMessageController from '../controllers/room.privateMessage.js';
+import socketFloodProtect from '../../../utils/socketFloodProtect.js';
+const log = logFactory({ name: 'privateMessage.socket' });
+export default function privateMessage(socket, io) {
   /**
    *
    * @param {object} msg

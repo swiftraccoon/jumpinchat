@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
-const config = require('../../config/env');
 
+import mongoose from 'mongoose';
+import config from '../../config/env/index.js';
 const { Schema } = mongoose;
 
 const OtpRequestSchema = new Schema({
@@ -9,4 +9,4 @@ const OtpRequestSchema = new Schema({
   userId: Schema.Types.ObjectId,
 });
 
-module.exports = mongoose.model('OtpRequest', OtpRequestSchema);
+export default mongoose.model('OtpRequest', OtpRequestSchema);

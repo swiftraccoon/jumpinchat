@@ -13,7 +13,7 @@ RUN npm install --legacy-peer-deps
 # Build with gulp (use local binary, not npx)
 # Node 18 uses OpenSSL 3.0 which drops MD4; webpack 4 needs legacy provider
 ENV NODE_OPTIONS="--openssl-legacy-provider"
-RUN ./node_modules/.bin/gulp build
+RUN ./node_modules/.bin/gulp --gulpfile gulpfile.cjs build
 
 # Generate version.js (normally done by publish-artifact.sh)
 RUN echo "window.BUILD_NUM='$(git rev-parse HEAD 2>/dev/null || echo local-dev)';" > dist/version.js

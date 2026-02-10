@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'user.requestVerifyEmail' });
-const { createEmailVerification } = require('../../verify/verify.utils');
-const userUtils = require('../user.utils');
 
-module.exports = function requestVerifyEmail(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import { createEmailVerification } from '../../verify/verify.utils.js';
+import userUtils from '../user.utils.js';
+const log = logFactory({ name: 'user.requestVerifyEmail' });
+export default function requestVerifyEmail(req, res) {
   if (req.body.user) {
     const { user } = req.body;
 

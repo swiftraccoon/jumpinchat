@@ -1,12 +1,11 @@
-const log = require('../../../utils/logger.util')({ name: 'createRole.controller' });
-const roleModel = require('../role.model');
-const roleUtils = require('../role.utils');
-const {
-  ValidationError,
-} = require('../../../utils/error.util');
-const { getRoomByName } = require('../../room/room.utils');
+import logFactory from '../../../utils/logger.util.js';
+import roleModel from '../role.model.js';
+import roleUtils from '../role.utils.js';
+import { getRoomByName } from '../../room/room.utils.js';
+const log = logFactory({ name: 'createRole.controller' });
+import { ValidationError } from '../../../utils/error.util.js';
 
-module.exports = async function createRoleController(body) {
+export default async function createRoleController(body) {
   const {
     name,
     roomName,

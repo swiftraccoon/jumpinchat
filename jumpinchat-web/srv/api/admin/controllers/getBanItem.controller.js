@@ -1,7 +1,8 @@
-const log = require('../../../utils/logger.util')({ name: 'admin.getBanItem' });
-const { getBanlistItemById } = require('../../siteban/siteban.utils');
 
-module.exports = async function getBanItem(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import { getBanlistItemById } from '../../siteban/siteban.utils.js';
+const log = logFactory({ name: 'admin.getBanItem' });
+export default async function getBanItem(req, res) {
   const { banId } = req.params;
   try {
     const item = await getBanlistItemById(banId);

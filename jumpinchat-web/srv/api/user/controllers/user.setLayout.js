@@ -1,9 +1,10 @@
-const Joi = require('joi');
-const log = require('../../../utils/logger.util')({ name: 'user.setLayout' });
-const { getUserById } = require('../user.utils');
-const errors = require('../../../config/constants/errors');
 
-module.exports = async function setLayout(req, res) {
+import Joi from 'joi';
+import logFactory from '../../../utils/logger.util.js';
+import { getUserById } from '../user.utils.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'user.setLayout' });
+export default async function setLayout(req, res) {
   const schema = Joi.object().keys({
     wideLayout: Joi.boolean(),
   });

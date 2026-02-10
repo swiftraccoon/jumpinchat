@@ -1,18 +1,19 @@
-const Busboy = require('busboy');
-const log = require('../../../utils/logger.util')({ name: 'uploadDisplayPic' });
-const { getRoomByName } = require('../room.utils');
-const {
+import Busboy from 'busboy';
+import logFactory from '../../../utils/logger.util.js';
+import { getRoomByName } from '../room.utils.js';
+import config from '../../../config/env/index.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'uploadDisplayPic' });
+import {
   convertImages,
   mergeBuffers,
   s3Upload,
   isValidImage,
   getExtFromMime,
-} = require('../../../utils/utils');
+} from '../../../utils/utils.js';
 
-const config = require('../../../config/env');
-const errors = require('../../../config/constants/errors');
 
-module.exports = function uploadDisplayPic(req, res) {
+export default function uploadDisplayPic(req, res) {
   let busboy;
   let hasErr = false;
   try {

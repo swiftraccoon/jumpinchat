@@ -1,9 +1,11 @@
-const { omit } = require('lodash');
-const log = require('../../../utils/logger.util')({ name: 'unignoreUser.socket' });
-const unignoreUserController = require('../controllers/room.unignoreUser');
-const utils = require('../../../utils/utils');
 
-module.exports = function unignoreUserSocket(socket) {
+import _ from 'lodash';
+const { omit } = _;
+import logFactory from '../../../utils/logger.util.js';
+import unignoreUserController from '../controllers/room.unignoreUser.js';
+import utils from '../../../utils/utils.js';
+const log = logFactory({ name: 'unignoreUser.socket' });
+export default function unignoreUserSocket(socket) {
   return function unignoreUser({ id }) {
     unignoreUserController(id, socket.id, (err) => {
       if (err) {

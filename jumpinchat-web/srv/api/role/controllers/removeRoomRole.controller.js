@@ -1,17 +1,11 @@
-const log = require('../../../utils/logger.util')({ name: 'removeRoomRole.controller' });
-const roleUtils = require('../role.utils');
-const roleModel = require('../role.model');
-const {
-  getRoomByName,
-  filterRoomUser,
-} = require('../../room/room.utils');
-const {
-  PermissionError,
-  ValidationError,
-  NotFoundError,
-} = require('../../../utils/error.util');
+import logFactory from '../../../utils/logger.util.js';
+import roleUtils from '../role.utils.js';
+import roleModel from '../role.model.js';
+const log = logFactory({ name: 'removeRoomRole.controller' });
+import { getRoomByName, filterRoomUser } from '../../room/room.utils.js';
+import { PermissionError, ValidationError, NotFoundError } from '../../../utils/error.util.js';
 
-module.exports = async function removeRoomRole(body) {
+export default async function removeRoomRole(body) {
   const {
     roomName,
     roleId,

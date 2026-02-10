@@ -1,5 +1,6 @@
-const log = require('../../utils/logger.util')({ name: 'emailTemplates' });
 
+import logFactory from '../../utils/logger.util.js';
+const log = logFactory({ name: 'emailTemplates' });
 const findMissingVars = (expected, received) => Object
   .keys(received)
   .filter(v => expected.indexOf(v) === -1);
@@ -91,12 +92,12 @@ const header = `
   <div class="header"><a href="https://jumpin.chat">JumpInChat</a></div>
 `;
 
-module.exports.senders = {
+export const senders = {
   default: 'JumpInChat noreply@jumpin.chat',
   admin: 'Admin at JumpInChat contact@example.com',
 };
 
-module.exports.signUpTemplate = function signUpTemplate(vars) {
+export function signUpTemplate(vars) {
   const expectedVars = ['username', 'token'];
   const missingVars = findMissingVars(expectedVars, vars);
 
@@ -152,7 +153,7 @@ module.exports.signUpTemplate = function signUpTemplate(vars) {
   `;
 };
 
-module.exports.resetPasswordTemplate = function resetPasswordTemplate(vars) {
+export function resetPasswordTemplate(vars) {
   const expectedVars = ['username', 'token'];
   const missingVars = findMissingVars(expectedVars, vars);
 
@@ -190,7 +191,7 @@ module.exports.resetPasswordTemplate = function resetPasswordTemplate(vars) {
   `;
 };
 
-module.exports.reportTemplate = function reportTemplate(vars) {
+export function reportTemplate(vars) {
   return `
     ${commonStyles}
 
@@ -240,7 +241,7 @@ module.exports.reportTemplate = function reportTemplate(vars) {
   `;
 };
 
-module.exports.siteModReportTemplate = function siteModReportTemplate(vars) {
+export function siteModReportTemplate(vars) {
   return `
     ${commonStyles}
 
@@ -278,7 +279,7 @@ module.exports.siteModReportTemplate = function siteModReportTemplate(vars) {
 };
 
 
-module.exports.messageReportTemplate = function messageReportTemplate(vars) {
+export function messageReportTemplate(vars) {
   return `
     ${commonStyles}
 
@@ -300,7 +301,7 @@ module.exports.messageReportTemplate = function messageReportTemplate(vars) {
   `;
 };
 
-module.exports.ageVerifyTemplate = function ageVerifyTemplate({ userId, verificationId }) {
+export function ageVerifyTemplate({ userId, verificationId }) {
   return `
     ${commonStyles}
 
@@ -321,7 +322,7 @@ module.exports.ageVerifyTemplate = function ageVerifyTemplate({ userId, verifica
   `;
 };
 
-module.exports.ageVerifyApprovedTemplate = function ageVerifyApprovedTemplate({ user }) {
+export function ageVerifyApprovedTemplate({ user }) {
   return `
     ${commonStyles}
 
@@ -348,7 +349,7 @@ module.exports.ageVerifyApprovedTemplate = function ageVerifyApprovedTemplate({ 
   `;
 };
 
-module.exports.ageVerifyRejectedTemplate = function ageVerifyRejectedTemplate({ user, reason }) {
+export function ageVerifyRejectedTemplate({ user, reason }) {
   return `
     ${commonStyles}
 
@@ -378,7 +379,7 @@ module.exports.ageVerifyRejectedTemplate = function ageVerifyRejectedTemplate({ 
   `;
 };
 
-module.exports.ageVerifyDeniedTemplate = function ageVerifyDeniedTemplate({ user }) {
+export function ageVerifyDeniedTemplate({ user }) {
   return `
     ${commonStyles}
 
@@ -409,7 +410,7 @@ module.exports.ageVerifyDeniedTemplate = function ageVerifyDeniedTemplate({ user
   `;
 };
 
-module.exports.customEmail = function customEmail(vars) {
+export function customEmail(vars) {
   const expectedVars = ['username', 'message', 'unsubToken'];
   const missingVars = findMissingVars(expectedVars, vars);
 
@@ -441,7 +442,7 @@ module.exports.customEmail = function customEmail(vars) {
   `;
 };
 
-module.exports.newMessageTemplate = function newMessageTemplate({ user, sender }) {
+export function newMessageTemplate({ user, sender }) {
   return `
     ${commonStyles}
 

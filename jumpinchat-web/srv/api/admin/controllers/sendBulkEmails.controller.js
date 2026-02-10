@@ -1,13 +1,14 @@
-const marked = require('marked');
-const jwt = require('jsonwebtoken');
-const log = require('../../../utils/logger.util')({ name: 'sendBulkEmails.controller' });
-const Queue = require('../../../utils/queue.util');
-const userUtils = require('../../user/user.utils');
-const email = require('../../../config/email.config');
-const config = require('../../../config/env');
-const { senders, customEmail } = require('../../../config/constants/emailTemplates');
 
-module.exports = function sendBulkEmails(req, res) {
+import marked from 'marked';
+import jwt from 'jsonwebtoken';
+import logFactory from '../../../utils/logger.util.js';
+import Queue from '../../../utils/queue.util.js';
+import userUtils from '../../user/user.utils.js';
+import email from '../../../config/email.config.js';
+import config from '../../../config/env/index.js';
+import { senders, customEmail } from '../../../config/constants/emailTemplates.js';
+const log = logFactory({ name: 'sendBulkEmails.controller' });
+export default function sendBulkEmails(req, res) {
   if (!req.body.message) {
     return res.status(400).send({
       code: 'ERR_NO_BODY',

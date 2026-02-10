@@ -1,14 +1,12 @@
-const log = require('../../../utils/logger.util')({ name: 'handleSetTopic.socket' });
-const {
-  getRoomByName,
-  getSocketCacheInfo,
-} = require('../room.utils');
-const errors = require('../../../config/constants/errors');
-const { PermissionError } = require('../../../utils/error.util');
-const utils = require('../../../utils/utils');
-const { getUserHasRolePermissions } = require('../../role/role.utils');
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+import { PermissionError } from '../../../utils/error.util.js';
+import utils from '../../../utils/utils.js';
+import { getUserHasRolePermissions } from '../../role/role.utils.js';
+const log = logFactory({ name: 'handleSetTopic.socket' });
+import { getRoomByName, getSocketCacheInfo } from '../room.utils.js';
 
-module.exports = function handleSetTopicSocket(socket, io) {
+export default function handleSetTopicSocket(socket, io) {
   return async function setTopic({ userListId, roomName, topic }) {
     let socketData;
     try {

@@ -1,8 +1,9 @@
-const Joi = require('joi');
-const log = require('../../../utils/logger.util')({ name: 'getTrophy' });
-const trophyUtils = require('../trophy.utils');
 
-module.exports = function getTrophyByName(req, res) {
+import Joi from 'joi';
+import logFactory from '../../../utils/logger.util.js';
+import trophyUtils from '../trophy.utils.js';
+const log = logFactory({ name: 'getTrophy' });
+export default function getTrophyByName(req, res) {
   const schema = Joi.object().keys({
     name: Joi.string(),
   });

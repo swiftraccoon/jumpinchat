@@ -1,17 +1,17 @@
-const express = require('express');
-const utils = require('../../utils/utils');
-const retrieveConversations = require('./controllers/retrieveConversations.controller');
-const singleConversation = require('./controllers/singleConversation.controller');
-const addMessage = require('./controllers/addMessage.controller');
-const getUnread = require('./controllers/getUnread.controller');
-const markRead = require('./controllers/markRead.controller');
-const markAllRead = require('./controllers/markAllRead.controller');
-const adminMessageAll = require('./controllers/adminMessageAll.controller');
-const archiveMessages = require('./controllers/archiveMessages.controller');
 
 
-const migrateConvoId = require('../../migrations/messages/conversationId');
 
+import express from 'express';
+import utils from '../../utils/utils.js';
+import retrieveConversations from './controllers/retrieveConversations.controller.js';
+import singleConversation from './controllers/singleConversation.controller.js';
+import addMessage from './controllers/addMessage.controller.js';
+import getUnread from './controllers/getUnread.controller.js';
+import markRead from './controllers/markRead.controller.js';
+import markAllRead from './controllers/markAllRead.controller.js';
+import adminMessageAll from './controllers/adminMessageAll.controller.js';
+import archiveMessages from './controllers/archiveMessages.controller.js';
+import migrateConvoId from '../../migrations/messages/conversationId.js';
 const router = express.Router();
 
 router.post('/admin/send', utils.verifyAdmin, adminMessageAll);
@@ -29,4 +29,4 @@ router.post('/migrate/conversationId', (req, res) => {
   return res.status(200).send();
 });
 
-module.exports = router;
+export default router;

@@ -1,10 +1,10 @@
-const qrcode = require('qrcode');
-const { authenticator } = require('otplib');
-const { getUserById } = require('../user.utils');
-const OtpRequestModel = require('../otpRequest.model');
-const { NotFoundError } = require('../../../utils/error.util');
 
-module.exports = async function mfaRequestEnroll(body) {
+import qrcode from 'qrcode';
+import { authenticator } from 'otplib';
+import { getUserById } from '../user.utils.js';
+import OtpRequestModel from '../otpRequest.model.js';
+import { NotFoundError } from '../../../utils/error.util.js';
+export default async function mfaRequestEnroll(body) {
   const {
     userId,
   } = body;

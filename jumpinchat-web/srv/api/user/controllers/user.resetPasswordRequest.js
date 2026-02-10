@@ -1,8 +1,9 @@
-const Joi = require('joi');
-const log = require('../../../utils/logger.util')({ name: 'user.resetPasswordRequest' });
-const { createPasswordReset } = require('../../verify/verify.utils');
-const userUtils = require('../user.utils');
 
+import Joi from 'joi';
+import logFactory from '../../../utils/logger.util.js';
+import { createPasswordReset } from '../../verify/verify.utils.js';
+import userUtils from '../user.utils.js';
+const log = logFactory({ name: 'user.resetPasswordRequest' });
 const getUser = (username, cb) => {
   userUtils.getUserByName(username, (err, user) => {
     if (err) {
@@ -23,7 +24,7 @@ const getUser = (username, cb) => {
 };
 
 
-module.exports = function requestResetPassword(req, res) {
+export default function requestResetPassword(req, res) {
   const schema = Joi.object().keys({
     username: Joi.string().alphanum().required(),
   });

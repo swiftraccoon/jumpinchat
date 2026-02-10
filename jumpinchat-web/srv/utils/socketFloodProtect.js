@@ -1,8 +1,10 @@
-const log = require('./logger.util')({ name: 'socketFloodProtect' });
-const redis = require('../lib/redis.util')();
-const config = require('../config/env');
-const { FloodError } = require('./error.util');
 
+import logFactory from './logger.util.js';
+import redisFactory from '../lib/redis.util.js';
+import config from '../config/env/index.js';
+import { FloodError } from './error.util.js';
+const log = logFactory({ name: 'socketFloodProtect' });
+const redis = redisFactory();
 async function setKey(key) {
   try {
     await redis.set(key, 1);
@@ -20,7 +22,7 @@ async function setKey(key) {
   }
 }
 
-module.exports = async function socketFloodProtect(socket, io) {
+export default async function socketFloodProtect(socket, io) {
   const key = `flood:${socket.id}`;
 
   let value;

@@ -1,10 +1,11 @@
-const log = require('../../../utils/logger.util')({ name: 'pauseVideo.socket' });
-const utils = require('../../../utils/utils');
-const roomUtils = require('../../room/room.utils');
-const { playVideo } = require('../controllers/playVideo.controller');
-const { PermissionError } = require('../../../utils/error.util');
 
-module.exports = function pauseYoutubeVideoSocket(socket, io) {
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import roomUtils from '../../room/room.utils.js';
+import { playVideo } from '../controllers/playVideo.controller.js';
+import { PermissionError } from '../../../utils/error.util.js';
+const log = logFactory({ name: 'pauseVideo.socket' });
+export default function pauseYoutubeVideoSocket(socket, io) {
   return function pauseYoutubeVideo(msg) {
     log.debug({ msg }, 'pause video socket');
     return utils.getSocketRooms(io, socket.id, (err, room) => {

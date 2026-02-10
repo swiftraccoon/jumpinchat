@@ -2,9 +2,9 @@
  * Created by vivaldi on 08/11/2014.
  */
 
-const mongoose = require('mongoose');
-const videoQuality = require('../../config/constants/videoQuality');
 
+import mongoose from 'mongoose';
+import videoQuality from '../../config/constants/videoQuality.js';
 const { Schema } = mongoose;
 
 const UserSchema = new Schema({
@@ -70,4 +70,4 @@ const UserSchema = new Schema({
   ],
 });
 
-module.exports = mongoose.model('User', UserSchema);
+export default mongoose.model('User', UserSchema);

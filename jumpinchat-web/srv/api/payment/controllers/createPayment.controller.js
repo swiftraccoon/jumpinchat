@@ -1,21 +1,14 @@
-const { isAfter } = require('date-fns');
-const log = require('../../../utils/logger.util')({ name: 'createPayment.controller' });
-const errors = require('../../../config/constants/errors');
-const { getUserById } = require('../../user/user.utils');
-const paymentUtils = require('../payment.utils');
-const metaSendMessage = require('../../message/utils/metaSendMessage.util');
-const {
-  PAYMENT_ONETIME,
-  PAYMENT_GIFT_RECIPIENT,
-  PAYMENT_GIFT_SENDER,
-} = require('../../message/message.constants');
-const {
-  productIds,
-  productTypes,
-  products,
-} = require('../payment.constants');
+import { isAfter } from 'date-fns';
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+import { getUserById } from '../../user/user.utils.js';
+import paymentUtils from '../payment.utils.js';
+import metaSendMessage from '../../message/utils/metaSendMessage.util.js';
+const log = logFactory({ name: 'createPayment.controller' });
+import { PAYMENT_ONETIME, PAYMENT_GIFT_RECIPIENT, PAYMENT_GIFT_SENDER } from '../../message/message.constants.js';
+import { productIds, productTypes, products } from '../payment.constants.js';
 
-module.exports = async function createPayment(req, res) {
+export default async function createPayment(req, res) {
   const { product, amount, beneficiary } = req.query;
   const { stripeToken } = req.body;
 

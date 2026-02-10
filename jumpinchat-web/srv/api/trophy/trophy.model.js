@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
 
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const TrophySchema = new Schema({
@@ -23,4 +23,4 @@ const TrophySchema = new Schema({
   },
 });
 
-module.exports = mongoose.model('Trophy', TrophySchema);
+export default mongoose.model('Trophy', TrophySchema);

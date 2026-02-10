@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'migrate trophies' });
-const trophyModel = require('../trophy.model');
-const trophyConst = require('../trophies');
 
-module.exports = function migrate(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import trophyModel from '../trophy.model.js';
+import trophyConst from '../trophies.js';
+const log = logFactory({ name: 'migrate trophies' });
+export default function migrate(req, res) {
   log.debug('migrate trophies');
   return trophyModel.find({}).exec()
     .then((trophies) => {

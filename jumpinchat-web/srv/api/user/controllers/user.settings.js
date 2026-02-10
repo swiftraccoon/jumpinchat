@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'user.settings' });
-const Joi = require('joi');
-const userUtils = require('../user.utils');
 
-module.exports = function settings(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import Joi from 'joi';
+import userUtils from '../user.utils.js';
+const log = logFactory({ name: 'user.settings' });
+export default function settings(req, res) {
   const schema = Joi.object().keys({
     playYtVideos: Joi.boolean().default(false),
     allowPrivateMessages: Joi.boolean().default(false),

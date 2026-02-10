@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'isStillJoined.socket' });
-const utils = require('../../../utils/utils');
-const RoomUtils = require('../room.utils');
 
-module.exports = function isStillJoinedSocket(socket) {
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import RoomUtils from '../room.utils.js';
+const log = logFactory({ name: 'isStillJoined.socket' });
+export default function isStillJoinedSocket(socket) {
   return function isStillJoined(msg) {
     const {
       room: roomName,

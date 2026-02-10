@@ -1,22 +1,20 @@
 /* global it,describe,beforeEach,afterEach */
 
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire');
-const _ = require('lodash');
 
-proxyquire.noCallThru();
-proxyquire.noPreserveCache();
+import { expect } from 'chai';
+import sinon from 'sinon';
+import _ from 'lodash';
+import _room_mock_json from '../room.mock.json' with { type: 'json' };
+import esmock from 'esmock';
 
 let roomMock;
 let controller;
 let roomUtilsStub;
 let userUtilsStub;
-let logStub;
 
 describe('Check operator permissions', () => {
-  beforeEach(() => {
-    roomMock = Object.assign({}, require('../room.mock.json'));
+  beforeEach(async () => {
+    roomMock = Object.assign({}, _room_mock_json);
 
     roomUtilsStub = {
       getRoomByName: sinon.stub().yields(null, roomMock),
@@ -29,19 +27,11 @@ describe('Check operator permissions', () => {
       getUserById: sinon.stub().yields(null, { attrs: { userLevel: 0 } }),
     };
 
-    logStub = {
-      getLogger: sinon.stub().returns({
-        warn: sinon.spy(),
-        info: sinon.spy(),
-        error: sinon.spy(),
-      }),
-    };
+    controller = await esmock.p('../../utils/room.utils.checkOperatorPermissions.js', {
+      '../../room.utils.js': { default: roomUtilsStub, ...roomUtilsStub },
+      '../../../user/user.utils.js': { default: userUtilsStub, ...userUtilsStub },
 
-    controller = proxyquire('../../utils/room.utils.checkOperatorPermissions', {
-      '../room.utils': roomUtilsStub,
-      '../../user/user.utils': userUtilsStub,
-      log4js: logStub,
-      '../../role/controllers/getUserRoles.controller': sinon.stub().resolves([
+      '../../../role/controllers/getUserRoles.controller.js': sinon.stub().resolves([
         {
           permissions: {
             foo: true,
@@ -54,6 +44,7 @@ describe('Check operator permissions', () => {
   afterEach(() => {
     roomUtilsStub.getRoomByName.reset();
     roomUtilsStub.getSocketCacheInfo.reset();
+    esmock.purge(controller);
   });
 
 
@@ -81,7 +72,7 @@ describe('Check operator permissions', () => {
     const socketId = roomMock.users[0].socket_id;
     const action = 'foo';
 
-    return controller(socketId, action, (err, permission) => {
+    controller(socketId, action, (err, permission) => {
       if (err) return done(err);
       try {
         expect(permission).to.equal(true);
@@ -112,22 +103,28 @@ describe('Check operator permissions', () => {
     });
   });
 
-  it('should allow an admin to perform op actions', (done) => {
+  it('should allow an admin to perform op actions', async () => {
+    esmock.purge(controller);
     const socketId = roomMock.users[2].socket_id;
     const action = 'ban';
     userUtilsStub = {
       getUserById: sinon.stub().yields(null, { attrs: { userLevel: 30 } }),
     };
 
-    controller = proxyquire('../../utils/room.utils.checkOperatorPermissions', {
-      '../room.utils': roomUtilsStub,
-      '../../user/user.utils': userUtilsStub,
-      log4js: logStub,
+    controller = await esmock.p('../../utils/room.utils.checkOperatorPermissions.js', {
+      '../../room.utils.js': { default: roomUtilsStub, ...roomUtilsStub },
+      '../../../user/user.utils.js': { default: userUtilsStub, ...userUtilsStub },
     });
 
-    controller(socketId, action, (err, permission) => {
-      expect(permission).to.equal(true);
-      done();
+    await new Promise((resolve, reject) => {
+      controller(socketId, action, (err, permission) => {
+        try {
+          expect(permission).to.equal(true);
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      });
     });
   });
 });

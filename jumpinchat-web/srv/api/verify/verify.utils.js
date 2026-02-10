@@ -1,20 +1,18 @@
-const uuid = require('uuid');
-const crypto = require('crypto');
-const log = require('../../utils/logger.util')({ name: 'verify.utils' });
-const config = require('../../config/env');
-const VerifyModel = require('./verify.model');
-const email = require('../../config/email.config');
-const {
-  signUpTemplate,
-  resetPasswordTemplate,
-} = require('../../config/constants/emailTemplates');
+import * as uuid from 'uuid';
+import crypto from 'crypto';
+import logFactory from '../../utils/logger.util.js';
+import config from '../../config/env/index.js';
+import VerifyModel from './verify.model.js';
+import email from '../../config/email.config.js';
+const log = logFactory({ name: 'verify.utils' });
+import { signUpTemplate, resetPasswordTemplate } from '../../config/constants/emailTemplates.js';
 
 const types = {
   TYPE_EMAIL: 'email',
   TYPE_PASS_RESET: 'passwordreset',
 };
 
-module.exports.createEmailVerification = async function createEmailVerification(user, cb = () => {}) {
+export async function createEmailVerification(user, cb = () => {}) {
   try {
     await VerifyModel.findOneAndDelete({ userId: user._id, type: types.TYPE_EMAIL });
   } catch (err) {
@@ -43,7 +41,7 @@ module.exports.createEmailVerification = async function createEmailVerification(
   }
 };
 
-module.exports.createPasswordReset = async function createPasswordReset(user, cb = () => {}) {
+export async function createPasswordReset(user, cb = () => {}) {
   if (!user.auth.email_is_verified) {
     log.warn('User attempted to reset a password with an unverified email', user._id);
     return cb();

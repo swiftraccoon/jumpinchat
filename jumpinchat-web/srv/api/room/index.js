@@ -3,23 +3,23 @@
  */
 
 
-const express = require('express');
-const config = require('../../config/env');
-const controller = require('./room.controller.js');
-const utils = require('../../utils/utils');
-const uploadDisplayPic = require('./controllers/room.uploadDisplayPic');
-const registerPush = require('./controllers/room.registerPush');
-const infoRead = require('./controllers/room.infoRead');
-const submitRoomPassword = require('./controllers/room.submitRoomPassword');
-const setAgeRestricted = require('./controllers/room.setAgeRestricted');
-const uploadEmoji = require('./controllers/room.uploadEmoji');
-const getEmoji = require('./controllers/room.getEmoji');
-const removeEmoji = require('./controllers/room.removeEmoji');
-const getRoomList = require('./controllers/room.getRoomList');
-const roomSanitize = require('./connectors/room.sanitize.connector');
 
-const migrateMissingRooms = require('../../migrations/rooms/missingRooms');
 
+import express from 'express';
+import config from '../../config/env/index.js';
+import controller from './room.controller.js';
+import utils from '../../utils/utils.js';
+import uploadDisplayPic from './controllers/room.uploadDisplayPic.js';
+import registerPush from './controllers/room.registerPush.js';
+import infoRead from './controllers/room.infoRead.js';
+import submitRoomPassword from './controllers/room.submitRoomPassword.js';
+import setAgeRestricted from './controllers/room.setAgeRestricted.js';
+import uploadEmoji from './controllers/room.uploadEmoji.js';
+import getEmoji from './controllers/room.getEmoji.js';
+import removeEmoji from './controllers/room.removeEmoji.js';
+import getRoomList from './controllers/room.getRoomList.js';
+import roomSanitize from './connectors/room.sanitize.connector.js';
+import migrateMissingRooms from '../../migrations/rooms/missingRooms.js';
 const router = express.Router();
 
 
@@ -46,4 +46,4 @@ router.post('/confirmAge', utils.validateSession, (req, res) => {
   return res.status(200).send();
 });
 
-module.exports = router;
+export default router;

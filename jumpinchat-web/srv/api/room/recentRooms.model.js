@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
 
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const RecentRoomsSchema = new Schema({
@@ -10,4 +10,4 @@ const RecentRoomsSchema = new Schema({
   user: Schema.Types.ObjectId,
 });
 
-module.exports = mongoose.model('RecentRooms', RecentRoomsSchema);
+export default mongoose.model('RecentRooms', RecentRoomsSchema);

@@ -1,11 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'updateIgnoreList.socket' });
-const {
-  getRoomByName,
-  getIgnoredUsersInRoom,
-} = require('../room.utils');
-const errors = require('../../../config/constants/errors');
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'updateIgnoreList.socket' });
+import { getRoomByName, getIgnoredUsersInRoom } from '../room.utils.js';
 
-module.exports = function updateIgnoreListSocket(socket) {
+export default function updateIgnoreListSocket(socket) {
   return async function updateIgnoreList({ roomName }) {
     const { ignoreList } = socket.handshake.session;
     try {

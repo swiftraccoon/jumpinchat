@@ -2,27 +2,27 @@
  * Created by Zaccary on 24/10/2015.
  */
 
-const UserModel = require('./user.model');
 
-module.exports.getUserByEmail = function getUserByEmail(email, cb) {
+import UserModel from './user.model.js';
+export function getUserByEmail(email, cb) {
   const promise = UserModel.findOne({ 'auth.email': email }).exec();
   if (!cb) return promise;
   promise.then(result => cb(null, result), err => cb(err));
 };
 
-module.exports.getUsersByEmail = function getUserByEmail(email, cb) {
+export function getUsersByEmail(email, cb) {
   const promise = UserModel.find({ 'auth.email': email }).exec();
   if (!cb) return promise;
   promise.then(result => cb(null, result), err => cb(err));
 };
 
-module.exports.getUserByName = function getUserByName(username, cb) {
+export function getUserByName(username, cb) {
   const promise = UserModel.findOne({ username }).exec();
   if (!cb) return promise;
   promise.then(result => cb(null, result), err => cb(err));
 };
 
-module.exports.getUserById = function getUserById(id, opts, cb) {
+export function getUserById(id, opts, cb) {
   if (!cb) {
     cb = opts;
   }
@@ -35,13 +35,13 @@ module.exports.getUserById = function getUserById(id, opts, cb) {
   promise.then(result => cb(null, result), err => cb(err));
 };
 
-module.exports.getUserCount = function getAllUsers(cb) {
+export function getUserCount(cb) {
   const promise = UserModel.countDocuments().exec();
   if (!cb) return promise;
   promise.then(result => cb(null, result), err => cb(err));
 };
 
-module.exports.getAllUsersNoPaginate = function getAllUsersNoPaginate(cb) {
+export function getAllUsersNoPaginate(cb) {
   const promise = UserModel.find()
     .sort({ 'attrs.join_date': -1 })
     .lean()
@@ -50,7 +50,7 @@ module.exports.getAllUsersNoPaginate = function getAllUsersNoPaginate(cb) {
   promise.then(result => cb(null, result), err => cb(err));
 };
 
-module.exports.getAllUsers = function getAllUsers(start, end, cb) {
+export function getAllUsers(start, end, cb) {
   const promise = UserModel.find()
     .skip(start)
     .limit(end)
@@ -61,14 +61,16 @@ module.exports.getAllUsers = function getAllUsers(start, end, cb) {
   promise.then(result => cb(null, result), err => cb(err));
 };
 
-module.exports.removeUser = function removeUser(userId, cb) {
+export function removeUser(userId, cb) {
   const promise = UserModel.deleteOne({ _id: userId }).exec();
   if (!cb) return promise;
   promise.then(result => cb(null, result), err => cb(err));
 };
 
-module.exports.getSiteMods = function getSiteMods() {
+export function getSiteMods() {
   return UserModel
     .find({ 'attrs.userLevel': { $gte: 20 } })
     .exec();
 };
+
+export default { getUserByEmail, getUsersByEmail, getUserByName, getUserById, getUserCount, getAllUsersNoPaginate, getAllUsers, removeUser, getSiteMods };

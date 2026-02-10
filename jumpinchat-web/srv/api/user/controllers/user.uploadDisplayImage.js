@@ -1,18 +1,19 @@
-const Busboy = require('busboy');
-const log = require('../../../utils/logger.util')({ name: 'uploadDisplayImage' });
-const { getUserById } = require('../user.utils');
-const {
+import Busboy from 'busboy';
+import logFactory from '../../../utils/logger.util.js';
+import { getUserById } from '../user.utils.js';
+import config from '../../../config/env/index.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'uploadDisplayImage' });
+import {
   convertImages,
   mergeBuffers,
   s3Upload,
   isValidImage,
   getExtFromMime,
-} = require('../../../utils/utils');
+} from '../../../utils/utils.js';
 
-const config = require('../../../config/env');
-const errors = require('../../../config/constants/errors');
 
-module.exports = function uploadDisplayImage(req, res) {
+export default function uploadDisplayImage(req, res) {
   log.debug('uploadDisplayImage');
   let busboy;
   let hasErr = false;

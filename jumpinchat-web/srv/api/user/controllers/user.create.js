@@ -2,19 +2,20 @@
  * Created by Zaccary on 24/10/2015.
  */
 
-const Joi = require('joi');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const log = require('../../../utils/logger.util')({ name: 'user.create' });
-const userUtils = require('../user.utils');
-const UserModel = require('../user.model');
-const RoomUtils = require('../../room/room.utils');
-const config = require('../../../config/env');
-const errors = require('../../../config/constants/errors');
-const ReturnModel = require('../../../lib/return-model');
-const roomCreate = require('../../room/controllers/room.create');
-const sitebanUtils = require('../../siteban/siteban.utils');
 
+import Joi from 'joi';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import logFactory from '../../../utils/logger.util.js';
+import userUtils from '../user.utils.js';
+import UserModel from '../user.model.js';
+import RoomUtils from '../../room/room.utils.js';
+import config from '../../../config/env/index.js';
+import errors from '../../../config/constants/errors.js';
+import ReturnModel from '../../../lib/return-model/index.js';
+import roomCreate from '../../room/controllers/room.create.js';
+import sitebanUtils from '../../siteban/siteban.utils.js';
+const log = logFactory({ name: 'user.create' });
 const generatePassHash = (password, cb) => bcrypt.genSalt(10, (err, salt) => {
   if (err) {
     log.fatal({ err }, 'failed to generate password');
@@ -80,7 +81,7 @@ async function checkUserIsBanned({ username, email, fingerprint, ip }, sessionId
   }
 }
 
-module.exports = async function createUser(req, res) {
+export default async function createUser(req, res) {
   const sessionId = req.sessionID;
   const schema = Joi.object().keys({
     username: Joi.string().alphanum().required(),

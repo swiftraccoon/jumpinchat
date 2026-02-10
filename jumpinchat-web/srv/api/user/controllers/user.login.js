@@ -2,17 +2,18 @@
  * Created by Zaccary on 24/10/2015.
  */
 
-const Joi = require('joi');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const log = require('../../../utils/logger.util')({ name: 'user.login' });
 
-const userUtils = require('../user.utils');
-const config = require('../../../config/env');
-const ReturnModel = require('../../../lib/return-model');
-const { getRemoteIpFromReq } = require('../../../utils/utils');
 
-module.exports = function login(req, res) {
+import Joi from 'joi';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import logFactory from '../../../utils/logger.util.js';
+import userUtils from '../user.utils.js';
+import config from '../../../config/env/index.js';
+import ReturnModel from '../../../lib/return-model/index.js';
+import { getRemoteIpFromReq } from '../../../utils/utils.js';
+const log = logFactory({ name: 'user.login' });
+export default function login(req, res) {
   const schema = Joi.object().keys({
     username: Joi.string().required(),
     password: Joi.string().required(),

@@ -2,38 +2,38 @@
  * Created by vivaldi on 08/11/2014.
  */
 
-const express = require('express');
-const settings = require('./controllers/user.settings');
-const utils = require('../../utils/utils');
-const config = require('../../config/env');
 
+import express from 'express';
+import settings from './controllers/user.settings.js';
+import utils from '../../utils/utils.js';
+import config from '../../config/env/index.js';
+import controller from './user.controller.js';
+import uploadDisplayImage from './controllers/user.uploadDisplayImage.js';
+import verifyEmail from './controllers/user.verifyEmail.js';
+import requestVerifyEmail from './controllers/user.requestVerifyEmail.js';
+import resetPasswordRequest from './controllers/user.resetPasswordRequest.js';
+import resetPasswordVerify from './controllers/user.resetPasswordVerify.js';
+import resetPassword from './controllers/user.resetPassword.js';
+import contactForm from './controllers/user.contact.js';
+import setNotificationsEnabled from './controllers/user.setNotificationsEnabled.js';
+import changeEmail from './controllers/user.changeEmail.js';
+import removeUser from './controllers/user.remove.js';
+import unsubscribe from './controllers/user.unsubscribe.js';
+import checkBroadcastRestrictions from './controllers/user.checkBroadcastRestrictions.js';
+import setLayout from './controllers/user.setLayout.js';
+import setTheme from './controllers/user.setTheme.js';
+import getProfile from './controllers/user.getProfile.js';
+import uploadVerification from './controllers/user.uploadVerification.js';
+import uploadUserIcon from './controllers/user.uploadUserIcon.js';
+import setBroadcastQuality from './controllers/user.setBroadcastQuality.js';
+import getUserByName from './connectors/getUserByName.connector.js';
+import mfaRequestEnroll from './connectors/mfaRequestEnroll.connector.js';
+import mfaConfirmEnroll from './connectors/mfaConfirmEnroll.connector.js';
+import mfaValidate from './connectors/mfaValidate.connector.js';
+import mfaGenBackupCodes from './connectors/mfaGenBackupCodes.connector.js';
+import mfaDisable from './connectors/mfaDisable.connector.js';
 const router = express.Router();
 
-const controller = require('./user.controller');
-const uploadDisplayImage = require('./controllers/user.uploadDisplayImage');
-const verifyEmail = require('./controllers/user.verifyEmail');
-const requestVerifyEmail = require('./controllers/user.requestVerifyEmail');
-const resetPasswordRequest = require('./controllers/user.resetPasswordRequest');
-const resetPasswordVerify = require('./controllers/user.resetPasswordVerify');
-const resetPassword = require('./controllers/user.resetPassword');
-const contactForm = require('./controllers/user.contact');
-const setNotificationsEnabled = require('./controllers/user.setNotificationsEnabled');
-const changeEmail = require('./controllers/user.changeEmail');
-const removeUser = require('./controllers/user.remove');
-const unsubscribe = require('./controllers/user.unsubscribe');
-const checkBroadcastRestrictions = require('./controllers/user.checkBroadcastRestrictions');
-const setLayout = require('./controllers/user.setLayout');
-const setTheme = require('./controllers/user.setTheme');
-const getProfile = require('./controllers/user.getProfile');
-const uploadVerification = require('./controllers/user.uploadVerification');
-const uploadUserIcon = require('./controllers/user.uploadUserIcon');
-const setBroadcastQuality = require('./controllers/user.setBroadcastQuality');
-const getUserByName = require('./connectors/getUserByName.connector');
-const mfaRequestEnroll = require('./connectors/mfaRequestEnroll.connector');
-const mfaConfirmEnroll = require('./connectors/mfaConfirmEnroll.connector');
-const mfaValidate = require('./connectors/mfaValidate.connector');
-const mfaGenBackupCodes = require('./connectors/mfaGenBackupCodes.connector');
-const mfaDisable = require('./connectors/mfaDisable.connector');
 
 router.post('/session', controller.createSession);
 router.post('/:id/settings', utils.validateAccount, settings);
@@ -86,4 +86,4 @@ router.post('/hasremindedverify', utils.validateAccount, (req, res) => {
 
 router.post('/contact', contactForm);
 
-module.exports = router;
+export default router;

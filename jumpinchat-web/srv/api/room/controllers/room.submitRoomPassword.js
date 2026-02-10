@@ -1,11 +1,12 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const Joi = require('joi');
-const config = require('../../../config/env');
-const log = require('../../../utils/logger.util')({ name: 'room.submitRoomPassword' });
-const roomUtils = require('../room.utils');
 
-module.exports = async function submitRoomPassword(req, res) {
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import Joi from 'joi';
+import config from '../../../config/env/index.js';
+import logFactory from '../../../utils/logger.util.js';
+import roomUtils from '../room.utils.js';
+const log = logFactory({ name: 'room.submitRoomPassword' });
+export default async function submitRoomPassword(req, res) {
   const schema = Joi.object().keys({
     password: Joi.string().required(),
   });

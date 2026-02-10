@@ -1,9 +1,10 @@
-const messageUtils = require('../message.utils');
-const log = require('../../../utils/logger.util')({ name: 'message.utils' });
-const errors = require('../../../config/constants/errors');
-const { getUserById } = require('../../user/user.utils');
 
-module.exports = async function singleConversation(req, res) {
+import messageUtils from '../message.utils.js';
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+import { getUserById } from '../../user/user.utils.js';
+const log = logFactory({ name: 'message.utils' });
+export default async function singleConversation(req, res) {
   const { userId, participantId } = req.params;
   const { page = 1, cache = 1 } = req.query;
 

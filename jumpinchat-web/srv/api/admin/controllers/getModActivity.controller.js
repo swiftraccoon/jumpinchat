@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'getModActivity.controller' });
-const config = require('../../../config/env');
-const adminUtils = require('../admin.utils');
 
-module.exports = async function getModActivity(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import config from '../../../config/env/index.js';
+import adminUtils from '../admin.utils.js';
+const log = logFactory({ name: 'getModActivity.controller' });
+export default async function getModActivity(req, res) {
   const { page } = req.query;
   const countPerPage = config.admin.userList.itemsPerPage;
   const start = ((page - 1) * countPerPage);

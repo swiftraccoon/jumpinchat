@@ -1,10 +1,11 @@
-const Joi = require('joi');
-const config = require('../../../config/env');
-const log = require('../../../utils/logger.util')({ name: 'userCreateSession' });
-const userUtils = require('../user.utils');
 
 
-module.exports = function checkUsername(req, res) {
+import Joi from 'joi';
+import config from '../../../config/env/index.js';
+import logFactory from '../../../utils/logger.util.js';
+import userUtils from '../user.utils.js';
+const log = logFactory({ name: 'userCreateSession' });
+export default function checkUsername(req, res) {
   const schema = Joi.object().keys({
     username: Joi.string().alphanum().required(),
   });

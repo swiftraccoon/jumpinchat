@@ -17,15 +17,14 @@ const useref = require('gulp-useref');
 const webpack = require('webpack');
 const babel = require('gulp-babel');
 const path = require('path');
-const vinylPaths = require('vinyl-paths');
-const del = require('del');
+// del v8 and vinyl-paths v5 are ESM-only; loaded via dynamic import below
 const inject = require('gulp-inject');
 const csso = require('gulp-csso');
 const imagemin = require('gulp-imagemin');
 const pngquant = require('pngquant');
 const workbox = require('workbox-build');
 const minifyEs = require('gulp-terser');
-const webpackConf = require('./webpack.conf');
+const webpackConf = require('./webpack.conf.cjs');
 
 const paths = {
   src: 'react-client',
@@ -34,12 +33,16 @@ const paths = {
 };
 
 // clean <tmp> directory
-gulp.task('clean:tmp', () => gulp.src(path.join(paths.tmp, '*'), { allowEmpty: true })
-  .pipe(vinylPaths(del)));
+gulp.task('clean:tmp', async () => {
+  const { deleteAsync } = await import('del');
+  return deleteAsync([path.join(paths.tmp, '*')]);
+});
 
 // clean <dist> directory
-gulp.task('clean:dist', () => gulp.src(path.join(paths.dist, '*'), { allowEmpty: true })
-  .pipe(vinylPaths(del)));
+gulp.task('clean:dist', async () => {
+  const { deleteAsync } = await import('del');
+  return deleteAsync([path.join(paths.dist, '*')]);
+});
 
 gulp.task('copy:sounds', () => gulp.src([
   path.join(paths.src, 'sounds/*'),

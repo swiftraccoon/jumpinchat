@@ -1,8 +1,9 @@
-const log = require('../../utils/logger.util')({ name: 'migrations.missingRooms' });
-const userModel = require('../../api/user/user.model');
-const roomModel = require('../../api/room/room.model');
 
-module.exports = async function missingRoomsMigrate() {
+import logFactory from '../../utils/logger.util.js';
+import userModel from '../../api/user/user.model.js';
+import roomModel from '../../api/room/room.model.js';
+const log = logFactory({ name: 'migrations.missingRooms' });
+export default async function missingRoomsMigrate() {
   log.info('initiate missing room migrations');
   const cursor = userModel.find({}).cursor();
   const handleCheckRoom = async (user) => {

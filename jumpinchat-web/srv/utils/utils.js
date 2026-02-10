@@ -1,17 +1,18 @@
-const jwt = require('jsonwebtoken');
-const Jimp = require('jimp');
-const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const uuid = require('uuid');
-const requestIp = require('request-ip');
-const log = require('./logger.util')({ name: 'utils' });
-const config = require('../config/env/');
-const errors = require('../config/constants/errors');
-const userUtils = require('../api/user/user.utils');
-const roomUtils = require('../api/room/room.utils');
-const redisUtils = require('./redis.util');
-const rateLimit = require('./rateLimit');
 
+import jwt from 'jsonwebtoken';
+import Jimp from 'jimp';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import * as uuid from 'uuid';
+import requestIp from 'request-ip';
+import logFactory from './logger.util.js';
+import config from '../config/env/index.js';
+import errors from '../config/constants/errors.js';
+import userUtils from '../api/user/user.utils.js';
+import roomUtils from '../api/room/room.utils.js';
+import redisUtils from './redis.util.js';
+import rateLimit from './rateLimit.js';
+const log = logFactory({ name: 'utils' });
 const { accessKey, secret, bucket } = config.aws.s3.jicUploads;
 
 const s3Client = new S3Client({
@@ -22,7 +23,7 @@ const s3Client = new S3Client({
   region: 'us-east-1',
 });
 
-module.exports.validateSession = function validateSession(req, res, next) {
+export function validateSession(req, res, next) {
   const token = req.cookies['jic.activity'];
 
   if (!token) {
@@ -45,7 +46,7 @@ module.exports.validateSession = function validateSession(req, res, next) {
   });
 };
 
-module.exports.validateAccount = async function validateAccount(req, res, next) {
+export async function validateAccount(req, res, next) {
   let token;
 
   const identCookie = req.signedCookies['jic.ident'];
@@ -83,7 +84,7 @@ module.exports.validateAccount = async function validateAccount(req, res, next) 
   });
 };
 
-module.exports.verifyInternalSecret = function verifyInternalSecret(req, res, next) {
+export function verifyInternalSecret(req, res, next) {
   const auth = req.headers.authorization;
   if (auth !== config.auth.sharedSecret) {
     log.error({ auth }, 'Invalid user attempted internal call');
@@ -93,7 +94,7 @@ module.exports.verifyInternalSecret = function verifyInternalSecret(req, res, ne
   return next();
 };
 
-module.exports.messageFactory = function messageFactory(msg) {
+export function messageFactory(msg) {
   const commonMessageOpts = {
     timestamp: new Date(),
     id: uuid.v4(),
@@ -102,7 +103,7 @@ module.exports.messageFactory = function messageFactory(msg) {
   return { ...msg, ...commonMessageOpts };
 };
 
-module.exports.rateLimit = rateLimit;
+export { rateLimit };
 
 /**
  * Update the lastSeen prop on the user document. Primarily
@@ -114,7 +115,7 @@ module.exports.rateLimit = rateLimit;
  * TTL of the key and only procede if it has expired (TTL of `-2`). The reason for
  * this is to prevent excessive calls to the DB during busy sessions.
  */
-module.exports.updateLastSeen = function updateLastSeen(socketId, cb = () => {}) {
+export function updateLastSeen(socketId, cb = () => {}) {
   return roomUtils.getSocketCacheInfo(socketId, async (err, socketData) => {
     if (err) {
       log.fatal({ err }, 'error getting socket data');
@@ -201,7 +202,7 @@ module.exports.updateLastSeen = function updateLastSeen(socketId, cb = () => {})
  * @param {number} dimensions.height
  * @param {function} cb
  */
-module.exports.convertImages = function convertImages(fileBuffer, dimensions, cb) {
+export function convertImages(fileBuffer, dimensions, cb) {
   log.debug('converting images');
 
   Jimp
@@ -237,12 +238,12 @@ module.exports.convertImages = function convertImages(fileBuffer, dimensions, cb
     });
 };
 
-module.exports.mergeBuffers = function mergeBuffers(dataArr) {
+export function mergeBuffers(dataArr) {
   const dataLength = dataArr.map(d => d.length).reduce((a, b) => a + b);
   return Buffer.concat(dataArr.map(d => d.data), dataLength);
 };
 
-module.exports.s3Upload = function s3Upload(body, filePath, cb) {
+export function s3Upload(body, filePath, cb) {
   const params = {
     Bucket: bucket,
     Key: filePath,
@@ -256,7 +257,7 @@ module.exports.s3Upload = function s3Upload(body, filePath, cb) {
     .catch(err => cb(err));
 };
 
-module.exports.isValidImage = function isValidImage(mimeType) {
+export function isValidImage(mimeType) {
   const isPng = mimeType === 'image/png';
   const isJpeg = mimeType === 'image/jpeg';
   const isGif = mimeType === 'image/gif';
@@ -264,7 +265,7 @@ module.exports.isValidImage = function isValidImage(mimeType) {
   return isPng || isJpeg || isGif;
 };
 
-module.exports.getExtFromMime = function getExtFromMime(mimeType) {
+export function getExtFromMime(mimeType) {
   switch (mimeType) {
     case 'image/png':
       return 'png';
@@ -277,12 +278,12 @@ module.exports.getExtFromMime = function getExtFromMime(mimeType) {
   }
 };
 
-module.exports.getRemoteIpFromReq = function getRemoteIpFromReq(req) {
+export function getRemoteIpFromReq(req) {
   const ip = requestIp.getClientIp(req);
   return ip;
 };
 
-module.exports.createNotification = function createNotification(type, level, message, opts = {}) {
+export function createNotification(type, level, message, opts = {}) {
   const notification = {
     type,
     level,
@@ -304,7 +305,7 @@ module.exports.createNotification = function createNotification(type, level, mes
   return notification;
 };
 
-module.exports.getCookie = function getCookie(name, cookieString) {
+export function getCookie(name, cookieString) {
   const value = `; ${cookieString}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) {
@@ -362,7 +363,7 @@ function verifyUserLevel(userId, authorization, level = 30) {
   });
 }
 
-module.exports.verifyAdmin = async function verifyAdmin(req, res, next) {
+export async function verifyAdmin(req, res, next) {
   const userId = req.signedCookies['jic.ident'];
   const { authorization } = req.headers;
   try {
@@ -375,7 +376,7 @@ module.exports.verifyAdmin = async function verifyAdmin(req, res, next) {
   }
 };
 
-module.exports.verifySiteMod = async function verifyAdmin(req, res, next) {
+export async function verifySiteMod(req, res, next) {
   const userId = req.signedCookies['jic.ident'];
   const { authorization } = req.headers;
   try {
@@ -388,7 +389,7 @@ module.exports.verifySiteMod = async function verifyAdmin(req, res, next) {
   }
 };
 
-module.exports.getSocketRooms = function getSocketRooms(io, socketId, cb) {
+export function getSocketRooms(io, socketId, cb) {
   io.in(socketId).fetchSockets().then((sockets) => {
     if (!sockets.length) {
       log.debug({ socketId }, 'socket not found');
@@ -404,7 +405,7 @@ module.exports.getSocketRooms = function getSocketRooms(io, socketId, cb) {
   });
 };
 
-module.exports.uploadDataUriToS3 = async function uploadDataUriToS3(filePath, uri, cb) {
+export async function uploadDataUriToS3(filePath, uri, cb) {
   if (!uri) {
     log.debug('no URI to upload');
     return cb();
@@ -433,7 +434,7 @@ module.exports.uploadDataUriToS3 = async function uploadDataUriToS3(filePath, ur
   }
 };
 
-module.exports.s3UploadVerification = async function s3UploadVerification(body, filePath, cb) {
+export async function s3UploadVerification(body, filePath, cb) {
   try {
     await s3Client.send(new PutObjectCommand({
       Bucket: config.ageVerification.bucket,
@@ -453,7 +454,7 @@ module.exports.s3UploadVerification = async function s3UploadVerification(body, 
   }
 };
 
-module.exports.s3RemoveObject = function s3RemoveObject(bucketName, object, cb) {
+export function s3RemoveObject(bucketName, object, cb) {
   s3Client.send(new DeleteObjectCommand({
     Bucket: bucketName,
     Key: object,
@@ -463,14 +464,14 @@ module.exports.s3RemoveObject = function s3RemoveObject(bucketName, object, cb) 
 };
 
 
-module.exports.createError = function createError(name, message) {
+export function createError(name, message) {
   const err = new Error();
   err.message = message;
   err.name = name;
   return err;
 };
 
-module.exports.getHostDomain = function getHostDomain(req) {
+export function getHostDomain(req) {
   if (config.env === 'development') {
     return `http://localhost:${config.port}`;
   }
@@ -483,12 +484,12 @@ module.exports.getHostDomain = function getHostDomain(req) {
   return `${protocol}://${hostname}`;
 };
 
-module.exports.destroySocketConnection = function destroySocketConnection(io, socketId) {
+export function destroySocketConnection(io, socketId) {
   io.in(socketId).disconnectSockets(true);
   return Promise.resolve();
 };
 
-module.exports.getIpFromSocket = function getIpFromSocket(socket) {
+export function getIpFromSocket(socket) {
   if (socket.handshake.headers['x-forwarded-for']) {
     return socket.handshake.headers['x-forwarded-for']
       .split(',')
@@ -497,3 +498,5 @@ module.exports.getIpFromSocket = function getIpFromSocket(socket) {
 
   return socket.handshake.address;
 };
+
+export default { validateSession, validateAccount, verifyInternalSecret, messageFactory, rateLimit, updateLastSeen, convertImages, mergeBuffers, s3Upload, isValidImage, getExtFromMime, getRemoteIpFromReq, createNotification, getCookie, verifyAdmin, verifySiteMod, getSocketRooms, uploadDataUriToS3, s3UploadVerification, s3RemoveObject, createError, getHostDomain, destroySocketConnection, getIpFromSocket };

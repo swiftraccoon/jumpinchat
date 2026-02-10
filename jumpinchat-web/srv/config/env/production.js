@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   appPath: 'dist',
   analytics: {
     fb: process.env.DEPLOY_LOCATION === 'production' ? '000000000000000' : '',

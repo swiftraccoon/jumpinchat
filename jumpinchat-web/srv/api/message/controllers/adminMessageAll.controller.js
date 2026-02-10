@@ -1,11 +1,12 @@
-const Joi = require('joi');
-const messageUtils = require('../message.utils');
-const log = require('../../../utils/logger.util')({ name: 'adminMessageAll' });
-const Queue = require('../../../utils/queue.util');
-const userUtils = require('../../user/user.utils');
-const errors = require('../../../config/constants/errors');
 
-module.exports = async function adminMessageAll(req, res) {
+import Joi from 'joi';
+import messageUtils from '../message.utils.js';
+import logFactory from '../../../utils/logger.util.js';
+import Queue from '../../../utils/queue.util.js';
+import userUtils from '../../user/user.utils.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'adminMessageAll' });
+export default async function adminMessageAll(req, res) {
   let sender;
   const schema = Joi.object().keys({
     message: Joi.string(),

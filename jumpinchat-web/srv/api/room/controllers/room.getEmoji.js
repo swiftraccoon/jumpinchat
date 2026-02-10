@@ -1,11 +1,12 @@
-const { isBefore } = require('date-fns');
-const roomEmojiModel = require('../roomEmoji.model');
-const { getRoomByName } = require('../room.utils');
-const { getUserById } = require('../../user/user.utils');
-const log = require('../../../utils/logger.util')({ name: 'getEmoji' });
-const errors = require('../../../config/constants/errors');
 
-module.exports = async function getEmoji(req, res) {
+import { isBefore } from 'date-fns';
+import roomEmojiModel from '../roomEmoji.model.js';
+import { getRoomByName } from '../room.utils.js';
+import { getUserById } from '../../user/user.utils.js';
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'getEmoji' });
+export default async function getEmoji(req, res) {
   const { roomName } = req.params;
 
   try {

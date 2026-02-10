@@ -1,9 +1,10 @@
-const log = require('../../../utils/logger.util')({ name: 'getPlaylist.controller' });
-const errors = require('../../../config/constants/errors');
-const { getRoomIdFromName } = require('../../room/room.utils');
-const { getMediaByRoomId } = require('../playlist.utils');
 
-module.exports = async function getPlaylist(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+import { getRoomIdFromName } from '../../room/room.utils.js';
+import { getMediaByRoomId } from '../playlist.utils.js';
+const log = logFactory({ name: 'getPlaylist.controller' });
+export default async function getPlaylist(req, res) {
   const { roomName } = req.params;
   try {
     const roomId = await getRoomIdFromName(roomName);

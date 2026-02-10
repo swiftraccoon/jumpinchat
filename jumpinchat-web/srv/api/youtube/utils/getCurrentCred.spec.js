@@ -1,29 +1,29 @@
-const { expect } = require('chai');
-const sinon = require('sinon');
-const mock = require('mock-require');
 
+import { expect } from 'chai';
+import sinon from 'sinon';
+import esmock from 'esmock';
 describe('ytApiQuery', () => {
   let redisMock;
-  const getController = () => mock.reRequire('./getCurrentCred');
-  beforeEach(() => {
+  let controller;
+
+  beforeEach(async () => {
     redisMock = {
       callPromise: sinon.stub().returns(Promise.resolve('')),
     };
-    mock('../../../utils/redis.util', redisMock);
-    mock('../../../config/env', {
-      yt: {
-        keys: ['foo', 'bar'],
-      },
-    });
+    controller = (await esmock('./getCurrentCred.js', {
+      '../../../utils/redis.util.js': redisMock,
+      '../../../config/env/index.js': { default: {
+        yt: {
+          keys: ['foo', 'bar'],
+        },
+      } },
+    })).default;
   });
 
   afterEach(() => {
-    mock.stopAll();
   });
 
   it('should set first key if no key in cache', async () => {
-    const controller = getController();
-
     await controller();
     expect(redisMock.callPromise.calledWith('set', 'ytapikey', 'foo')).to.equal(true);
   });
@@ -32,8 +32,14 @@ describe('ytApiQuery', () => {
     redisMock = {
       callPromise: sinon.stub().withArgs('get').resolves('foo'),
     };
-    mock('../../../utils/redis.util', redisMock);
-    const controller = getController();
+    controller = (await esmock('./getCurrentCred.js', {
+      '../../../utils/redis.util.js': redisMock,
+      '../../../config/env/index.js': { default: {
+        yt: {
+          keys: ['foo', 'bar'],
+        },
+      } },
+    })).default;
 
     await controller({ hasExpired: true });
     expect(redisMock.callPromise.calledWith('set', 'ytapikey', 'bar')).to.equal(true);
@@ -43,8 +49,14 @@ describe('ytApiQuery', () => {
     redisMock = {
       callPromise: sinon.stub().withArgs('get').resolves('bar'),
     };
-    mock('../../../utils/redis.util', redisMock);
-    const controller = getController();
+    controller = (await esmock('./getCurrentCred.js', {
+      '../../../utils/redis.util.js': redisMock,
+      '../../../config/env/index.js': { default: {
+        yt: {
+          keys: ['foo', 'bar'],
+        },
+      } },
+    })).default;
 
     await controller({ hasExpired: true });
     expect(redisMock.callPromise.calledWith('set', 'ytapikey', 'foo')).to.equal(true);
@@ -54,8 +66,14 @@ describe('ytApiQuery', () => {
     redisMock = {
       callPromise: sinon.stub().withArgs('get').resolves('foo'),
     };
-    mock('../../../utils/redis.util', redisMock);
-    const controller = getController();
+    controller = (await esmock('./getCurrentCred.js', {
+      '../../../utils/redis.util.js': redisMock,
+      '../../../config/env/index.js': { default: {
+        yt: {
+          keys: ['foo', 'bar'],
+        },
+      } },
+    })).default;
 
     const key = await controller({ hasExpired: false });
     expect(key).to.equal('foo');

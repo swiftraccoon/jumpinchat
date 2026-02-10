@@ -1,9 +1,10 @@
-const log = require('../../../utils/logger.util')({ name: 'updateRoomRole.connector' });
-const errors = require('../../../config/constants/errors');
-const { ValidationError, PermissionError } = require('../../../utils/error.util');
-const updateRoomRoles = require('../controllers/updateRoomRole.controller');
 
-module.exports = async function updateRoomRolesConnector(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+import { ValidationError, PermissionError } from '../../../utils/error.util.js';
+import updateRoomRoles from '../controllers/updateRoomRole.controller.js';
+const log = logFactory({ name: 'updateRoomRole.connector' });
+export default async function updateRoomRolesConnector(req, res) {
   const {
     roles,
   } = req.body;

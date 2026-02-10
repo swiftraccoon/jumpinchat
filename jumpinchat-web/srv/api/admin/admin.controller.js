@@ -1,24 +1,25 @@
-const log = require('../../utils/logger.util')({ name: 'admin.controller' });
-const Joi = require('joi');
-const notifyServerRestart = require('./controllers/notifyServerRestart.controller');
-const notify = require('./controllers/notify.controller');
-const getActiveRooms = require('./controllers/getActiveRooms.controller');
-const getRoomById = require('./controllers/getRoomById.controller');
-const getUserList = require('./controllers/getUserList.controller');
 
+import logFactory from '../../utils/logger.util.js';
+import Joi from 'joi';
+import _notifyServerRestart from './controllers/notifyServerRestart.controller.js';
+import _notify from './controllers/notify.controller.js';
+import getActiveRooms from './controllers/getActiveRooms.controller.js';
+import getRoomById from './controllers/getRoomById.controller.js';
+import getUserList from './controllers/getUserList.controller.js';
+const log = logFactory({ name: 'admin.controller' });
 let _io;
 
-module.exports.setSocketIo = function setSocketIo(io) {
+export function setSocketIo(io) {
   log.debug({ io: !!io }, 'setSocketIo');
   _io = io;
 };
 
-module.exports.getSocketIo = function getSocketIo() {
+export function getSocketIo() {
   return _io;
 };
 
-module.exports.notifyServerRestart = function notifyServerRestartEndpoint(req, res) {
-  notifyServerRestart(req.params.seconds, _io, (err) => {
+export function notifyServerRestart(req, res) {
+  _notifyServerRestart(req.params.seconds, _io, (err) => {
     if (err) {
       log.fatal({ err }, 'failed to start restart notification');
       res.status(500).send(err);
@@ -29,7 +30,7 @@ module.exports.notifyServerRestart = function notifyServerRestartEndpoint(req, r
   });
 };
 
-module.exports.notify = function notifyEndpoint(req, res) {
+export function notify(req, res) {
   const schema = Joi.object().keys({
     message: Joi.string().required(),
     type: Joi.string().valid(
@@ -52,7 +53,7 @@ module.exports.notify = function notifyEndpoint(req, res) {
     return res.status(500).send();
   }
 
-  notify(_io, validated, (notifyErr) => {
+  _notify(_io, validated, (notifyErr) => {
     if (notifyErr) {
       log.error({ notifyErr });
       return res.status(500).send('Broke it');
@@ -62,6 +63,8 @@ module.exports.notify = function notifyEndpoint(req, res) {
   });
 };
 
-module.exports.getActiveRooms = getActiveRooms;
-module.exports.getRoomById = getRoomById;
-module.exports.getUserList = getUserList;
+export { getActiveRooms };
+export { getRoomById };
+export { getUserList };
+
+export default { setSocketIo, getSocketIo, notifyServerRestart, notify, getActiveRooms, getRoomById, getUserList };

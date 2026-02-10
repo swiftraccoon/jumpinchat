@@ -5,7 +5,7 @@ const exceptions = {
   },
 };
 
-module.exports = {
+export default {
   ...exceptions,
   ERR_AUTH: {
     code: 'ERR_AUTH',

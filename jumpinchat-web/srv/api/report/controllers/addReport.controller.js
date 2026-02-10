@@ -1,15 +1,13 @@
-const Joi = require('joi');
-const reportModel = require('../report.model');
-const reportUtils = require('../report.utils');
-const roomUtils = require('../../room/room.utils');
-const errors = require('../../../config/constants/errors');
-const log = require('../../../utils/logger.util')({ name: 'addReport' });
-const SlackBot = require('../../../utils/slack.util');
-const {
-  getRemoteIpFromReq,
-  uploadDataUriToS3,
-} = require('../../../utils/utils');
-const config = require('../../../config/env');
+import Joi from 'joi';
+import reportModel from '../report.model.js';
+import reportUtils from '../report.utils.js';
+import roomUtils from '../../room/room.utils.js';
+import errors from '../../../config/constants/errors.js';
+import logFactory from '../../../utils/logger.util.js';
+import SlackBot from '../../../utils/slack.util.js';
+import config from '../../../config/env/index.js';
+const log = logFactory({ name: 'addReport' });
+import { getRemoteIpFromReq, uploadDataUriToS3 } from '../../../utils/utils.js';
 
 const slackBot = new SlackBot(
   config.slack.hookUrl,
@@ -18,7 +16,7 @@ const slackBot = new SlackBot(
   '#reports',
 );
 
-module.exports = function addReport(req, res) {
+export default function addReport(req, res) {
   const schema = Joi.object().keys({
     reporterId: Joi.string().required(),
     targetId: Joi.string().required(),

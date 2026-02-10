@@ -3,10 +3,11 @@
  */
 
 
-const log = require('../../../utils/logger.util')({ name: 'room.fetchBanlist' });
-const { getRoomByName } = require('../room.utils');
 
-module.exports = async function fetchBanlist(roomName, cb) {
+import logFactory from '../../../utils/logger.util.js';
+import { getRoomByName } from '../room.utils.js';
+const log = logFactory({ name: 'room.fetchBanlist' });
+export default async function fetchBanlist(roomName, cb) {
   let room;
   try {
     room = await getRoomByName(roomName);

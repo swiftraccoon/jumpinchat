@@ -1,25 +1,20 @@
-const axios = require('axios');
-const {
-  toSeconds,
-  parse,
-} = require('iso8601-duration');
-const redis = require('../../../lib/redis.util')();
-const log = require('../../../utils/logger.util')({ name: 'playVideo.controller' });
-const config = require('../../../config/env');
-const errors = require('../../../config/constants/errors');
-const { getUserHasRolePermissions } = require('../../role/role.utils');
-const {
-  PermissionError,
-} = require('../../../utils/error.util');
+import axios from 'axios';
+import redisFactory from '../../../lib/redis.util.js';
+import logFactory from '../../../utils/logger.util.js';
+import config from '../../../config/env/index.js';
+import errors from '../../../config/constants/errors.js';
+import { getUserHasRolePermissions } from '../../role/role.utils.js';
+import encodeUriParams from '../../../utils/encodeUriParams.js';
+import roomUtils from '../../room/room.utils.js';
+import { getMediaByRoomId } from '../playlist.utils.js';
+const redis = redisFactory();
+const log = logFactory({ name: 'playVideo.controller' });
+import { toSeconds, parse } from 'iso8601-duration';
+import { PermissionError } from '../../../utils/error.util.js';
 
-const {
-  TYPE_YOUTUBE,
-} = require('../../../config/constants/mediaTypes');
+import { TYPE_YOUTUBE } from '../../../config/constants/mediaTypes.js';
 
-const encodeUriParams = require('../../../utils/encodeUriParams');
 
-const roomUtils = require('../../room/room.utils');
-const { getMediaByRoomId } = require('../playlist.utils');
 
 class PlayVideo {
   static checkSocketPermission(socketId, room) {
@@ -458,5 +453,5 @@ class PlayVideo {
   }
 }
 
-module.exports.PlayVideo = PlayVideo;
-module.exports.playVideo = new PlayVideo();
+export { PlayVideo };
+export const playVideo = new PlayVideo();

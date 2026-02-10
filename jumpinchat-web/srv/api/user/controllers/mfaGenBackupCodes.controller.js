@@ -1,6 +1,6 @@
-const OtpBackupCodeSchema = require('../otpBackupCode.model');
 
-module.exports = async function mfaGenBackupCodes(body) {
+import OtpBackupCodeSchema from '../otpBackupCode.model.js';
+export default async function mfaGenBackupCodes(body) {
   const { userId } = body;
 
   const codes = [];

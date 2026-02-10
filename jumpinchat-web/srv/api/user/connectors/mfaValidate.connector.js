@@ -1,7 +1,7 @@
-const { NotFoundError, ValidationError } = require('../../../utils/error.util');
-const mfaValidate = require('../controllers/mfaValidate.controller');
 
-module.exports = async function mfaValidateConnector(req, res) {
+import { NotFoundError, ValidationError } from '../../../utils/error.util.js';
+import mfaValidate from '../controllers/mfaValidate.controller.js';
+export default async function mfaValidateConnector(req, res) {
   const {
     user,
   } = req;

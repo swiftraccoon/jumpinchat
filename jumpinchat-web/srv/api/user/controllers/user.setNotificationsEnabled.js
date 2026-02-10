@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'user.settings' });
-const Joi = require('joi');
-const userUtils = require('../user.utils');
 
-module.exports = function setNotificationsEnabled(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import Joi from 'joi';
+import userUtils from '../user.utils.js';
+const log = logFactory({ name: 'user.settings' });
+export default function setNotificationsEnabled(req, res) {
   const schema = Joi.object().keys({
     enabled: Joi.boolean(),
   });

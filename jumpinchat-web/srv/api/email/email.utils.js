@@ -1,8 +1,9 @@
-const dns = require('dns');
-const axios = require('axios');
-const log = require('../../utils/logger.util')({ name: 'email.utils' });
-const blacklistModel = require('./blacklist.model');
 
+import dns from 'dns';
+import axios from 'axios';
+import logFactory from '../../utils/logger.util.js';
+import blacklistModel from './blacklist.model.js';
+const log = logFactory({ name: 'email.utils' });
 const types = {
   BOUNCE: 'Bounce',
   COMPLAINT: 'Complaint',
@@ -85,9 +86,9 @@ async function addToBlacklist(info) {
   return addBlackListItem(data);
 }
 
-module.exports.addToBlacklist = addToBlacklist;
+export { addToBlacklist };
 
-module.exports.getBlacklistItem = async function getBlacklistItem(address) {
+export async function getBlacklistItem(address) {
   const [, domain] = address.split('@');
 
   try {
@@ -132,7 +133,7 @@ function checkDomainMx(domain) {
   });
 }
 
-module.exports.checkEmailDomain = function checkEmailDomain(address) {
+export function checkEmailDomain(address) {
   const [, domain] = address.split('@');
   return new Promise(async (resolve, reject) => {
     try {
@@ -168,11 +169,11 @@ module.exports.checkEmailDomain = function checkEmailDomain(address) {
   });
 };
 
-module.exports.isSubscriptionConfirmation = function isSubscriptionConfirmation(headers) {
+export function isSubscriptionConfirmation(headers) {
   return headers['x-amz-sns-message-type'] === 'SubscriptionConfirmation';
 };
 
-module.exports.handleSnsSubscription = function handleSnsSubscription(req, res) {
+export function handleSnsSubscription(req, res) {
   return axios.get(req.body.SubscribeURL, { validateStatus: () => true })
     .then((response) => {
       if (response.status >= 400) {
@@ -190,3 +191,5 @@ module.exports.handleSnsSubscription = function handleSnsSubscription(req, res) 
 };
 
 
+
+export default { addToBlacklist, getBlacklistItem, checkEmailDomain, isSubscriptionConfirmation, handleSnsSubscription };

@@ -1,17 +1,23 @@
-const express = require('express');
+import http from 'http';
+import express from 'express';
+import { Server as SocketIOServer } from 'socket.io';
+import config from './config/env/index.js';
+import logFactory from './utils/logger.util.js';
+import expressConfig from './config/express.config.js';
+import mongooseConfig from './config/mongoose.config.js';
+import './lib/redis.util.js';
+import socketConfig from './config/socket.config.js';
+import routes from './routes.js';
 
-const app = exports.app = express();
-const server = require('http').createServer(app);
-const sio = require('socket.io')(server);
-const config = require('./config/env');
-const log = require('./utils/logger.util')({ name: 'server' });
+export const app = express();
+const server = http.createServer(app);
+const sio = new SocketIOServer(server);
+const log = logFactory({ name: 'server' });
 
-
-require('./config/express.config')(app, sio);
-require('./config/mongoose.config')();
-require('./lib/redis.util');
-require('./config/socket.config')(sio);
-require('./routes')(app);
+expressConfig(app, sio);
+mongooseConfig();
+socketConfig(sio);
+routes(app);
 
 server.listen(config.port, (err) => {
   if (err) {

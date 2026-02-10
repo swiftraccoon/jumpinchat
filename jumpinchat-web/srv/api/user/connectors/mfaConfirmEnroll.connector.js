@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'mfaConfirmEnroll' });
-const { NotFoundError, ValidationError } = require('../../../utils/error.util');
-const mfaConfirmEnroll = require('../controllers/mfaConfirmEnroll.controller');
 
-module.exports = async function mfaConfirmEnrollConnector(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import { NotFoundError, ValidationError } from '../../../utils/error.util.js';
+import mfaConfirmEnroll from '../controllers/mfaConfirmEnroll.controller.js';
+const log = logFactory({ name: 'mfaConfirmEnroll' });
+export default async function mfaConfirmEnrollConnector(req, res) {
   const {
     user,
   } = req;

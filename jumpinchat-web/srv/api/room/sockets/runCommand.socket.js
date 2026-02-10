@@ -2,23 +2,24 @@
  * Created by Zaccary on 24/05/2016.
  */
 
-const { format } = require('date-fns');
-const log = require('../../../utils/logger.util')({ name: 'runCommand.socket' });
-const roomController = require('../room.controller');
-const utils = require('../../../utils/utils');
-const errors = require('../../../config/constants/errors');
-const RoomUtils = require('../room.utils');
-const changeHandleSocket = require('./changeHandle.socket');
-const handleCloseBroadcastSocket = require('./handleCloseBroadcast.socket');
-const fetchBanlistSocket = require('./fetchBanlist.socket');
-const handleBanUserSocket = require('./handleBanUser.socket');
-const handleUnbanUserSocket = require('./handleUnbanUser.socket');
-const privateMessageSocket = require('./privateMessage.socket');
-const handleSilenceUserSocket = require('./handleSilenceUser.socket');
-const handleClearFeedSocket = require('./handleClearFeed.socket');
-const handleKickUserSocket = require('./handleKickUser.socket');
-const handleSetTopicSocket = require('./handleSetTopic.socket');
 
+import { format } from 'date-fns';
+import logFactory from '../../../utils/logger.util.js';
+import roomController from '../room.controller.js';
+import utils from '../../../utils/utils.js';
+import errors from '../../../config/constants/errors.js';
+import RoomUtils from '../room.utils.js';
+import changeHandleSocket from './changeHandle.socket.js';
+import handleCloseBroadcastSocket from './handleCloseBroadcast.socket.js';
+import fetchBanlistSocket from './fetchBanlist.socket.js';
+import handleBanUserSocket from './handleBanUser.socket.js';
+import handleUnbanUserSocket from './handleUnbanUser.socket.js';
+import privateMessageSocket from './privateMessage.socket.js';
+import handleSilenceUserSocket from './handleSilenceUser.socket.js';
+import handleClearFeedSocket from './handleClearFeed.socket.js';
+import handleKickUserSocket from './handleKickUser.socket.js';
+import handleSetTopicSocket from './handleSetTopic.socket.js';
+const log = logFactory({ name: 'runCommand.socket' });
 function getTargetUser(socket, handle, cb) {
   return RoomUtils.getSocketCacheInfo(socket.id, (err, socketInfo) => {
     if (err) {
@@ -130,7 +131,7 @@ function getBanlistItem(socket, handle, cb) {
   });
 }
 
-module.exports = function runCommandSocket(socket, io) {
+export default function runCommandSocket(socket, io) {
   const changeHandle = changeHandleSocket(socket, io);
   const handleCloseBroadcast = handleCloseBroadcastSocket(socket, io);
   const fetchBanlist = fetchBanlistSocket(socket, io);

@@ -1,7 +1,8 @@
-const log = require('../../../../utils/logger.util')({ name: 'closeBroadcast.controller' });
-const RoomUtils = require('../../room.utils');
 
-module.exports = function closeBroadcast(roomName, userId, cb) {
+import logFactory from '../../../../utils/logger.util.js';
+import RoomUtils from '../../room.utils.js';
+const log = logFactory({ name: 'closeBroadcast.controller' });
+export default function closeBroadcast(roomName, userId, cb) {
   if (!userId) {
     log.error('user ID is missing');
     return cb({

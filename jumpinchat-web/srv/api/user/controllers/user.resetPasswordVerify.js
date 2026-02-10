@@ -1,9 +1,10 @@
-const log = require('../../../utils/logger.util')({ name: 'user.resetPasswordVerify' });
-const Joi = require('joi');
-const VerifyModel = require('../../verify/verify.model');
-const { types: verifyTypes } = require('../../verify/verify.constants');
 
-module.exports = function resetPasswordVerify(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import Joi from 'joi';
+import VerifyModel from '../../verify/verify.model.js';
+import { types as verifyTypes } from '../../verify/verify.constants.js';
+const log = logFactory({ name: 'user.resetPasswordVerify' });
+export default function resetPasswordVerify(req, res) {
   const schema = Joi.object().keys({
     token: Joi.string().required(),
   });

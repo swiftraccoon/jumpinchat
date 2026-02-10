@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'admin.getSiteMods' });
-const errors = require('../../../config/constants/errors');
-const adminUtils = require('../admin.utils');
 
-module.exports = async function getSiteMods(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+import adminUtils from '../admin.utils.js';
+const log = logFactory({ name: 'admin.getSiteMods' });
+export default async function getSiteMods(req, res) {
   try {
     const siteMods = await adminUtils.getSiteMods();
 

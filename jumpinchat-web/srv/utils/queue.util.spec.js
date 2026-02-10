@@ -1,11 +1,12 @@
 /* global describe,it,beforeEach */
 
-const { expect } = require('chai');
-const sinon = require('sinon');
-const log = require('./logger.util')({ name: 'queue.util' });
 
-const Queue = require('./queue.util');
 
+import { expect } from 'chai';
+import sinon from 'sinon';
+import logFactory from './logger.util.js';
+import Queue from './queue.util.js';
+const log = logFactory({ name: 'queue.util' });
 describe('Queue', () => {
   let queue;
   const queueFunc = sinon.spy();

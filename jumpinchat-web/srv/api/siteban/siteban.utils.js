@@ -1,7 +1,8 @@
-const log = require('../../utils/logger.util')({ name: 'sitebanUtils' });
-const BanlistModel = require('./siteban.model');
 
-module.exports.getBanlistItemBySession = async function getBanlistItemBySession(sessionId) {
+import logFactory from '../../utils/logger.util.js';
+import BanlistModel from './siteban.model.js';
+const log = logFactory({ name: 'sitebanUtils' });
+export async function getBanlistItemBySession(sessionId) {
   try {
     const item = await BanlistModel.findOne({ sessionId }).exec();
     return item;
@@ -11,11 +12,11 @@ module.exports.getBanlistItemBySession = async function getBanlistItemBySession(
   }
 };
 
-module.exports.getBanlistItemById = function getBanlistItemById(id) {
+export function getBanlistItemById(id) {
   return BanlistModel.findOne({ _id: id }).exec();
 };
 
-module.exports.getBanlistItem = async function getBanlistItem({
+export async function getBanlistItem({
   sessionId,
   ip,
   userId,
@@ -68,3 +69,5 @@ module.exports.getBanlistItem = async function getBanlistItem({
     .where('expiresAt').gt(new Date())
     .exec();
 };
+
+export default { getBanlistItemBySession, getBanlistItemById, getBanlistItem };

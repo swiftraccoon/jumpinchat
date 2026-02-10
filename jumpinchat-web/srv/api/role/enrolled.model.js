@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
 
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const EnrolledSchema = new Schema({
@@ -14,4 +14,4 @@ const EnrolledSchema = new Schema({
   },
 });
 
-module.exports = mongoose.model('Enrolled', EnrolledSchema);
+export default mongoose.model('Enrolled', EnrolledSchema);

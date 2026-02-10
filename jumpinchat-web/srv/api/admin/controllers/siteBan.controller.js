@@ -1,22 +1,21 @@
-const { differenceInHours } = require('date-fns');
-const Joi = require('joi');
-const log = require('../../../utils/logger.util')({ name: 'siteBan.controller' });
-const utils = require('../../../utils/utils');
-const redisUtils = require('../../../utils/redis.util');
-const config = require('../../../config/env');
-const errors = require('../../../config/constants/errors');
-const { getUserById } = require('../../user/user.utils');
-const BanlistModel = require('../../siteban/siteban.model');
-const sitebanUtils = require('../../siteban/siteban.utils');
-const adminUtils = require('../admin.utils');
-const reportUtils = require('../../report/report.utils');
-const { resolutionOutcomes } = require('../../report/report.constants');
-const adminConstants = require('../admin.constants');
-const roomCloseUtils = require('../../roomClose/roomClose.utils');
-const {
-  getRoomsByUser,
-} = require('../../room/room.utils');
-const { getSocketIo } = require('../admin.controller');
+import { differenceInHours } from 'date-fns';
+import Joi from 'joi';
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import redisUtils from '../../../utils/redis.util.js';
+import config from '../../../config/env/index.js';
+import errors from '../../../config/constants/errors.js';
+import { getUserById } from '../../user/user.utils.js';
+import BanlistModel from '../../siteban/siteban.model.js';
+import sitebanUtils from '../../siteban/siteban.utils.js';
+import adminUtils from '../admin.utils.js';
+import reportUtils from '../../report/report.utils.js';
+import { resolutionOutcomes } from '../../report/report.constants.js';
+import adminConstants from '../admin.constants.js';
+import roomCloseUtils from '../../roomClose/roomClose.utils.js';
+import { getSocketIo } from '../admin.controller.js';
+const log = logFactory({ name: 'siteBan.controller' });
+import { getRoomsByUser } from '../../room/room.utils.js';
 
 async function handleBanSocket(socketId, banEntry) {
   const io = getSocketIo();
@@ -73,7 +72,7 @@ async function handleBanSocket(socketId, banEntry) {
   });
 }
 
-module.exports = async function siteBan(req, res) {
+export default async function siteBan(req, res) {
   const schema = Joi.object().keys({
     userId: Joi.string().allow(''),
     reason: Joi.string().required(),

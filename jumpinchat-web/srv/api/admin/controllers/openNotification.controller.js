@@ -1,11 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'admin.openNotification' });
-const {
-  isSubscriptionConfirmation,
-  handleSnsSubscription,
-} = require('../../email/email.utils');
+import logFactory from '../../../utils/logger.util.js';
+const log = logFactory({ name: 'admin.openNotification' });
+import { isSubscriptionConfirmation, handleSnsSubscription } from '../../email/email.utils.js';
 
 
-module.exports = function openNotification(req, res) {
+export default function openNotification(req, res) {
   if (isSubscriptionConfirmation(req.headers)) {
     return handleSnsSubscription(req, res);
   }

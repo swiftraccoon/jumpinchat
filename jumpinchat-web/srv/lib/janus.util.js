@@ -2,13 +2,14 @@
  * Created by Zaccary on 09/09/2015.
  */
 
-const axios = require('axios');
-const uuid = require('uuid');
-const crypto = require('crypto');
-const log = require('../utils/logger.util')({ name: 'janus' });
-const config = require('../config/env');
-const { JanusError } = require('../utils/error.util');
 
+import axios from 'axios';
+import * as uuid from 'uuid';
+import crypto from 'crypto';
+import logFactory from '../utils/logger.util.js';
+import config from '../config/env/index.js';
+import { JanusError } from '../utils/error.util.js';
+const log = logFactory({ name: 'janus' });
 function generateTransactionString() {
   return uuid.v4();
 }
@@ -26,7 +27,7 @@ function getJanusToken() {
   return token;
 }
 
-module.exports.getJanusToken = getJanusToken;
+export { getJanusToken };
 
 function createAdminRequest(body, opts, cb) {
   const port = 7888;
@@ -101,9 +102,7 @@ function checkRoomExists(serverId, room, cb) {
   });
 }
 
-module.exports.checkRoomExists = (serverId, room, cb) => {
-  checkRoomExists(serverId, room, cb);
-};
+export { checkRoomExists };
 
 
 /**
@@ -114,7 +113,7 @@ module.exports.checkRoomExists = (serverId, room, cb) => {
  * @param cb
  * @returns {*}
  */
-module.exports.createRoom = function createRoom(serverId, room, cb) {
+export function createRoom(serverId, room, cb) {
   if (!room) {
     return cb('no room ID supplied');
   }
@@ -174,7 +173,7 @@ module.exports.createRoom = function createRoom(serverId, room, cb) {
  * @param {Object} sessionData - Janus session IDs
  * @param {Function} cb
  */
-module.exports.removeRoom = function removeRoom(serverId, room, cb) {
+export function removeRoom(serverId, room, cb) {
   log.info({ serverId, room }, 'removing Janus room');
 
   const req = {
@@ -203,7 +202,7 @@ module.exports.removeRoom = function removeRoom(serverId, room, cb) {
   });
 };
 
-module.exports.listSessions = function listSessions(serverId, cb) {
+export function listSessions(serverId, cb) {
   const req = {
     janus: 'list_sessions',
   };
@@ -227,7 +226,7 @@ module.exports.listSessions = function listSessions(serverId, cb) {
   });
 };
 
-module.exports.listParticipants = function listParticipants(serverId, room) {
+export function listParticipants(serverId, room) {
   const req = {
     janus: 'message_plugin',
     transaction: generateTransactionString(),
@@ -311,9 +310,9 @@ function listRooms(serverId) {
   });
 }
 
-module.exports.listRooms = listRooms;
+export { listRooms };
 
-module.exports.destroySession = async function destroySession(serverId, sessionId) {
+export async function destroySession(serverId, sessionId) {
   const req = {
     janus: 'destroy_session',
     transaction: generateTransactionString(),
@@ -346,3 +345,5 @@ module.exports.destroySession = async function destroySession(serverId, sessionI
     });
   });
 };
+
+export default { getJanusToken, checkRoomExists, createRoom, removeRoom, listSessions, listParticipants, listRooms, destroySession };

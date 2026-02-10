@@ -1,27 +1,26 @@
-const { formatDistance } = require('date-fns');
-const log = require('../../utils/logger.util')({ name: 'report.utils' });
-const config = require('../../config/env');
-const email = require('../../config/email.config');
-const Queue = require('../../utils/queue.util');
-const redis = require('../../lib/redis.util')();
-const reportModel = require('./report.model');
-const adminUtils = require('../admin/admin.utils');
-const adminConstants = require('../admin/admin.constants');
-const {
-  reportTemplate,
-  siteModReportTemplate,
-} = require('../../config/constants/emailTemplates');
-const userUtils = require('../user/user.utils');
+import { formatDistance } from 'date-fns';
+import logFactory from '../../utils/logger.util.js';
+import config from '../../config/env/index.js';
+import email from '../../config/email.config.js';
+import Queue from '../../utils/queue.util.js';
+import redisFactory from '../../lib/redis.util.js';
+import reportModel from './report.model.js';
+import adminUtils from '../admin/admin.utils.js';
+import adminConstants from '../admin/admin.constants.js';
+import userUtils from '../user/user.utils.js';
+const log = logFactory({ name: 'report.utils' });
+const redis = redisFactory();
+import { reportTemplate, siteModReportTemplate } from '../../config/constants/emailTemplates.js';
 
 function getLimiterKey(sessionId) {
   return `reportLimit:${sessionId}`;
 }
 
-module.exports.getReportById = function getReportById(reportId) {
+export function getReportById(reportId) {
   return reportModel.findOne({ _id: reportId }).exec();
 };
 
-module.exports.incrementReport = async function incrementReport(session, cb) {
+export async function incrementReport(session, cb) {
   const key = getLimiterKey(session);
 
   let current;
@@ -57,11 +56,11 @@ module.exports.incrementReport = async function incrementReport(session, cb) {
   return cb();
 };
 
-module.exports.getTimeLeft = function getTimeLeft(ttl) {
+export function getTimeLeft(ttl) {
   return formatDistance(0, ttl * 1000, { includeSeconds: true });
 };
 
-module.exports.sendReportMessages = function sendReportMessages(body, roomName) {
+export function sendReportMessages(body, roomName) {
   return new Promise(async (resolve, reject) => {
     const queue = new Queue(email.sendMail, 100);
 
@@ -108,7 +107,7 @@ module.exports.sendReportMessages = function sendReportMessages(body, roomName) 
   });
 };
 
-module.exports.resolveReport = function resolveReport(reportId, user, outcome) {
+export function resolveReport(reportId, user, outcome) {
   return new Promise(async (resolve, reject) => {
     let report;
     try {
@@ -154,3 +153,5 @@ module.exports.resolveReport = function resolveReport(reportId, user, outcome) {
     return resolve(updatedReport);
   });
 };
+
+export default { getReportById, incrementReport, getTimeLeft, sendReportMessages, resolveReport };

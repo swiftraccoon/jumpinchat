@@ -1,9 +1,10 @@
-const log = require('../../../utils/logger.util')({ name: 'trophy utils' });
-const Queue = require('../../../utils/queue.util');
-const userModel = require('../../user/user.model');
-const trophyModel = require('../trophy.model');
-const trophyUtils = require('../trophy.utils');
 
+import logFactory from '../../../utils/logger.util.js';
+import Queue from '../../../utils/queue.util.js';
+import userModel from '../../user/user.model.js';
+import trophyModel from '../trophy.model.js';
+import trophyUtils from '../trophy.utils.js';
+const log = logFactory({ name: 'trophy utils' });
 function applyStatusTrophies(user, trophies) {
   let applicableTrophies = [];
 
@@ -42,7 +43,7 @@ function handleMigration(user, trophies, cb) {
   });
 }
 
-module.exports = async function migrateUserTrophies(req, res) {
+export default async function migrateUserTrophies(req, res) {
   log.debug('migrateUserTrophies');
   try {
     const users = await userModel.find().exec();

@@ -1,14 +1,16 @@
-const { RedisStore } = require('rate-limit-redis');
-const rateLimit = require('express-rate-limit');
-const log = require('./logger.util')({ name: 'rateLimit' });
-const redis = require('../lib/redis.util')();
-const config = require('../config/env');
 
+import { RedisStore } from 'rate-limit-redis';
+import rateLimit from 'express-rate-limit';
+import logFactory from './logger.util.js';
+import redisFactory from '../lib/redis.util.js';
+import config from '../config/env/index.js';
+const log = logFactory({ name: 'rateLimit' });
+const redis = redisFactory();
 const store = new RedisStore({
   sendCommand: (...args) => redis.sendCommand(args),
 });
 
-module.exports = rateLimit({
+export default rateLimit({
   windowMs: config.auth.rateLimitDuration,
   limit: 10,
   store,

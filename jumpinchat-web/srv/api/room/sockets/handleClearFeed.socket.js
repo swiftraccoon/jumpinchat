@@ -1,10 +1,11 @@
-const log = require('../../../utils/logger.util')({ name: 'handleClearFeed.socket' });
-const utils = require('../../../utils/utils');
-const { PermissionError } = require('../../../utils/error.util');
-const RoomUtils = require('../room.utils');
-const { getUserHasRolePermissions } = require('../../role/role.utils');
 
-module.exports = function handleClearFeedSocket(socket, io) {
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import { PermissionError } from '../../../utils/error.util.js';
+import RoomUtils from '../room.utils.js';
+import { getUserHasRolePermissions } from '../../role/role.utils.js';
+const log = logFactory({ name: 'handleClearFeed.socket' });
+export default function handleClearFeedSocket(socket, io) {
   return async function handleClearFeed() {
     let socketData;
     try {

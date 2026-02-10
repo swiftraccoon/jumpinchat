@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'updateSource.controller' });
-const { getUserById } = require('../../user/user.utils');
-const paymentUtils = require('../payment.utils');
 
-module.exports = async function updateSource(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import { getUserById } from '../../user/user.utils.js';
+import paymentUtils from '../payment.utils.js';
+const log = logFactory({ name: 'updateSource.controller' });
+export default async function updateSource(req, res) {
   const { userId } = req.params;
   const { stripeToken } = req.body;
 

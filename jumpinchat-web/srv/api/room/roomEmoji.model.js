@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
 
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const RoomEmojiSchema = new Schema({
@@ -10,4 +10,4 @@ const RoomEmojiSchema = new Schema({
   room: Schema.Types.ObjectId,
 });
 
-module.exports = mongoose.model('RoomEmoji', RoomEmojiSchema);
+export default mongoose.model('RoomEmoji', RoomEmojiSchema);

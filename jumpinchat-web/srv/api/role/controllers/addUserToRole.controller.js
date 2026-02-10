@@ -1,17 +1,10 @@
-const log = require('../../../utils/logger.util')({ name: 'addUserToRole.controller' });
-const { NotFoundError } = require('../../../utils/error.util');
-const {
-  getRoomByName,
-  filterClientUser,
-  filterRoomUser,
-} = require('../../room/room.utils');
-const {
-  getSocketIo,
-  getRoleById,
-  getUserHasRolePermissions,
-} = require('../role.utils');
-const enrolledModel = require('../enrolled.model');
-const utils = require('../../../utils/utils');
+import logFactory from '../../../utils/logger.util.js';
+import { NotFoundError } from '../../../utils/error.util.js';
+import enrolledModel from '../enrolled.model.js';
+import utils from '../../../utils/utils.js';
+const log = logFactory({ name: 'addUserToRole.controller' });
+import { getRoomByName, filterClientUser, filterRoomUser } from '../../room/room.utils.js';
+import { getSocketIo, getRoleById, getUserHasRolePermissions } from '../role.utils.js';
 
 /**
  * addUserToRoleController
@@ -25,7 +18,7 @@ const utils = require('../../../utils/utils');
  *
  * @returns {object}
  */
-module.exports = async function addUserToRoleController(body) {
+export default async function addUserToRoleController(body) {
   log.debug('addUserToRoleController');
   const io = getSocketIo();
   const {

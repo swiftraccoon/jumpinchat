@@ -1,13 +1,10 @@
-const log = require('../../../utils/logger.util')({ name: 'getRoomUsers.socket' });
-const {
-  getRoomByName,
-  getSocketCacheInfo,
-  filterRoomUser,
-} = require('../room.utils');
-const utils = require('../../../utils/utils');
-const errors = require('../../../config/constants/errors');
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'getRoomUsers.socket' });
+import { getRoomByName, getSocketCacheInfo, filterRoomUser } from '../room.utils.js';
 
-module.exports = function getRoomUsersSocket(socket) {
+export default function getRoomUsersSocket(socket) {
   return async function getRoomUsers() {
     let roomName;
     let room;

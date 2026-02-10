@@ -2,15 +2,6 @@
  * Created by Zaccary on 24/10/2015.
  */
 
-const jwt = require('jsonwebtoken');
-const { isAfter } = require('date-fns');
-const log = require('../../../utils/logger.util')({ name: 'userCreateSession' });
-const utils = require('../../../utils/utils');
-const config = require('../../../config/env');
-const { initialSession } = require('../../../config/session.config');
-const userUtils = require('../user.utils');
-const roomUtils = require('../../room/room.utils');
-const videoQuality = require('../../../config/constants/videoQuality');
 
 /**
  * Create a token from the session ID and return it.
@@ -20,7 +11,17 @@ const videoQuality = require('../../../config/constants/videoQuality');
  * @param req
  * @param res
  */
-module.exports = function createSession(req, res) {
+import jwt from 'jsonwebtoken';
+import { isAfter } from 'date-fns';
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import config from '../../../config/env/index.js';
+import { initialSession } from '../../../config/session.config.js';
+import userUtils from '../user.utils.js';
+import roomUtils from '../../room/room.utils.js';
+import videoQuality from '../../../config/constants/videoQuality.js';
+const log = logFactory({ name: 'userCreateSession' });
+export default function createSession(req, res) {
   let activityToken;
   const responseBody = {};
   const session = req.sessionID;

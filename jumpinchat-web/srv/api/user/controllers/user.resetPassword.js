@@ -1,9 +1,10 @@
-const Joi = require('joi');
-const bcrypt = require('bcrypt');
-const log = require('../../../utils/logger.util')({ name: 'user.resetPasswordVerify' });
-const VerifyModel = require('../../verify/verify.model');
-const userUtils = require('../user.utils');
 
+import Joi from 'joi';
+import bcrypt from 'bcrypt';
+import logFactory from '../../../utils/logger.util.js';
+import VerifyModel from '../../verify/verify.model.js';
+import userUtils from '../user.utils.js';
+const log = logFactory({ name: 'user.resetPasswordVerify' });
 const getUser = (userId, cb) => {
   userUtils.getUserById(userId, (err, user) => {
     if (err) {
@@ -36,7 +37,7 @@ const generatePassHash = (password, cb) => bcrypt.genSalt(10, (err, salt) => {
   });
 });
 
-module.exports = function resetPassword(req, res) {
+export default function resetPassword(req, res) {
   const schema = Joi.object().keys({
     password: Joi.string().min(10).required(),
     userId: Joi.string().required(),

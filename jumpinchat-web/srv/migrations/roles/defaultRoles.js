@@ -1,11 +1,12 @@
-const log = require('../../utils/logger.util')({ name: 'migrations.defaultRoles' });
-const roomModel = require('../../api/room/room.model');
-const roleModel = require('../../api/role/role.model');
-const enrolledModel = require('../../api/role/enrolled.model');
-const { getAllRoomRoles, createDefaultRoles } = require('../../api/role/role.utils');
-const createRole = require('../../api/role/controllers/createRole.controller');
 
-module.exports = async function defaultRoleMigrate() {
+import logFactory from '../../utils/logger.util.js';
+import roomModel from '../../api/room/room.model.js';
+import roleModel from '../../api/role/role.model.js';
+import enrolledModel from '../../api/role/enrolled.model.js';
+import { getAllRoomRoles, createDefaultRoles } from '../../api/role/role.utils.js';
+import createRole from '../../api/role/controllers/createRole.controller.js';
+const log = logFactory({ name: 'migrations.defaultRoles' });
+export default async function defaultRoleMigrate() {
   log.info('initiate default roles migration');
   const cursor = roomModel.find({ 'attrs.owner': { $ne: null } }).cursor();
   const handleAddRoles = async (room) => {

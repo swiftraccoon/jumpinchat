@@ -1,18 +1,17 @@
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire');
-const { productIds } = require('../payment.constants');
 
-proxyquire.noCallThru();
-proxyquire.noPreserveCache();
+import { expect } from 'chai';
+import sinon from 'sinon';
+import { productIds } from '../payment.constants.js';
+import esmock from 'esmock';
+
 
 let handleStripeError;
 
-function getController(overrides = {}) {
+async function getController(overrides = {}) {
   handleStripeError = sinon.spy();
   const mocks = {
-    '../../../utils/logger.util': () => () => {},
-    '../payment.utils': {
+    '../../../utils/logger.util.js': () => () => {},
+    '../payment.utils.js': {
       savePayment: () => Promise.resolve({}),
       getPaymentByUserId: () => Promise.resolve({
         customerId: 'foo',
@@ -21,7 +20,7 @@ function getController(overrides = {}) {
       handleStripeError,
       ...overrides.paymentUtils,
     },
-    '../../user/user.utils': {
+    '../../user/user.utils.js': {
       getUserById: () => Promise.resolve({
         _id: 'foo',
         attrs: {
@@ -30,9 +29,9 @@ function getController(overrides = {}) {
       }),
       ...overrides.userUtils,
     },
-    '../../message/utils/metaSendMessage.util': sinon.stub().returns(Promise.resolve()),
+    '../../message/utils/metaSendMessage.util.js': sinon.stub().returns(Promise.resolve()),
   };
-  return proxyquire('./createPayment.controller', mocks);
+  return await esmock('./createPayment.controller.js', mocks);
 }
 
 describe('createPayment controller', () => {
@@ -42,7 +41,7 @@ describe('createPayment controller', () => {
   let resSend;
   let resStatus;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     resSend = sinon.stub().returns();
     resStatus = sinon.stub().returns({ send: resSend });
     req = {
@@ -65,7 +64,7 @@ describe('createPayment controller', () => {
 
   describe('general', () => {
     it('should fail if product is missing', async () => {
-      const controller = getController();
+      const controller = await getController();
       req.query.product = undefined;
       await controller(req, res);
       expect(resStatus.called).to.equal(true);
@@ -73,7 +72,7 @@ describe('createPayment controller', () => {
     });
 
     it('should fail if amount is below 300', async () => {
-      const controller = getController();
+      const controller = await getController();
       req.query.amount = 1;
       await controller(req, res);
       expect(resStatus.called).to.equal(true);
@@ -81,7 +80,7 @@ describe('createPayment controller', () => {
     });
 
     it('should fail if amount is above 50001', async () => {
-      const controller = getController();
+      const controller = await getController();
       req.query.amount = 1;
       await controller(req, res);
       expect(resStatus.called).to.equal(true);
@@ -89,7 +88,7 @@ describe('createPayment controller', () => {
     });
 
     it('should fail if token is missing', async () => {
-      const controller = getController();
+      const controller = await getController();
       req.body.stripeToken = undefined;
       await controller(req, res);
       expect(resStatus.called).to.equal(true);
@@ -97,7 +96,7 @@ describe('createPayment controller', () => {
     });
 
     it('should fail if amount is missing and product is plan', async () => {
-      const controller = getController();
+      const controller = await getController();
       req.query.product = productIds.SUPPORT_ONE_TIME;
       req.query.amount = undefined;
       await controller(req, res);
@@ -116,7 +115,7 @@ describe('createPayment controller', () => {
           isGold: true,
         },
       });
-      const controller = getController({
+      const controller = await getController({
         paymentUtils: {
           getPaymentByUserId,
         },

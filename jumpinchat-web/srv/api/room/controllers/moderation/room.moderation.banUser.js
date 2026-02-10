@@ -2,14 +2,15 @@
  * Created by Zaccary on 24/01/2016.
  */
 
-const jwt = require('jsonwebtoken');
-const RoomUtils = require('../../room.utils');
-const log = require('../../../../utils/logger.util')({ name: 'room.moderation.banUser' });
-const { createError, getIpFromSocket } = require('../../../../utils/utils');
-const errors = require('../../../../config/constants/errors');
-const config = require('../../../../config/env');
-const { getUserHasRolePermissions } = require('../../../role/role.utils');
 
+import jwt from 'jsonwebtoken';
+import RoomUtils from '../../room.utils.js';
+import logFactory from '../../../../utils/logger.util.js';
+import { createError, getIpFromSocket } from '../../../../utils/utils.js';
+import errors from '../../../../config/constants/errors.js';
+import config from '../../../../config/env/index.js';
+import { getUserHasRolePermissions } from '../../../role/role.utils.js';
+const log = logFactory({ name: 'room.moderation.banUser' });
 const getOperator = (room, userToBan) => room.settings.moderators
   .find(m => String(m._id) === String(userToBan.operator_id));
 
@@ -24,7 +25,7 @@ const getOperator = (room, userToBan) => room.settings.moderators
  * @param {string} userListIdToBan the ID of the user list document
  * @param {function} cb
  */
-module.exports = async function banUser(socket, roomName, userListIdToBan, banDuration, cb) {
+export default async function banUser(socket, roomName, userListIdToBan, banDuration, cb) {
   let userId;
   try {
     const data = await RoomUtils.getSocketCacheInfo(socket.id);

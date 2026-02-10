@@ -2,12 +2,13 @@
  * Created by Zaccary on 24/05/2016.
  */
 
-const log = require('../../../utils/logger.util')({ name: 'disconnectUser.socket' });
-const utils = require('../../../utils/utils');
-const roomController = require('../room.controller');
-const RoomUtils = require('../room.utils');
 
-module.exports = function disconnectUserSocket(socket, io) {
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import roomController from '../room.controller.js';
+import RoomUtils from '../room.utils.js';
+const log = logFactory({ name: 'disconnectUser.socket' });
+export default function disconnectUserSocket(socket, io) {
   return function disconnectUser() {
     log.debug('disconnect user');
     roomController.leaveRoom(socket.id, (err, roomName, user) => {

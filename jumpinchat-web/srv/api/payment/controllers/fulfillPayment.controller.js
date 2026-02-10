@@ -1,14 +1,12 @@
-const { isAfter } = require('date-fns');
-const log = require('../../../utils/logger.util')({ name: 'fulfillPayment.controller' });
-const { getUserById } = require('../../user/user.utils');
-const paymentUtils = require('../payment.utils');
-const metaSendMessage = require('../../message/utils/metaSendMessage.util');
-const {
-  PAYMENT_ONETIME,
-  PAYMENT_GIFT_SENDER,
-} = require('../../message/message.constants');
+import { isAfter } from 'date-fns';
+import logFactory from '../../../utils/logger.util.js';
+import { getUserById } from '../../user/user.utils.js';
+import paymentUtils from '../payment.utils.js';
+import metaSendMessage from '../../message/utils/metaSendMessage.util.js';
+const log = logFactory({ name: 'fulfillPayment.controller' });
+import { PAYMENT_ONETIME, PAYMENT_GIFT_SENDER } from '../../message/message.constants.js';
 
-module.exports = async function fulfillPayment({
+export default async function fulfillPayment({
   id,
   customer,
   display_items: displayItems,

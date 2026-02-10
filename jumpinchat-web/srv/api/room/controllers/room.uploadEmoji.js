@@ -1,19 +1,20 @@
-const Busboy = require('busboy');
-const uuid = require('uuid');
-const log = require('../../../utils/logger.util')({ name: 'uploadEmoji' });
-const { getRoomByName } = require('../room.utils');
-const { getUserHasRolePermissions } = require('../../role/role.utils');
-const roomEmojiModel = require('../roomEmoji.model');
-const {
+import Busboy from 'busboy';
+import * as uuid from 'uuid';
+import logFactory from '../../../utils/logger.util.js';
+import { getRoomByName } from '../room.utils.js';
+import { getUserHasRolePermissions } from '../../role/role.utils.js';
+import roomEmojiModel from '../roomEmoji.model.js';
+import config from '../../../config/env/index.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'uploadEmoji' });
+import {
   convertImages,
   mergeBuffers,
   s3Upload,
   isValidImage,
   getExtFromMime,
-} = require('../../../utils/utils');
+} from '../../../utils/utils.js';
 
-const config = require('../../../config/env');
-const errors = require('../../../config/constants/errors');
 
 function createEmojiItem({
   userId,
@@ -29,7 +30,7 @@ function createEmojiItem({
   });
 }
 
-module.exports = function uploadEmoji(req, res) {
+export default function uploadEmoji(req, res) {
   let busboy;
   let hasErr = false;
   const body = {};

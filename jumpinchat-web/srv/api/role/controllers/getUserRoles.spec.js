@@ -1,19 +1,17 @@
-const chai = require('chai');
-const sinon = require('sinon');
-const mock = require('mock-require');
-const chaiAsPromised = require('chai-as-promised');
-const { NotFoundError } = require('../../../utils/error.util');
 
+import * as chai from 'chai';
+import sinon from 'sinon';
+import chaiAsPromised from 'chai-as-promised';
+import { NotFoundError } from '../../../utils/error.util.js';
+import esmock from 'esmock';
 chai.use(chaiAsPromised);
 
 const { expect } = chai;
 
-const getController = () => mock.reRequire('./getUserRoles.controller');
-
-describe('addUserToRoleController', () => {
+describe('getUserRolesController', () => {
   let controller;
   let room;
-  beforeEach(() => {
+  beforeEach(async () => {
     room = {
       _id: 'roomId',
       attrs: {
@@ -28,26 +26,40 @@ describe('addUserToRoleController', () => {
       ],
     };
 
-
-    mock('../role.utils', {
-      getUserEnrollments: () => Promise.resolve([]),
-    });
-
-    mock('../../room/room.utils', {
+    const roomUtilsMock = {
       getRoomByName: sinon.stub().returns(Promise.resolve(room)),
-    });
+    };
 
-    controller = getController();
+    controller = (await esmock.p('./getUserRoles.controller.js', {
+      '../role.utils.js': {
+        getUserEnrollments: () => Promise.resolve([]),
+      },
+      '../../room/room.utils.js': {
+        default: roomUtilsMock,
+        ...roomUtilsMock,
+      },
+    })).default;
+  });
+
+  afterEach(() => {
+    esmock.purge(controller);
   });
 
   it('should return NotFoundError if room not found', async () => {
-    room = null;
+    const roomUtilsMock = {
+      getRoomByName: sinon.stub().returns(Promise.resolve(null)),
+    };
 
-    mock('../../room/room.utils', {
-      getRoomByName: sinon.stub().returns(Promise.resolve(room)),
-    });
+    controller = (await esmock.p('./getUserRoles.controller.js', {
+      '../role.utils.js': {
+        getUserEnrollments: () => Promise.resolve([]),
+      },
+      '../../room/room.utils.js': {
+        default: roomUtilsMock,
+        ...roomUtilsMock,
+      },
+    })).default;
 
-    controller = getController();
     await expect(controller({
       userListId: 'foo',
       roomName: 'room',

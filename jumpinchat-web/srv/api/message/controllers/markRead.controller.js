@@ -1,8 +1,9 @@
-const messageUtils = require('../message.utils');
-const log = require('../../../utils/logger.util')({ name: 'markRead' });
-const errors = require('../../../config/constants/errors');
 
-module.exports = async function markRead(req, res) {
+import messageUtils from '../message.utils.js';
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'markRead' });
+export default async function markRead(req, res) {
   const { participantId } = req.params;
   const userId = req.user._id;
 

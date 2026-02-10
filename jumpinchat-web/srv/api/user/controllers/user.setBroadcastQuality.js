@@ -1,9 +1,10 @@
-const log = require('../../../utils/logger.util')({ name: 'userCreateSession' });
-const { getUserById } = require('../user.utils');
-const videoQuality = require('../../../config/constants/videoQuality');
-const errors = require('../../../config/constants/errors');
 
-module.exports = async function setBroadcastQuality(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import { getUserById } from '../user.utils.js';
+import videoQuality from '../../../config/constants/videoQuality.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'userCreateSession' });
+export default async function setBroadcastQuality(req, res) {
   const { quality } = req.query;
 
   if (!videoQuality[quality]) {

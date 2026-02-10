@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'applyTrophy.controllers' });
-const errors = require('../../../config/constants/errors');
-const { applyTrophy } = require('../trophy.utils');
 
-module.exports = function applyTrophyController(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+import { applyTrophy } from '../trophy.utils.js';
+const log = logFactory({ name: 'applyTrophy.controllers' });
+export default function applyTrophyController(req, res) {
   const { userId } = req.params;
   const { trophyName } = req.body;
 

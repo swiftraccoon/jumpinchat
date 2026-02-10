@@ -2,10 +2,11 @@
  * Created by vivaldi on 08/11/2014.
  */
 
-const mongoose = require('mongoose');
-const config = require('./env');
-const log = require('../utils/logger.util')({ name: 'mongoose.config' });
 
+import mongoose from 'mongoose';
+import config from './env/index.js';
+import logFactory from '../utils/logger.util.js';
+const log = logFactory({ name: 'mongoose.config' });
 if (config.env === 'development') {
   mongoose.set('debug', (coll, method, query, doc, options) => {
     const set = {
@@ -20,7 +21,7 @@ if (config.env === 'development') {
   });
 }
 
-module.exports = function mongooseConfig() {
+export default function mongooseConfig() {
   mongoose.connect(config.mongo.uri, config.mongo.options)
     .catch((err) => {
       log.fatal({ err }, 'failed to connect to MongoDB');

@@ -2,14 +2,15 @@
  * Created by Zaccary on 24/05/2016.
  */
 
-const { formatDistance } = require('date-fns');
-const log = require('../../../utils/logger.util')({ name: 'handleMessage.socket' });
-const RoomUtils = require('../room.utils');
-const utils = require('../../../utils/utils');
-const socketFloodProtect = require('../../../utils/socketFloodProtect');
-const sendPush = require('../utils/room.utils.sendPush');
 
-module.exports = function handleMessageSocket(socket, io) {
+import { formatDistance } from 'date-fns';
+import logFactory from '../../../utils/logger.util.js';
+import RoomUtils from '../room.utils.js';
+import utils from '../../../utils/utils.js';
+import socketFloodProtect from '../../../utils/socketFloodProtect.js';
+import sendPush from '../utils/room.utils.sendPush.js';
+const log = logFactory({ name: 'handleMessage.socket' });
+export default function handleMessageSocket(socket, io) {
   return async function handleMessage(msg) {
     try {
       await socketFloodProtect(socket);

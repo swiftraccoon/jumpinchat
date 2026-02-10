@@ -1,10 +1,9 @@
 /* global describe,it,beforeEach */
 
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire').noCallThru();
-const config = require('../../../../config/env');
-
+import { expect } from 'chai';
+import sinon from 'sinon';
+import config from '../../../../config/env/index.js';
+import esmock from 'esmock';
 let leaveRoom;
 const socketId = 'socketId';
 
@@ -36,7 +35,7 @@ QueueStub.prototype.addToQueue = addToQueue;
 let roomUtilsStub;
 
 describe('Room Leave Controller', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     roomUtilsStub = {
       addToRemoveUserQueue: sinon.stub().yields(null, 'foo'),
     };
@@ -44,10 +43,10 @@ describe('Room Leave Controller', () => {
     const redisCallPromise = sinon.stub().resolves({});
     redisCallPromise.withArgs('hgetall', 'socketId').resolves({ socketId, name: 'roomName' });
 
-    leaveRoom = proxyquire('../../controllers/room.leaveRoom', {
-      '../room.utils': roomUtilsStub,
-      '../../../utils/queue.util': QueueStub,
-      '../../../utils/redis.util': {
+    leaveRoom = await esmock('../../controllers/room.leaveRoom.js', {
+      '../../room.utils.js': roomUtilsStub,
+      '../../../../utils/queue.util.js': QueueStub,
+      '../../../../utils/redis.util.js': {
         callPromise: redisCallPromise,
       },
     });

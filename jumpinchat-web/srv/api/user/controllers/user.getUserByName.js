@@ -1,7 +1,7 @@
-const { NotFoundError } = require('../../../utils/error.util');
-const { getUserByName } = require('../user.utils');
 
-module.exports = async function getUserByNameController({ username }) {
+import { NotFoundError } from '../../../utils/error.util.js';
+import { getUserByName } from '../user.utils.js';
+export default async function getUserByNameController({ username }) {
   let user;
 
   try {

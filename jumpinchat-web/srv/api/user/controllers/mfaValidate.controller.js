@@ -1,10 +1,11 @@
-const { authenticator } = require('otplib');
-const { getUserById } = require('../user.utils');
-const OtpBackupCodeSchema = require('../otpBackupCode.model');
-const { NotFoundError, ValidationError } = require('../../../utils/error.util');
-const log = require('../../../utils/logger.util')({ name: 'mfaValidate' });
 
-module.exports = async function mfaValidate(body) {
+import { authenticator } from 'otplib';
+import { getUserById } from '../user.utils.js';
+import OtpBackupCodeSchema from '../otpBackupCode.model.js';
+import { NotFoundError, ValidationError } from '../../../utils/error.util.js';
+import logFactory from '../../../utils/logger.util.js';
+const log = logFactory({ name: 'mfaValidate' });
+export default async function mfaValidate(body) {
   const {
     userId,
     token,

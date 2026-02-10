@@ -1,7 +1,8 @@
-const log = require('../../../utils/logger.util')({ name: 'user.changeEmail' });
-const userUtils = require('../user.utils');
-const { getTrophies } = require('../../trophy/trophy.utils');
 
+import logFactory from '../../../utils/logger.util.js';
+import userUtils from '../user.utils.js';
+import { getTrophies } from '../../trophy/trophy.utils.js';
+const log = logFactory({ name: 'user.changeEmail' });
 function getUserType(user) {
   const {
     userLevel,
@@ -25,7 +26,7 @@ function getUserType(user) {
   return userLevelMap[0];
 }
 
-module.exports = function getProfile(req, res) {
+export default function getProfile(req, res) {
   const { userId } = req.params;
 
   return userUtils.getUserById(userId, async (err, user) => {

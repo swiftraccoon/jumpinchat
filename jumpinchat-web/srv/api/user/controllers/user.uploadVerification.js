@@ -1,26 +1,16 @@
-const Busboy = require('busboy');
-const { formatDistance } = require('date-fns');
-const log = require('../../../utils/logger.util')({ name: 'uploadDisplayImage' });
-const { getUserById } = require('../user.utils');
-const {
-  getRequestsByUser,
-  findRecentDeniedRequests,
-} = require('../../ageVerification/ageVerification.utils');
-const {
-  noSubmitReasons,
-} = require('../../ageVerification/ageVerification.const');
-const AgeVerificationModel = require('../../ageVerification/ageVerification.model');
-const {
-  mergeBuffers,
-  s3UploadVerification,
-  isValidImage,
-} = require('../../../utils/utils');
-const errors = require('../../../config/constants/errors');
-const config = require('../../../config/env');
-const email = require('../../../config/email.config');
-const {
-  ageVerifyTemplate,
-} = require('../../../config/constants/emailTemplates');
+import Busboy from 'busboy';
+import { formatDistance } from 'date-fns';
+import logFactory from '../../../utils/logger.util.js';
+import { getUserById } from '../user.utils.js';
+import AgeVerificationModel from '../../ageVerification/ageVerification.model.js';
+import errors from '../../../config/constants/errors.js';
+import config from '../../../config/env/index.js';
+import email from '../../../config/email.config.js';
+const log = logFactory({ name: 'uploadDisplayImage' });
+import { getRequestsByUser, findRecentDeniedRequests } from '../../ageVerification/ageVerification.utils.js';
+import { noSubmitReasons } from '../../ageVerification/ageVerification.const.js';
+import { mergeBuffers, s3UploadVerification, isValidImage } from '../../../utils/utils.js';
+import { ageVerifyTemplate } from '../../../config/constants/emailTemplates.js';
 
 async function checkCanSubmitRequest(userId) {
   let activeRequests;
@@ -71,7 +61,7 @@ async function checkCanSubmitRequest(userId) {
   }
 }
 
-module.exports = async function uploadVerificationImages(req, res) {
+export default async function uploadVerificationImages(req, res) {
   let busboy;
   let hasErr = false;
   let canSubmit;
@@ -172,7 +162,7 @@ module.exports = async function uploadVerificationImages(req, res) {
       });
     });
 
-    busboy.on('finish', () => {
+    busboy.on('finish', async () => {
       log.debug('finished');
       if (hasErr) {
         if (hasErr.code) {

@@ -1,17 +1,14 @@
-const Stripe = require('stripe');
-const config = require('../../../config/env');
-const log = require('../../../utils/logger.util')({ name: 'stripeEvent.controller' });
-const { stripeEvents } = require('../payment.constants');
-const {
-  deletePayment,
-  getPaymentByCustomerId,
-  updateExpire,
-} = require('../payment.utils');
-const fulfillPayment = require('./fulfillPayment.controller');
+import Stripe from 'stripe';
+import config from '../../../config/env/index.js';
+import logFactory from '../../../utils/logger.util.js';
+import { stripeEvents } from '../payment.constants.js';
+import fulfillPayment from './fulfillPayment.controller.js';
+const log = logFactory({ name: 'stripeEvent.controller' });
+import { deletePayment, getPaymentByCustomerId, updateExpire } from '../payment.utils.js';
 
 const stripe = new Stripe(config.payment.stripe.secretKey);
 
-module.exports = async function stripeHook(req, res) {
+export default async function stripeHook(req, res) {
   const sig = req.headers['stripe-signature'];
   const endpointSecret = config.payment.stripe.whKey;
   try {

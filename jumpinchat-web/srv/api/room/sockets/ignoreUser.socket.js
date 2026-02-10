@@ -1,13 +1,11 @@
-const log = require('../../../utils/logger.util')({ name: 'ignoreUser.socket' });
-const ignoreUserController = require('../controllers/room.ignoreUser');
-const {
-  getRoomByName,
-  getIgnoredUsersInRoom,
-} = require('../room.utils');
-const errors = require('../../../config/constants/errors');
-const utils = require('../../../utils/utils');
+import logFactory from '../../../utils/logger.util.js';
+import ignoreUserController from '../controllers/room.ignoreUser.js';
+import errors from '../../../config/constants/errors.js';
+import utils from '../../../utils/utils.js';
+const log = logFactory({ name: 'ignoreUser.socket' });
+import { getRoomByName, getIgnoredUsersInRoom } from '../room.utils.js';
 
-module.exports = function ignoreUserSocket(socket, io) {
+export default function ignoreUserSocket(socket, io) {
   return function ignoreUser({ userListId, roomName }) {
     log.debug({ userListId, roomName }, 'ignore user');
     ignoreUserController(roomName, socket.id, userListId, async (err, ignoreData) => {

@@ -2,13 +2,14 @@
  * Created by Zaccary on 24/05/2016.
  */
 
-const log = require('../../../utils/logger.util')({ name: 'handleBanUser.socket' });
-const utils = require('../../../utils/utils');
-const { PermissionError } = require('../../../utils/error.util');
-const roomController = require('../room.controller');
-const RoomUtils = require('../room.utils');
 
-module.exports = function handleBanUserSocket(socket, io) {
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import { PermissionError } from '../../../utils/error.util.js';
+import roomController from '../room.controller.js';
+import RoomUtils from '../room.utils.js';
+const log = logFactory({ name: 'handleBanUser.socket' });
+export default function handleBanUserSocket(socket, io) {
   /**
    *
    * @param {object} msg

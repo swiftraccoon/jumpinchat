@@ -2,10 +2,10 @@
  * Created by vivaldi on 08/11/2014.
  */
 
-const mongoose = require('mongoose');
 
+import mongoose from 'mongoose';
+import banTypes from '../../config/constants/banTypes.js';
 const { Schema } = mongoose;
-const banTypes = require('../../config/constants/banTypes');
 
 const RoomSchema = new Schema({
   name: { type: String, index: true },
@@ -91,4 +91,4 @@ const RoomSchema = new Schema({
   },
 });
 
-module.exports = mongoose.model('Room', RoomSchema);
+export default mongoose.model('Room', RoomSchema);

@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'getCurrentlyPlaying.socket' });
-const utils = require('../../../utils/utils');
-const currentlyPlaying = require('../controllers/getCurrentlyPlaying.controller');
 
-module.exports = function getCurrentlyPlayingSocket(socket) {
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import currentlyPlaying from '../controllers/getCurrentlyPlaying.controller.js';
+const log = logFactory({ name: 'getCurrentlyPlaying.socket' });
+export default function getCurrentlyPlayingSocket(socket) {
   return function getCurrentlyPlaying({ notify = true }) {
     return currentlyPlaying(socket, (err, videoData) => {
       if (err) {

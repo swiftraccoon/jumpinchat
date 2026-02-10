@@ -1,16 +1,15 @@
-const Joi = require('joi');
-const crypto = require('crypto');
-const {
-  toSeconds,
-  parse,
-} = require('iso8601-duration');
-const log = require('../../../utils/logger.util')({ name: 'searchYoutube.controller' });
-const config = require('../../../config/env');
-const errors = require('../../../config/constants/errors');
-const redis = require('../../../lib/redis.util')();
-const { playVideo } = require('./playVideo.controller');
-const ytApiQuery = require('../utils/ytApiQuery');
-const getCurrentCred = require('../utils/getCurrentCred');
+import Joi from 'joi';
+import crypto from 'crypto';
+import logFactory from '../../../utils/logger.util.js';
+import config from '../../../config/env/index.js';
+import errors from '../../../config/constants/errors.js';
+import redisFactory from '../../../lib/redis.util.js';
+import { playVideo } from './playVideo.controller.js';
+import ytApiQuery from '../utils/ytApiQuery.js';
+import getCurrentCred from '../utils/getCurrentCred.js';
+const log = logFactory({ name: 'searchYoutube.controller' });
+const redis = redisFactory();
+import { toSeconds, parse } from 'iso8601-duration';
 
 const youtubeIdRe = /^[a-zA-Z0-9_-]{11}$/;
 class SearchYoutube {
@@ -179,4 +178,4 @@ class SearchYoutube {
   }
 }
 
-module.exports = SearchYoutube;
+export default SearchYoutube;

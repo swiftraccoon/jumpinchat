@@ -1,6 +1,7 @@
-const roomModel = require('../api/room/room.model');
-const log = require('../utils/logger.util')({ name: 'migrate permanent mods' });
 
+import roomModel from '../api/room/room.model.js';
+import logFactory from '../utils/logger.util.js';
+const log = logFactory({ name: 'migrate permanent mods' });
 function applyModPermissions(owner, moderators) {
   return moderators.map((mod) => {
     if (mod.assignedBy && String(mod.assignedBy) === owner) {
@@ -17,7 +18,7 @@ function applyModPermissions(owner, moderators) {
   });
 }
 
-module.exports = async function migratePermanentMods() {
+export default async function migratePermanentMods() {
   try {
     const rooms = await roomModel
       .find({

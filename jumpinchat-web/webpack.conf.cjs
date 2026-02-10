@@ -64,6 +64,12 @@ module.exports = ({ esNext = true, watch }) => ({
   module: {
     rules: [
       {
+        test: /\.m?js$/,
+        resolve: {
+          fullySpecified: false,
+        },
+      },
+      {
         enforce: 'post',
         test: /\.m?js?$/,
         exclude: /node_modules/,

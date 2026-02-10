@@ -1,4 +1,4 @@
-module.exports.resolutionOutcomes = {
+export const resolutionOutcomes = {
   RESOLUTION_NONE: 'RESOLUTION_NONE',
   RESOLUTION_BAN_BROADCAST: 'RESOLUTION_BAN_BROADCAST',
   RESOLUTION_BAN_JOIN: 'RESOLUTION_BAN_JOIN',

@@ -1,22 +1,29 @@
-const chai = require('chai');
-const sinon = require('sinon');
-const mock = require('mock-require');
-const chaiAsPromised = require('chai-as-promised');
-const { PermissionError } = require('../../../utils/error.util');
 
+import * as chai from 'chai';
+import sinon from 'sinon';
+import chaiAsPromised from 'chai-as-promised';
+import { PermissionError } from '../../../utils/error.util.js';
+import esmock from 'esmock';
 chai.use(chaiAsPromised);
 
 const { expect } = chai;
 
 describe('updateRoomRoleController', () => {
-  mock.stopAll();
-  const getController = () => mock.reRequire('./updateRoomRole.controller');
 
   let roleModelUpdate;
   let roleUtilStubs;
   let roleCreateStub;
   let emitStub;
   let ioStub;
+
+  const roomUtilsMock = {
+    getRoomByName: sinon.stub().returns(Promise.resolve({
+      _id: 'foo',
+      attrs: {
+        owner: 'user',
+      },
+    })),
+  };
 
   beforeEach(() => {
     roleModelUpdate = sinon.stub().resolves({});
@@ -29,10 +36,6 @@ describe('updateRoomRoleController', () => {
       }),
     };
 
-    mock('../role.model', {
-      updateOne: roleModelUpdate,
-    });
-
     roleUtilStubs = {
       getSocketIo: () => ioStub,
       getAllRoomRoles: () => Promise.resolve([]),
@@ -40,21 +43,10 @@ describe('updateRoomRoleController', () => {
       getUserHasRolePermissions: () => Promise.resolve(true),
       validateTag: () => true,
     };
-    mock('../role.utils', roleUtilStubs);
-
-    mock('./createRole.controller', roleCreateStub);
-    mock('../../room/room.utils', {
-      getRoomByName: sinon.stub().returns(Promise.resolve({
-        _id: 'foo',
-        attrs: {
-          owner: 'user',
-        },
-      })),
-    });
   });
 
   it('should succeed if user has manage role permissions', async () => {
-    roleUtilStubs = {
+    const localRoleUtilStubs = {
       ...roleUtilStubs,
       getUserEnrollments: () => Promise.resolve([
         {
@@ -66,8 +58,12 @@ describe('updateRoomRoleController', () => {
         },
       ]),
     };
-    mock('../role.utils', roleUtilStubs);
-    const controller = getController();
+    const controller = (await esmock('./updateRoomRole.controller.js', {
+      '../role.model.js': { default: { updateOne: roleModelUpdate } },
+      '../role.utils.js': { default: localRoleUtilStubs },
+      './createRole.controller.js': { default: roleCreateStub },
+      '../../room/room.utils.js': roomUtilsMock,
+    })).default;
 
     try {
       await controller({
@@ -88,7 +84,7 @@ describe('updateRoomRoleController', () => {
   });
 
   it('should create new roles if they do not exist', async () => {
-    roleUtilStubs = {
+    const localRoleUtilStubs = {
       ...roleUtilStubs,
       getAllRoomRoles: () => Promise.resolve([
         {
@@ -97,8 +93,13 @@ describe('updateRoomRoleController', () => {
         },
       ]),
     };
-    mock('../role.utils', roleUtilStubs);
-    const controller = getController();
+    const controller = (await esmock('./updateRoomRole.controller.js', {
+      '../role.model.js': { default: { updateOne: roleModelUpdate } },
+      '../role.utils.js': { default: localRoleUtilStubs },
+      './createRole.controller.js': { default: roleCreateStub },
+      '../../room/room.utils.js': roomUtilsMock,
+    })).default;
+
     try {
       await controller({
         roomName: 'foo',
@@ -120,7 +121,7 @@ describe('updateRoomRoleController', () => {
   });
 
   it('should update roles if they exist', async () => {
-    roleUtilStubs = {
+    const localRoleUtilStubs = {
       ...roleUtilStubs,
       getAllRoomRoles: () => Promise.resolve([
         {
@@ -131,8 +132,13 @@ describe('updateRoomRoleController', () => {
         },
       ]),
     };
-    mock('../role.utils', roleUtilStubs);
-    const controller = getController();
+    const controller = (await esmock('./updateRoomRole.controller.js', {
+      '../role.model.js': { default: { updateOne: roleModelUpdate } },
+      '../role.utils.js': { default: localRoleUtilStubs },
+      './createRole.controller.js': { default: roleCreateStub },
+      '../../room/room.utils.js': roomUtilsMock,
+    })).default;
+
     try {
       await controller({
         roomName: 'foo',
@@ -154,7 +160,7 @@ describe('updateRoomRoleController', () => {
   });
 
   it('should update and create roles', async () => {
-    roleUtilStubs = {
+    const localRoleUtilStubs = {
       ...roleUtilStubs,
       getAllRoomRoles: () => Promise.resolve([
         {
@@ -167,9 +173,14 @@ describe('updateRoomRoleController', () => {
         },
       ]),
     };
-    mock('../role.utils', roleUtilStubs);
 
-    const controller = getController();
+    const controller = (await esmock('./updateRoomRole.controller.js', {
+      '../role.model.js': { default: { updateOne: roleModelUpdate } },
+      '../role.utils.js': { default: localRoleUtilStubs },
+      './createRole.controller.js': { default: roleCreateStub },
+      '../../room/room.utils.js': roomUtilsMock,
+    })).default;
+
     try {
       await controller({
         roomName: 'foo',

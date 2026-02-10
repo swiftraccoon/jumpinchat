@@ -2,11 +2,13 @@
  * Created by Zaccary on 24/10/2015.
  */
 
-const log = require('../../../utils/logger.util')({ name: 'room.sanitize' });
-const roomController = require('../room.controller');
-const roomUtils = require('../room.utils');
-const redis = require('../../../lib/redis.util')();
 
+import logFactory from '../../../utils/logger.util.js';
+import roomController from '../room.controller.js';
+import roomUtils from '../room.utils.js';
+import redisFactory from '../../../lib/redis.util.js';
+const log = logFactory({ name: 'room.sanitize' });
+const redis = redisFactory();
 const clearOldSessionData = (socketId) => {
   redis.del(socketId).then(() => {
     log.debug({ socketId }, 'removed old session data');
@@ -21,7 +23,7 @@ const clearOldSessionData = (socketId) => {
  * @param name
  * @param cb
  */
-module.exports = function sanitizeUserList(name, cb) {
+export default function sanitizeUserList(name, cb) {
   log.debug({ roomName: name }, 'sanitizeUserList');
   const io = roomController.getSocketIo();
 

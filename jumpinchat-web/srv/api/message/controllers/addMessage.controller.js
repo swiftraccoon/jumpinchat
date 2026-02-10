@@ -1,10 +1,11 @@
-const Joi = require('joi');
-const log = require('../../../utils/logger.util')({ name: 'addMessage' });
-const messageUtils = require('../message.utils');
-const sitebanUtils = require('../../siteban/siteban.utils');
-const errors = require('../../../config/constants/errors');
 
-module.exports = async function addMessage(req, res) {
+import Joi from 'joi';
+import logFactory from '../../../utils/logger.util.js';
+import messageUtils from '../message.utils.js';
+import sitebanUtils from '../../siteban/siteban.utils.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'addMessage' });
+export default async function addMessage(req, res) {
   const { recipient } = req.params;
   const sender = String(req.user._id);
   const schema = Joi.object().keys({

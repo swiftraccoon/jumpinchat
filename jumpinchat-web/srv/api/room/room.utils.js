@@ -1,24 +1,26 @@
 /** * Created by Zaccary on 22/09/2015.
  */
-const jwt = require('jsonwebtoken');
-const { omit, pick } = require('lodash');
-const uuid = require('uuid');
-const Queue = require('../../utils/queue.util');
-const RoomModel = require('./room.model');
-const RoomHistoryModel = require('./roomHistory.model');
-const RecentRoomsModel = require('./recentRooms.model');
-const config = require('../../config/env');
-const log = require('../../utils/logger.util')({ name: 'room.utils' });
-const { NotFoundError } = require('../../utils/error.util');
-const redisUtils = require('../../utils/redis.util');
-const janusUtil = require('../../lib/janus.util');
-const makeUserOperator = require('./utils/room.utils.makeUserOperator.js');
-const checkOperatorPermissions = require('./utils/room.utils.checkOperatorPermissions');
-const adjectives = require('../../lib/adjectives.json');
-const nouns = require('../../lib/nouns.json');
-const removeUser = require('./controllers/room.removeUser');
-const selectJanusServer = require('./utils/selectJanusServer');
 
+import jwt from 'jsonwebtoken';
+import _ from 'lodash';
+const { omit, pick } = _;
+import * as uuid from 'uuid';
+import Queue from '../../utils/queue.util.js';
+import RoomModel from './room.model.js';
+import RoomHistoryModel from './roomHistory.model.js';
+import RecentRoomsModel from './recentRooms.model.js';
+import config from '../../config/env/index.js';
+import logFactory from '../../utils/logger.util.js';
+import { NotFoundError } from '../../utils/error.util.js';
+import redisUtils from '../../utils/redis.util.js';
+import janusUtil from '../../lib/janus.util.js';
+import makeUserOperator from './utils/room.utils.makeUserOperator.js';
+import checkOperatorPermissions from './utils/room.utils.checkOperatorPermissions.js';
+import adjectives from '../../lib/adjectives.json' with { type: 'json' };
+import nouns from '../../lib/nouns.json' with { type: 'json' };
+import removeUser from './controllers/room.removeUser.js';
+import selectJanusServer from './utils/selectJanusServer.js';
+const log = logFactory({ name: 'room.utils' });
 const removeUserQueue = new Queue(removeUser, 100);
 removeUserQueue.on('done', () => log.debug('remove user queue finished'));
 
@@ -28,9 +30,9 @@ function getRoomById(id, cb) {
   if (!cb) return promise;
   promise.then(result => cb(null, result), err => cb(err));
 }
-module.exports.getRoomById = getRoomById;
+export { getRoomById };
 
-module.exports.getRoomUserListById = function getRoomUserListById(roomId, cb) {
+export function getRoomUserListById(roomId, cb) {
   const promise = RoomModel.findOne({ _id: roomId })
     .select('users')
     .exec();
@@ -38,13 +40,13 @@ module.exports.getRoomUserListById = function getRoomUserListById(roomId, cb) {
   promise.then(result => cb(null, result), err => cb(err));
 };
 
-module.exports.getRoomIdFromName = function getRoomIdFromName(name) {
+export function getRoomIdFromName(name) {
   return RoomModel.findOne({ name })
     .select('_id')
     .exec();
 };
 
-module.exports.getMediaByRoomName = function getMediaByRoomName(name) {
+export function getMediaByRoomName(name) {
   return RoomModel
     .findOne({ name })
     .select('media')
@@ -68,7 +70,7 @@ function getRoomByName(name, cb) {
   promise.then(result => cb(null, result), err => cb(err));
 }
 
-module.exports.getRoomByName = getRoomByName;
+export { getRoomByName };
 
 /**
  *
@@ -88,9 +90,9 @@ const getRoomsByJanusIds = function getRoomsByJanusIds(janusIdArr, cb) {
   promise.then(result => cb(null, result), err => cb(err));
 };
 
-module.exports.getRoomsByJanusIds = getRoomsByJanusIds;
+export { getRoomsByJanusIds };
 
-module.exports.getRoomsByUser = function getRoomsByUser({ userId, sessionId, ip }) {
+export function getRoomsByUser({ userId, sessionId, ip }) {
   let queryParams = [
     { 'users.ip': ip },
   ];
@@ -115,7 +117,7 @@ module.exports.getRoomsByUser = function getRoomsByUser({ userId, sessionId, ip 
     .exec();
 };
 
-module.exports.getUserByListId = function getUserByListId(userListId) {
+export function getUserByListId(userListId) {
   return new Promise(async (resolve, reject) => {
     let room;
     try {
@@ -155,7 +157,7 @@ module.exports.getUserByListId = function getUserByListId(userListId) {
  * @param currentColor
  * @returns {*}
  */
-module.exports.getChatColor = function getChatColor(currentColor) {
+export function getChatColor(currentColor) {
   if (currentColor) {
     if (config.chatcolors.indexOf(currentColor) === (config.chatcolors.length - 1)) {
       return config.chatcolors[0];
@@ -171,7 +173,7 @@ function _createUniqueIntegerId() {
   return uuid.v4();
 }
 
-module.exports.createUniqueIntegerId = _createUniqueIntegerId;
+export const createUniqueIntegerId = _createUniqueIntegerId;
 
 function _createGuestHandle() {
   const adjectiveIndex = Math.round(Math.random() * adjectives.length);
@@ -179,7 +181,7 @@ function _createGuestHandle() {
   return `${adjectives[adjectiveIndex]}_${nouns[nounIndex]}`;
 }
 
-module.exports.createGuestHandle = _createGuestHandle;
+export const createGuestHandle = _createGuestHandle;
 
 /**
  * create a default guest user, using a generated
@@ -187,7 +189,7 @@ module.exports.createGuestHandle = _createGuestHandle;
  *
  * @param socket
  */
-module.exports.createGuestUser = function createGuestUser(socket) {
+export function createGuestUser(socket) {
   return {
     ip: socket.handshake.address,
     signature: 'superawesomesignaturebro',
@@ -204,7 +206,7 @@ module.exports.createGuestUser = function createGuestUser(socket) {
  * @param roomName
  * @param cb
  */
-module.exports.sanitizeUserList = async function sanitizeUserList(sockets, roomName, cb) {
+export async function sanitizeUserList(sockets, roomName, cb) {
   try {
     const room = await RoomModel.findOne({ name: roomName }).exec();
 
@@ -244,7 +246,7 @@ function selectJanusServerId(cb) {
 }
 
 
-module.exports.getActiveRoomCount = function getActiveRoomCount(publicOnly = false) {
+export function getActiveRoomCount(publicOnly = false) {
   if (publicOnly) {
     return RoomModel.countDocuments({
       users: {
@@ -256,7 +258,7 @@ module.exports.getActiveRoomCount = function getActiveRoomCount(publicOnly = fal
   return RoomModel.countDocuments({ users: { $gt: [] } }).exec();
 };
 
-module.exports.getActiveRooms = function getActiveRooms(start, end, publicOnly, cb) {
+export function getActiveRooms(start, end, publicOnly, cb) {
   let filter = {
     $match: {
       users: {
@@ -335,7 +337,7 @@ function createJanusSession(serverId, janusId, cb) {
   });
 }
 
-module.exports.checkForJanusRoom = async function checkForJanusRoom(serverId, janusId, cb) {
+export async function checkForJanusRoom(serverId, janusId, cb) {
   let rooms;
   try {
     const { response } = await janusUtil.listRooms(serverId);
@@ -380,9 +382,9 @@ function createJanusRoom(janusId, cb) {
   });
 }
 
-module.exports.createJanusRoom = createJanusRoom;
+export { createJanusRoom };
 
-module.exports.createJanusRoomAsync = function createJanusRoomAsync(janusId) {
+export function createJanusRoomAsync(janusId) {
   return new Promise((resolve, reject) => {
     createJanusRoom(janusId, (err, janusRoomId, serverId) => {
       if (err) {
@@ -394,7 +396,7 @@ module.exports.createJanusRoomAsync = function createJanusRoomAsync(janusId) {
   });
 };
 
-module.exports.removeJanusRoom = function removeJanusRoom(serverId, janusId, cb) {
+export function removeJanusRoom(serverId, janusId, cb) {
   if (cb) {
     return janusUtil.removeRoom(serverId, janusId, cb);
   }
@@ -448,7 +450,7 @@ async function clearEmptyRoomsInServer(serverId, cb) {
   }
 }
 
-module.exports.clearEmptyJanusRooms = function clearEmptyJanusRooms(cb) {
+export function clearEmptyJanusRooms(cb) {
   log.info('clearing empty janus rooms');
   Promise.all(
     config.janus.serverIds.map(serverId => new Promise((resolve, reject) => {
@@ -466,7 +468,7 @@ module.exports.clearEmptyJanusRooms = function clearEmptyJanusRooms(cb) {
   });
 };
 
-module.exports.getSocketCacheInfo = async function getSocketCacheInfo(socketId, cb) {
+export async function getSocketCacheInfo(socketId, cb) {
   if (!cb) {
     return redisUtils.callPromise('hgetall', socketId);
   }
@@ -479,7 +481,7 @@ module.exports.getSocketCacheInfo = async function getSocketCacheInfo(socketId, 
   }
 };
 
-module.exports.setSocketIdByListId = async function setSocketByListId(userListId, targetSocketId, cb) {
+export async function setSocketIdByListId(userListId, targetSocketId, cb) {
   try {
     await redisUtils.callPromise('set', userListId, targetSocketId);
   } catch (err) {
@@ -494,7 +496,7 @@ module.exports.setSocketIdByListId = async function setSocketByListId(userListId
   }
 };
 
-module.exports.getSocketIdFromListId = async function getSocketIdFromListId(userListId, cb) {
+export async function getSocketIdFromListId(userListId, cb) {
   try {
     const socketId = await redisUtils.callPromise('get', userListId);
     return cb(null, socketId);
@@ -503,9 +505,9 @@ module.exports.getSocketIdFromListId = async function getSocketIdFromListId(user
   }
 };
 
-module.exports.makeUserOperator = makeUserOperator;
+export { makeUserOperator };
 
-module.exports.checkOperatorPermissions = checkOperatorPermissions;
+export { checkOperatorPermissions };
 
 const filterRoomUser = function filterRoomUser(user) {
   return pick(user, [
@@ -537,11 +539,11 @@ const filterClientUser = function filterClientUser(user) {
   ]);
 };
 
-module.exports.filterClientUser = filterClientUser;
+export { filterClientUser };
 
-module.exports.filterRoomUser = filterRoomUser;
+export { filterRoomUser };
 
-module.exports.filterRoom = function filterRoom(room) {
+export function filterRoom(room) {
   const filteredRoomUsers = room.users.map(user => filterRoomUser(user));
 
   const filteredRoomAttrs = pick(room.attrs, ['owner', 'janus_id', 'fresh', 'ageRestricted']);
@@ -578,7 +580,7 @@ module.exports.filterRoom = function filterRoom(room) {
  * @param room
  * @returns {*}
  */
-module.exports.checkModAssignedBy = function checkModAssignedBy(room) {
+export function checkModAssignedBy(room) {
   return room.users.map((u) => {
     const mod = room.settings.moderators.find(m => String(m._id) === String(u.operator_id));
 
@@ -590,7 +592,7 @@ module.exports.checkModAssignedBy = function checkModAssignedBy(room) {
   });
 };
 
-module.exports.getSocketIdFromRoom = async function getSocketIdFromRoom(roomName, userListId, cb) {
+export async function getSocketIdFromRoom(roomName, userListId, cb) {
   try {
     const room = await getRoomByName(roomName);
 
@@ -616,7 +618,7 @@ module.exports.getSocketIdFromRoom = async function getSocketIdFromRoom(roomName
   }
 };
 
-module.exports.removeRoomByUserId = function removeRoomByUserId(userId, cb) {
+export function removeRoomByUserId(userId, cb) {
   const promise = RoomModel
     .deleteOne({ 'attrs.owner': userId })
     .exec();
@@ -630,7 +632,7 @@ function isIgnoreExpired({ expiresAt }) {
   return ignoreTime < expireTime;
 }
 
-module.exports.getIgnoredUsersInRoom = function getIgnoredUsersInRoom({ users }, ignoreList = []) {
+export function getIgnoredUsersInRoom({ users }, ignoreList = []) {
   return ignoreList
     .filter(isIgnoreExpired)
     .map((i) => {
@@ -648,12 +650,12 @@ module.exports.getIgnoredUsersInRoom = function getIgnoredUsersInRoom({ users },
     .map(i => omit(i, ['sessionId']));
 };
 
-module.exports.removeExpiredIgnoreListItems = function removeExpiredIgnoreListItems(ignoreList) {
+export function removeExpiredIgnoreListItems(ignoreList) {
   log.debug({ ignoreList }, 'removeExpiredIgnoreListItems');
   return ignoreList.filter(isIgnoreExpired);
 };
 
-module.exports.checkUserSilenced = async function checkUserSilenced(userListId) {
+export async function checkUserSilenced(userListId) {
   const redisKey = `userSilence:${userListId}`;
   let silenced = false;
 
@@ -684,7 +686,7 @@ module.exports.checkUserSilenced = async function checkUserSilenced(userListId) 
   return false;
 };
 
-module.exports.addHistoryEntry = async function addHistoryEntry(roomId, user) {
+export async function addHistoryEntry(roomId, user) {
   const room = await getRoomById(roomId);
 
   if (!room) {
@@ -699,13 +701,13 @@ module.exports.addHistoryEntry = async function addHistoryEntry(roomId, user) {
     });
 };
 
-module.exports.getHistoryEntryByUserListId = function getHistoryEntryByUserListId(userListId) {
+export function getHistoryEntryByUserListId(userListId) {
   return RoomHistoryModel
     .findOne({ 'user.userListId': userListId })
     .exec();
 };
 
-module.exports.getHistoryEntryByNames = function getHistoryEntryByNames(room, handle, username) {
+export function getHistoryEntryByNames(room, handle, username) {
   return RoomHistoryModel
     .findOne({ room })
     .or([
@@ -715,7 +717,7 @@ module.exports.getHistoryEntryByNames = function getHistoryEntryByNames(room, ha
     .exec();
 };
 
-module.exports.addRecentRoom = async function addRecentRoom(userId, roomId) {
+export async function addRecentRoom(userId, roomId) {
   log.debug({ userId: String(userId) }, 'addRecentRoom');
   const recent = await RecentRoomsModel
     .findOne({ user: userId })
@@ -799,8 +801,10 @@ function checkUserIsMod(userId, room) {
   return isMod || isOwner;
 }
 
-module.exports.checkUserIsMod = checkUserIsMod;
+export { checkUserIsMod };
 
-module.exports.addToRemoveUserQueue = function addToRemoveUserQueue(socketId, roomName, cb) {
+export function addToRemoveUserQueue(socketId, roomName, cb) {
   return removeUserQueue.addToQueue([socketId, { name: roomName }, cb]);
 };
+
+export default { getRoomById, getRoomUserListById, getRoomIdFromName, getMediaByRoomName, getRoomByName, getRoomsByJanusIds, getRoomsByUser, getUserByListId, getChatColor, createUniqueIntegerId, createGuestHandle, createGuestUser, sanitizeUserList, getActiveRoomCount, getActiveRooms, checkForJanusRoom, createJanusRoom, createJanusRoomAsync, removeJanusRoom, clearEmptyJanusRooms, getSocketCacheInfo, setSocketIdByListId, getSocketIdFromListId, makeUserOperator, checkOperatorPermissions, filterClientUser, filterRoomUser, filterRoom, checkModAssignedBy, getSocketIdFromRoom, removeRoomByUserId, getIgnoredUsersInRoom, removeExpiredIgnoreListItems, checkUserSilenced, addHistoryEntry, getHistoryEntryByUserListId, getHistoryEntryByNames, addRecentRoom, checkUserIsMod, addToRemoveUserQueue };

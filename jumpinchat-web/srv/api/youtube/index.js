@@ -1,10 +1,10 @@
 
-const express = require('express');
-const utils = require('../../utils/utils');
-const SearchYoutube = require('./controllers/search.controller');
-const setPlay = require('./controllers/setPlay.controller');
-const getPlaylist = require('./controllers/getPlaylist.controller');
 
+import express from 'express';
+import utils from '../../utils/utils.js';
+import SearchYoutube from './controllers/search.controller.js';
+import setPlay from './controllers/setPlay.controller.js';
+import getPlaylist from './controllers/getPlaylist.controller.js';
 const search = new SearchYoutube();
 const router = express.Router();
 
@@ -13,4 +13,4 @@ router.get('/search/:term', utils.validateAccount, (req, res) => search.sendRequ
 router.put('/playvideos', utils.validateSession, setPlay);
 router.get('/:roomName/playlist', utils.validateSession, getPlaylist);
 
-module.exports = router;
+export default router;

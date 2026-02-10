@@ -1,16 +1,14 @@
-const Joi = require('joi');
-const {
-  getRoomByName,
-  getSocketCacheInfo,
-} = require('../room.utils');
-const { PermissionError } = require('../../../utils/error.util');
-const { getUserHasRolePermissions } = require('../../role/role.utils');
+import Joi from 'joi';
+import { PermissionError } from '../../../utils/error.util.js';
+import { getUserHasRolePermissions } from '../../role/role.utils.js';
+import { getUserById } from '../../user/user.utils.js';
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'room.setTopic' });
+import { getRoomByName, getSocketCacheInfo } from '../room.utils.js';
 
-const { getUserById } = require('../../user/user.utils');
-const log = require('../../../utils/logger.util')({ name: 'room.setTopic' });
-const errors = require('../../../config/constants/errors');
 
-module.exports = async function submitTopic(socketId, topic) {
+export default async function submitTopic(socketId, topic) {
   let roomCache;
   let room;
 

@@ -1,9 +1,8 @@
 /* global describe,it,beforeEach */
 
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire').noCallThru();
-
+import { expect } from 'chai';
+import sinon from 'sinon';
+import esmock from 'esmock';
 const socketId = 'socketId';
 let changeColor;
 
@@ -23,15 +22,15 @@ const roomSaveStub = sinon.stub().resolves(roomMockData);
 const roomMock = Object.assign({}, roomMockData, { save: roomSaveStub });
 
 describe('Room Change Handle Controller', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     hmset = sinon.stub().resolves();
-    changeColor = proxyquire('../../controllers/room.changeChatColor', {
-      '../room.utils': {
+    changeColor = await esmock('../../controllers/room.changeChatColor.js', {
+      '../../room.utils.js': {
         filterRoomUser: sinon.stub().callsFake(u => u),
         getChatColor: sinon.stub().returns('orange'),
         getRoomByName: sinon.stub().yields(null, roomMock),
       },
-      '../../../lib/redis.util': () => ({
+      '../../../../lib/redis.util.js': () => ({
         hSet: hmset,
         hGetAll: sinon.stub().resolves({
           name: 'roomName',

@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
 
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const PaymentSchema = new Schema({
@@ -14,4 +14,4 @@ const PaymentSchema = new Schema({
   beneficiary: { type: Schema.Types.ObjectId, ref: 'User' },
 });
 
-module.exports = mongoose.model('Payment', PaymentSchema);
+export default mongoose.model('Payment', PaymentSchema);

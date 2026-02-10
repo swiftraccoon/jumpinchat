@@ -1,12 +1,13 @@
 
-const log = require('../../../utils/logger.util')({ name: 'user.remove' });
-const userUtils = require('../user.utils');
-const roomUtils = require('../../room/room.utils');
-const { cancelSubscription } = require('../../payment/payment.utils');
-const { removeRoomRoles, removeRoomEnrollments } = require('../../role/role.utils');
-const errors = require('../../../config/constants/errors');
 
-module.exports = async function removeUser(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import userUtils from '../user.utils.js';
+import roomUtils from '../../room/room.utils.js';
+import { cancelSubscription } from '../../payment/payment.utils.js';
+import { removeRoomRoles, removeRoomEnrollments } from '../../role/role.utils.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'user.remove' });
+export default async function removeUser(req, res) {
   const { user } = req;
   const { userId } = req.params;
 

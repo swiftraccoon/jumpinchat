@@ -2,34 +2,32 @@
  * Created by vivaldi on 25/10/2014.
  */
 
-const express = require('express');
-const bodyParser = require('body-parser');
-const methodOverride = require('method-override');
-const cookieParser = require('cookie-parser');
-const session = require('express-session');
-const helmet = require('helmet');
-const errorHandler = require('errorhandler');
-const { createClient: createRedisClient } = require('redis');
-const RedisStore = require('connect-redis')(session);
-const path = require('path');
-const ejs = require('ejs');
-const config = require('./env');
-const log = require('../utils/logger.util')({ name: 'express.config' });
 
-module.exports = function expressConfig(app, io) {
+import express from 'express';
+import methodOverride from 'method-override';
+import cookieParser from 'cookie-parser';
+import session from 'express-session';
+import helmet from 'helmet';
+import errorHandler from 'errorhandler';
+import { createClient as createRedisClient } from 'redis';
+import { RedisStore } from 'connect-redis';
+import path from 'path';
+import ejs from 'ejs';
+import config from './env/index.js';
+import logFactory from '../utils/logger.util.js';
+const log = logFactory({ name: 'express.config' });
+export default function expressConfig(app, io) {
   const env = app.get('env');
 
   // Trust first proxy (nginx) so Express sees X-Forwarded-Proto as HTTPS
   // Required for secure session cookies behind reverse proxy
   app.set('trust proxy', 1);
 
-  // Create a separate legacy-mode redis client for connect-redis v6
-  // (connect-redis v6 uses callback-based API, not redis v4 promises)
+  // Create a redis client for connect-redis session store
   const sessionRedisOpts = {};
   if (config.redis) {
     sessionRedisOpts.url = config.redis.uri;
   }
-  sessionRedisOpts.legacyMode = true;
   const sessionRedisClient = createRedisClient(sessionRedisOpts);
   sessionRedisClient.connect().catch((err) => {
     log.fatal({ err }, 'session redis connection failed');
@@ -132,9 +130,9 @@ module.exports = function expressConfig(app, io) {
     }
     next();
   });
-  app.use('/api/payment/stripe/event', bodyParser.raw({ type: '*/*' }));
-  app.use(bodyParser.urlencoded({ extended: false }));
-  app.use(bodyParser.json());
+  app.use('/api/payment/stripe/event', express.raw({ type: '*/*' }));
+  app.use(express.urlencoded({ extended: false }));
+  app.use(express.json());
   app.use(methodOverride());
 
   app.use(express.static(path.join(config.root, config.appPath)));

@@ -1,10 +1,11 @@
-const log = require('../../../utils/logger.util')({ name: 'admin.removeSiteMod' });
-const errors = require('../../../config/constants/errors');
-const adminUtils = require('../admin.utils');
-const userUtils = require('../../user/user.utils');
-const trophyUtils = require('../../trophy/trophy.utils');
 
-module.exports = async function removeSiteMod(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import errors from '../../../config/constants/errors.js';
+import adminUtils from '../admin.utils.js';
+import userUtils from '../../user/user.utils.js';
+import trophyUtils from '../../trophy/trophy.utils.js';
+const log = logFactory({ name: 'admin.removeSiteMod' });
+export default async function removeSiteMod(req, res) {
   const { modId } = req.params;
 
   let mod;

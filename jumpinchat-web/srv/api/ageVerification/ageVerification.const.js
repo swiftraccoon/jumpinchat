@@ -1,4 +1,4 @@
-module.exports.statuses = {
+export const statuses = {
   PENDING: 'PENDING',
   APPROVED: 'APPROVED',
   DENIED: 'DENIED',
@@ -6,7 +6,9 @@ module.exports.statuses = {
   EXPIRED: 'EXPIRED',
 };
 
-module.exports.noSubmitReasons = {
+export const noSubmitReasons = {
   DENIED: 'DENIED',
   ACTIVE: 'ACTIVE',
 };
+
+export default { statuses, noSubmitReasons };

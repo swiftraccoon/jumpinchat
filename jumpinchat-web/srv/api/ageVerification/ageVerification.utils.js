@@ -1,8 +1,8 @@
-const config = require('../../config/env');
-const { statuses } = require('./ageVerification.const');
-const AgeVerificationModel = require('./ageVerification.model');
 
-module.exports.findById = function findById(id) {
+import config from '../../config/env/index.js';
+import { statuses } from './ageVerification.const.js';
+import AgeVerificationModel from './ageVerification.model.js';
+export function findById(id) {
   return AgeVerificationModel
     .findOne({
       _id: id,
@@ -10,13 +10,13 @@ module.exports.findById = function findById(id) {
     .exec();
 };
 
-module.exports.getRequests = function getRequests() {
+export function getRequests() {
   return AgeVerificationModel
     .find()
     .exec();
 };
 
-module.exports.getRequestsByUser = function getRequestsByUser(userId) {
+export function getRequestsByUser(userId) {
   return AgeVerificationModel
     .find({
       status: { $eq: statuses.PENDING },
@@ -27,7 +27,7 @@ module.exports.getRequestsByUser = function getRequestsByUser(userId) {
     .exec();
 };
 
-module.exports.findRecentDeniedRequests = function findRecentDeniedRequests(userId) {
+export function findRecentDeniedRequests(userId) {
   return AgeVerificationModel
     .find({
       status: statuses.DENIED,

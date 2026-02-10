@@ -3,7 +3,7 @@
  */
 
 
-module.exports = function (error, data, message) {
+export default function(error, data, message) {
   this.error = error || null;
   this.data = data || {};
   this.message = message || null;

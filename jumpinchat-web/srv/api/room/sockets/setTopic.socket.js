@@ -1,9 +1,10 @@
-const utils = require('../../../utils/utils');
-const log = require('../../../utils/logger.util')({ name: 'setTopic.socket' });
-const setTopicController = require('../controllers/room.setTopic');
-const socketFloodProtect = require('../../../utils/socketFloodProtect');
 
-module.exports = function setTopicSocket(socket, io) {
+import utils from '../../../utils/utils.js';
+import logFactory from '../../../utils/logger.util.js';
+import setTopicController from '../controllers/room.setTopic.js';
+import socketFloodProtect from '../../../utils/socketFloodProtect.js';
+const log = logFactory({ name: 'setTopic.socket' });
+export default function setTopicSocket(socket, io) {
   return async function setTopic(msg) {
     try {
       await socketFloodProtect(socket);

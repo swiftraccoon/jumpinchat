@@ -1,8 +1,9 @@
-const log = require('../../../utils/logger.util')({ name: 'room.infoRead' });
-const Joi = require('joi');
-const roomUtils = require('../room.utils');
 
-module.exports = function infoRead(req, res) {
+import logFactory from '../../../utils/logger.util.js';
+import Joi from 'joi';
+import roomUtils from '../room.utils.js';
+const log = logFactory({ name: 'room.infoRead' });
+export default function infoRead(req, res) {
   const schema = Joi.object().keys({
     room: Joi.string().required(),
   });

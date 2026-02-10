@@ -3,13 +3,14 @@
  */
 
 
-const log = require('../../../utils/logger.util')({ name: 'fetchBanlist.socket' });
-const roomController = require('../room.controller');
-const RoomUtils = require('../room.utils');
-const { PermissionError } = require('../../../utils/error.util');
-const { getUserHasRolePermissions } = require('../../role/role.utils');
 
-module.exports = function fetchBanlistSocket(socket) {
+import logFactory from '../../../utils/logger.util.js';
+import roomController from '../room.controller.js';
+import RoomUtils from '../room.utils.js';
+import { PermissionError } from '../../../utils/error.util.js';
+import { getUserHasRolePermissions } from '../../role/role.utils.js';
+const log = logFactory({ name: 'fetchBanlist.socket' });
+export default function fetchBanlistSocket(socket) {
   return async function fetchBanlist() {
     let socketData;
     try {

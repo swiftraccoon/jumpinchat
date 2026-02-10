@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
 
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const StatsSchema = new Schema({
@@ -11,4 +11,4 @@ const StatsSchema = new Schema({
   }],
 });
 
-module.exports = mongoose.model('Stats', StatsSchema);
+export default mongoose.model('Stats', StatsSchema);

@@ -1,7 +1,7 @@
-const { NotFoundError, PermissionError } = require('../../../utils/error.util');
-const { getUserHasRolePermissions } = require('../role.utils');
 
-module.exports = async function getUserHasPermissionsConnector(req, res) {
+import { NotFoundError, PermissionError } from '../../../utils/error.util.js';
+import { getUserHasRolePermissions } from '../role.utils.js';
+export default async function getUserHasPermissionsConnector(req, res) {
   // /api/role/permission/:userId/room/:roomId?permission=
   const {
     userId,

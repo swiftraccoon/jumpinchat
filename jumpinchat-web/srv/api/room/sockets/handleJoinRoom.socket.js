@@ -2,18 +2,16 @@
  * Created by Zaccary on 24/05/2016.
  */
 
-const jwt = require('jsonwebtoken');
-const { format } = require('date-fns');
-const log = require('../../../utils/logger.util')({ name: 'handleJoinRoom.socket' });
-const utils = require('../../../utils/utils');
-const RoomJoin = require('../controllers/room.join');
-const RoomUtils = require('../room.utils');
-const userUtils = require('../../user/user.utils');
-const {
-  ALERT_TYPES,
-  ALERT_LEVELS,
-} = require('../../../config/constants/alerts');
-const errors = require('../../../config/constants/errors');
+import jwt from 'jsonwebtoken';
+import { format } from 'date-fns';
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import RoomJoin from '../controllers/room.join.js';
+import RoomUtils from '../room.utils.js';
+import userUtils from '../../user/user.utils.js';
+import errors from '../../../config/constants/errors.js';
+const log = logFactory({ name: 'handleJoinRoom.socket' });
+import { ALERT_TYPES, ALERT_LEVELS } from '../../../config/constants/alerts.js';
 
 const joinConditions = [
   'ERR_ACCOUNT_REQUIRED',
@@ -26,7 +24,7 @@ const joinConditions = [
   'ERR_MIN_ACCOUNT_AGE',
 ];
 
-module.exports = function handleJoinRoomSocket(socket, io) {
+export default function handleJoinRoomSocket(socket, io) {
   const roomJoin = new RoomJoin();
 
   return function handleJoinRoom(msg) {

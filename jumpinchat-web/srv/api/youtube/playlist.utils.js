@@ -1,7 +1,7 @@
-const mongoose = require('mongoose');
-const PlaylistModel = require('./playlist.model');
 
-module.exports.getMediaByRoomId = function getMediaByRoomName(room) {
+import mongoose from 'mongoose';
+import PlaylistModel from './playlist.model.js';
+export function getMediaByRoomId(room) {
   return new Promise(async (resolve, reject) => {
     try {
       const playlist = await PlaylistModel
@@ -26,6 +26,6 @@ module.exports.getMediaByRoomId = function getMediaByRoomName(room) {
   });
 };
 
-module.exports.removePlaylistByRoomId = function removePlaylistByRoomId(room) {
+export function removePlaylistByRoomId(room) {
   return PlaylistModel.deleteOne({ room }).exec();
 };

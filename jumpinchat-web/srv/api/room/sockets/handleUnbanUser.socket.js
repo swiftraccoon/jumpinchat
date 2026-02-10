@@ -2,14 +2,15 @@
  * Created by Zaccary on 28/05/2016.
  */
 
-const jwt = require('jsonwebtoken');
-const log = require('../../../utils/logger.util')({ name: 'handleBanUser.socket' });
-const utils = require('../../../utils/utils');
-const roomController = require('../room.controller');
-const RoomUtils = require('../room.utils');
-const { getUserHasRolePermissions } = require('../../role/role.utils');
 
-module.exports = function handleUnbanUser(socket, io) {
+import jwt from 'jsonwebtoken';
+import logFactory from '../../../utils/logger.util.js';
+import utils from '../../../utils/utils.js';
+import roomController from '../room.controller.js';
+import RoomUtils from '../room.utils.js';
+import { getUserHasRolePermissions } from '../../role/role.utils.js';
+const log = logFactory({ name: 'handleBanUser.socket' });
+export default function handleUnbanUser(socket, io) {
   /**
    *
    * @param {object} msg

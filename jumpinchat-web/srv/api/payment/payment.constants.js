@@ -9,11 +9,11 @@ const productTypes = {
   TYPE_PLAN: 'plan',
 };
 
-module.exports.productIds = productIds;
+export { productIds };
 
-module.exports.productTypes = productTypes;
+export { productTypes };
 
-module.exports.products = {
+export const products = {
   [productIds.SUPPORT_ONE_TIME]: {
     type: productTypes.TYPE_CHARGE,
   },
@@ -27,7 +27,7 @@ module.exports.products = {
   },
 };
 
-module.exports.stripeEvents = {
+export const stripeEvents = {
   SUBSCRIPTION_DELETE: 'customer.subscription.deleted',
   CHARGE_SUCCESS: 'charge.succeeded',
   INVOICE_PAID: 'invoice.payment_succeeded',

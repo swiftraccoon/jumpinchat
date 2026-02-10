@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   JOIN: 'JOIN',
   MUTE: 'MUTE',
   BROADCAST: 'BROADCAST',

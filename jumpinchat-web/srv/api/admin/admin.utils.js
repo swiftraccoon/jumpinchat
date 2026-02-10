@@ -1,12 +1,15 @@
-const { startOfHour, startOfDay } = require('date-fns');
-const { groupBy } = require('lodash');
-const config = require('../../config/env');
-const log = require('../../utils/logger.util')({ name: 'adminUtils' });
-const redis = require('../../lib/redis.util')();
-const StatsModel = require('./stats.model');
-const SiteModModel = require('./sitemod.model');
-const ModActivityModel = require('./modActivity.model');
 
+import { startOfHour, startOfDay } from 'date-fns';
+import _ from 'lodash';
+const { groupBy } = _;
+import config from '../../config/env/index.js';
+import logFactory from '../../utils/logger.util.js';
+import redisFactory from '../../lib/redis.util.js';
+import StatsModel from './stats.model.js';
+import SiteModModel from './sitemod.model.js';
+import ModActivityModel from './modActivity.model.js';
+const log = logFactory({ name: 'adminUtils' });
+const redis = redisFactory();
 const statsKey = 'stats';
 
 function getRandomIntInclusive(min, max) {
@@ -45,7 +48,7 @@ function getStubStats() {
   return data;
 }
 
-module.exports.formatData = function formatData(data) {
+export function formatData(data) {
   const userData = data.map(s => ({
     x: s.createdAt,
     y: s.rooms.reduce((acc, r) => acc += r.users, 0),
@@ -81,7 +84,7 @@ function getLimitedData(data, limit) {
     .map(d => d.slice(limit * -1));
 }
 
-module.exports.getStats = function getStats() {
+export function getStats() {
   const diff = 1000 * 60 * 60 * 24 * 7 * 4;
   const limit = new Date(Date.now() - diff);
 
@@ -98,28 +101,28 @@ module.exports.getStats = function getStats() {
     .exec();
 };
 
-module.exports.getStatsDay = function getStatsDay(stats) {
+export function getStatsDay(stats) {
   const limit = 96;
 
   const limitedStats = getLimitedData(stats, limit);
   return limitedStats.map(v => mergeData(v, 'hour'));
 };
 
-module.exports.getStatsWeek = function getStatsWeek(stats) {
+export function getStatsWeek(stats) {
   const limit = 672;
 
   const limitedStats = getLimitedData(stats, limit);
   return limitedStats.map(v => mergeData(v, 'day'));
 };
 
-module.exports.getStatsMonth = function getStatsMonth(stats) {
+export function getStatsMonth(stats) {
   const limit = 2688;
 
   const limitedStats = getLimitedData(stats, limit);
   return limitedStats.map(v => mergeData(v, 'day'));
 };
 
-module.exports.setStatsInCache = async function setStatsInCache(stats) {
+export async function setStatsInCache(stats) {
   let statsString;
   try {
     statsString = JSON.stringify(stats);
@@ -137,7 +140,7 @@ module.exports.setStatsInCache = async function setStatsInCache(stats) {
   }
 };
 
-module.exports.getStatsFromCache = async function getStatsFromCache() {
+export async function getStatsFromCache() {
   let ttl;
   try {
     ttl = await redis.ttl(statsKey);
@@ -167,21 +170,21 @@ module.exports.getStatsFromCache = async function getStatsFromCache() {
   }
 };
 
-module.exports.addSiteMod = function addSiteMod(sitemod) {
+export function addSiteMod(sitemod) {
   return SiteModModel.create(sitemod);
 };
 
-module.exports.removeSiteMod = function removeSiteMod(id) {
+export function removeSiteMod(id) {
   return SiteModModel.deleteOne({ _id: id });
 };
 
-module.exports.getSiteModById = function getSiteModById(modId) {
+export function getSiteModById(modId) {
   return SiteModModel
     .findOne({ _id: modId })
     .exec();
 };
 
-module.exports.getSiteMods = function getSiteMods() {
+export function getSiteMods() {
   return SiteModModel
     .find({})
     .populate({
@@ -195,7 +198,7 @@ module.exports.getSiteMods = function getSiteMods() {
     .exec();
 };
 
-module.exports.addModActivity = function addModActivity(user, action) {
+export function addModActivity(user, action) {
   const activityItem = {
     user,
     action,
@@ -204,11 +207,11 @@ module.exports.addModActivity = function addModActivity(user, action) {
   return ModActivityModel.create(activityItem);
 };
 
-module.exports.getModActivityCount = function getModActivityCount() {
+export function getModActivityCount() {
   return ModActivityModel.countDocuments({}).exec();
 };
 
-module.exports.getModActivity = function getModActivity(start, end) {
+export function getModActivity(start, end) {
   return ModActivityModel
     .find({})
     .skip(start)
@@ -220,3 +223,5 @@ module.exports.getModActivity = function getModActivity(start, end) {
     })
     .exec();
 };
+
+export default { formatData, getStats, getStatsDay, getStatsWeek, getStatsMonth, setStatsInCache, getStatsFromCache, addSiteMod, removeSiteMod, getSiteModById, getSiteMods, addModActivity, getModActivityCount, getModActivity };

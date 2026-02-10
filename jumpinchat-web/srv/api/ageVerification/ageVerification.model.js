@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
-const { statuses } = require('./ageVerification.const');
 
+import mongoose from 'mongoose';
+import { statuses } from './ageVerification.const.js';
 const { Schema } = mongoose;
 
 const AgeVerificationSchema = new Schema({
@@ -12,4 +12,4 @@ const AgeVerificationSchema = new Schema({
   updatedAt: Date,
 });
 
-module.exports = mongoose.model('AgeVerification', AgeVerificationSchema);
+export default mongoose.model('AgeVerification', AgeVerificationSchema);

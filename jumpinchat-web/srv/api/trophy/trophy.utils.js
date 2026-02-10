@@ -1,16 +1,15 @@
-const { differenceInYears, getDate, getMonth, getYear } = require('date-fns');
-const { toZonedTime } = require('date-fns-tz');
-const log = require('../../utils/logger.util')({ name: 'trophy utils' });
-const trophyModel = require('./trophy.model');
-const { types } = require('./trophies');
-const userUtils = require('../user/user.utils');
-const metaSendMessage = require('../message/utils/metaSendMessage.util');
-const {
-  trophyAchieved,
-} = require('../message/message.constants');
+import { differenceInYears, getDate, getMonth, getYear } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
+import logFactory from '../../utils/logger.util.js';
+import trophyModel from './trophy.model.js';
+import { types } from './trophies.js';
+import userUtils from '../user/user.utils.js';
+import metaSendMessage from '../message/utils/metaSendMessage.util.js';
+const log = logFactory({ name: 'trophy utils' });
+import { trophyAchieved } from '../message/message.constants.js';
 
 
-module.exports.getTrophyByName = function getTrophyByName(name, cb) {
+export function getTrophyByName(name, cb) {
   const promise = trophyModel.findOne({ name }).exec();
   if (!cb) return promise;
   promise.then((trophy) => {
@@ -25,7 +24,7 @@ module.exports.getTrophyByName = function getTrophyByName(name, cb) {
   });
 };
 
-module.exports.getTrophies = function getTrophies() {
+export function getTrophies() {
   return trophyModel.find().exec();
 };
 
@@ -42,7 +41,7 @@ function checkDateMatchesCondition(conditionDate) {
   return dateMatches && monthMatches && yearMatches;
 }
 
-module.exports.checkDateMatchesCondition = checkDateMatchesCondition;
+export { checkDateMatchesCondition };
 
 function checkMembershipDuration(userJoinDate, trophies) {
   const duration = differenceInYears(new Date(), new Date(userJoinDate));
@@ -51,7 +50,7 @@ function checkMembershipDuration(userJoinDate, trophies) {
     .filter(t => duration >= t.conditions.duration.years);
 }
 
-module.exports.checkMembershipDuration = checkMembershipDuration;
+export { checkMembershipDuration };
 
 function checkOccasion(trophies) {
   const dateMax = toZonedTime(new Date(), 'Pacific/Kiritimati');
@@ -80,9 +79,9 @@ function checkOccasion(trophies) {
     });
 }
 
-module.exports.checkOccasion = checkOccasion;
+export { checkOccasion };
 
-module.exports.findApplicableTrophies = function findApplicableTrophies(userId, cb) {
+export function findApplicableTrophies(userId, cb) {
   let applicableTrophies = [];
   return userUtils.getUserById(userId, (err, user) => {
     if (err) {
@@ -123,7 +122,7 @@ module.exports.findApplicableTrophies = function findApplicableTrophies(userId, 
   });
 };
 
-module.exports.applyTrophy = async function applyTrophy(userId, trophyName, cb) {
+export async function applyTrophy(userId, trophyName, cb) {
   log.debug({ userId, trophyName }, 'applying trophy');
   try {
     const user = await userUtils.getUserById(userId, { lean: false });
@@ -165,7 +164,7 @@ module.exports.applyTrophy = async function applyTrophy(userId, trophyName, cb) 
   }
 };
 
-module.exports.dedupe = async function dedupe(userId) {
+export async function dedupe(userId) {
   const userTrophies = [];
   let user;
 
@@ -198,7 +197,7 @@ module.exports.dedupe = async function dedupe(userId) {
   return userTrophies;
 };
 
-module.exports.removeTrophy = async function removeTrophy(userId, trophyName) {
+export async function removeTrophy(userId, trophyName) {
   let user;
   let trophy;
 
@@ -239,3 +238,5 @@ module.exports.removeTrophy = async function removeTrophy(userId, trophyName) {
 
   return true;
 };
+
+export default { getTrophyByName, getTrophies, checkDateMatchesCondition, checkMembershipDuration, checkOccasion, findApplicableTrophies, applyTrophy, dedupe, removeTrophy };

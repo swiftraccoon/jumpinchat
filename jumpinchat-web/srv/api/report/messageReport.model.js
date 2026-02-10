@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
-const config = require('../../config/env');
 
+import mongoose from 'mongoose';
+import config from '../../config/env/index.js';
 const { Schema } = mongoose;
 const MessageReportSchema = new Schema({
   createdAt: { type: Date, default: Date.now },
@@ -8,4 +8,4 @@ const MessageReportSchema = new Schema({
   message: { type: Schema.Types.ObjectId, ref: 'Message' },
 });
 
-module.exports = mongoose.model('MessageReport', MessageReportSchema);
+export default mongoose.model('MessageReport', MessageReportSchema);
