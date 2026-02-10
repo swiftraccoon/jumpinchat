@@ -9,7 +9,7 @@ const roomMockJson = require('../room.mock.json');
 const config = require('../../../../config/env');
 const { PermissionError } = require('../../../../utils/error.util');
 
-const sandbox = sinon.sandbox.create();
+const sandbox = sinon.createSandbox();
 let roomMock;
 let RoomJoin;
 let roomJoin;

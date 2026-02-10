@@ -1,4 +1,3 @@
-const co = require('co');
 const log = require('../../utils/logger.util')({ name: 'migrations.defaultRoles' });
 const roomModel = require('../../api/room/room.model');
 const roleModel = require('../../api/role/role.model');
@@ -93,15 +92,13 @@ module.exports = async function defaultRoleMigrate() {
     return Promise.resolve({});
   };
 
-  co(function* loopRooms() {
-    for (let doc = yield cursor.next(); doc != null; doc = yield cursor.next()) {
-      try {
-        yield handleAddRoles(doc);
-      } catch (err) {
-        log.error({ err }, 'failed to add roles');
-      }
+  for await (const doc of cursor) {
+    try {
+      await handleAddRoles(doc);
+    } catch (err) {
+      log.error({ err }, 'failed to add roles');
     }
+  }
 
-    log.info('migration complete');
-  });
+  log.info('migration complete');
 };

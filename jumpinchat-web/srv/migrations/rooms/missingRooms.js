@@ -1,4 +1,3 @@
-const co = require('co');
 const log = require('../../utils/logger.util')({ name: 'migrations.missingRooms' });
 const userModel = require('../../api/user/user.model');
 const roomModel = require('../../api/room/room.model');
@@ -58,11 +57,9 @@ module.exports = async function missingRoomsMigrate() {
     return Promise.resolve({});
   };
 
-  co(function* loopUsers() {
-    for (let doc = yield cursor.next(); doc != null; doc = yield cursor.next()) {
-      yield handleCheckRoom(doc);
-    }
+  for await (const doc of cursor) {
+    await handleCheckRoom(doc);
+  }
 
-    log.info('migration complete');
-  });
+  log.info('migration complete');
 };

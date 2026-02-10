@@ -11,10 +11,10 @@ describe('<YoutubeVideoOptions />', () => {
     window.ga = jest.fn();
   });
 
-  describe('componentWillMount', () => {
+  describe('UNSAFE_componentWillMount', () => {
     it('should set list options', () => {
       youtubeVideoOptions.createListOptions = jest.fn();
-      youtubeVideoOptions.componentWillMount();
+      youtubeVideoOptions.UNSAFE_componentWillMount();
       expect(youtubeVideoOptions.createListOptions).toHaveBeenCalled();
     });
   });

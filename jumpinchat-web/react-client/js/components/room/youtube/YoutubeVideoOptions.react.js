@@ -19,7 +19,7 @@ class YoutubeVideoOptions extends Component {
     this.options = [];
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.options = this.createListOptions();
   }
 

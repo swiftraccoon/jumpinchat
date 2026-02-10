@@ -2,7 +2,7 @@
  * Created by Zaccary on 24/05/2016.
  */
 
-const moment = require('moment');
+const { formatDistance } = require('date-fns');
 const log = require('../../../utils/logger.util')({ name: 'handleMessage.socket' });
 const RoomUtils = require('../room.utils');
 const utils = require('../../../utils/utils');
@@ -70,7 +70,7 @@ module.exports = function handleMessageSocket(socket, io) {
         if (userSilencedTtl) {
           return socket.emit('client::error', utils.messageFactory({
             context: 'chat',
-            message: `You are silenced, wait ${moment.duration(userSilencedTtl).humanize()}`,
+            message: `You are silenced, wait ${formatDistance(0, userSilencedTtl, { includeSeconds: true })}`,
             error: 'ERR_SRV',
           }));
         }

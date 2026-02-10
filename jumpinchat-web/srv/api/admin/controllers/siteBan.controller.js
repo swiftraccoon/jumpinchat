@@ -1,4 +1,4 @@
-const moment = require('moment');
+const { differenceInHours } = require('date-fns');
 const Joi = require('joi');
 const log = require('../../../utils/logger.util')({ name: 'siteBan.controller' });
 const utils = require('../../../utils/utils');
@@ -107,7 +107,7 @@ module.exports = async function siteBan(req, res) {
   let user;
   let report;
   const expiresAt = new Date(expires || Date.now() + (config.siteban.defaultExpire * 1000));
-  const duration = moment.duration(moment(expiresAt.toISOString()).diff(moment())).as('hours');
+  const duration = differenceInHours(new Date(expiresAt.toISOString()), new Date());
 
   if (userId) {
     try {

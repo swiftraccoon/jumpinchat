@@ -16,7 +16,7 @@ module.exports = function uploadDisplayPic(req, res) {
   let busboy;
   let hasErr = false;
   try {
-    busboy = new Busboy({
+    busboy = Busboy({
       headers: req.headers,
       limits: {
         fileSize: config.uploads.roomCover.size,
@@ -28,7 +28,7 @@ module.exports = function uploadDisplayPic(req, res) {
     return res.status(500).send(errors.ERR_SRV);
   }
 
-  busboy.on('file', (fieldname, file, fileName, encoding, mimeType) => {
+  busboy.on('file', (fieldname, file, { filename: fileName, encoding, mimeType }) => {
     if (!isValidImage(mimeType)) {
       log.error(`${mimeType} is not a valid image`);
       return res.status(415).send(errors.ERR_FILE_TYPE);

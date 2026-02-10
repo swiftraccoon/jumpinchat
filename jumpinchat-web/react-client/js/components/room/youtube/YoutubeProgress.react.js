@@ -1,19 +1,12 @@
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import moment from 'moment';
-import momentDurationFormat from 'moment-duration-format';
 import TetherComponent from 'react-tether';
 import { seekVideo } from '../../../utils/YoutubeAPI';
-
-momentDurationFormat(moment);
+import formatDuration from '../../../utils/formatDuration';
 
 class YoutubeProgress extends PureComponent {
   static getFormattedTime(seconds) {
-    return moment
-      .duration(seconds, 'seconds')
-      .format('hh:mm:ss', {
-        stopTrim: 'm',
-      });
+    return formatDuration(seconds);
   }
 
   constructor() {
@@ -105,15 +98,10 @@ class YoutubeProgress extends PureComponent {
 
         <div className="youtube__Countdown">
           <span>
-            {moment
-              .duration(currentTime, 'seconds')
-              .format('hh:mm:ss', {
-                stopTrim: 'm',
-              })
-            }
+            {formatDuration(currentTime)}
           </span>
           {'/'}
-          <span>{moment.duration(duration, 'seconds').format('hh:mm:ss')}</span>
+          <span>{formatDuration(duration)}</span>
         </div>
       </div>
     );

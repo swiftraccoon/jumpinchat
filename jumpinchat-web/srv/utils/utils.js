@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const Jimp = require('jimp');
-const { S3 } = require('aws-sdk');
+const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const uuid = require('uuid');
 const requestIp = require('request-ip');
 const log = require('./logger.util')({ name: 'utils' });
@@ -13,9 +14,11 @@ const rateLimit = require('./rateLimit');
 
 const { accessKey, secret, bucket } = config.aws.s3.jicUploads;
 
-const s3Client = new S3({
-  accessKeyId: accessKey,
-  secretAccessKey: secret,
+const s3Client = new S3Client({
+  credentials: {
+    accessKeyId: accessKey,
+    secretAccessKey: secret,
+  },
   region: 'us-east-1',
 });
 
@@ -214,8 +217,7 @@ module.exports.convertImages = function convertImages(fileBuffer, dimensions, cb
         .contain(
           dimensions.width,
           dimensions.height,
-          Jimp.VERTICAL_ALIGN_MIDDLE,
-          Jimp.HORIZONTAL_ALIGN_CENTER,
+          Jimp.HORIZONTAL_ALIGN_CENTER | Jimp.VERTICAL_ALIGN_MIDDLE,
         );
 
       return image
@@ -246,15 +248,12 @@ module.exports.s3Upload = function s3Upload(body, filePath, cb) {
     Key: filePath,
     ACL: 'public-read',
     Body: body,
+    CacheControl: 'public, max-age=86400',
   };
 
-  return s3Client
-    .putObject(params)
-    .on('build', (req) => {
-      log.debug('setting cache controll header');
-      req.httpRequest.headers['Cache-Control'] = 'public, max-age=86400';
-    })
-    .send(cb);
+  s3Client.send(new PutObjectCommand(params))
+    .then(data => cb(null, data))
+    .catch(err => cb(err));
 };
 
 module.exports.isValidImage = function isValidImage(mimeType) {
@@ -405,7 +404,7 @@ module.exports.getSocketRooms = function getSocketRooms(io, socketId, cb) {
   });
 };
 
-module.exports.uploadDataUriToS3 = function uploadDataUriToS3(filePath, uri, cb) {
+module.exports.uploadDataUriToS3 = async function uploadDataUriToS3(filePath, uri, cb) {
   if (!uri) {
     log.debug('no URI to upload');
     return cb();
@@ -413,69 +412,54 @@ module.exports.uploadDataUriToS3 = function uploadDataUriToS3(filePath, uri, cb)
 
   const buf = Buffer.from(uri.replace(/^data:image\/\w+;base64,/, ''), 'base64');
 
-  return s3Client.putObject({
-    Bucket: config.report.bucket,
-    Key: filePath,
-    Body: buf,
-    ContentType: 'image/jpeg',
-    ContentEncoding: 'base64',
-    ACL: 'public-read',
-  }, (err) => {
-    if (err) {
-      return cb(err);
-    }
-
-    const url = s3Client.getSignedUrl('getObject', {
+  try {
+    await s3Client.send(new PutObjectCommand({
       Bucket: config.report.bucket,
       Key: filePath,
-      Expires: config.report.logTimeout,
-    });
+      Body: buf,
+      ContentType: 'image/jpeg',
+      ContentEncoding: 'base64',
+      ACL: 'public-read',
+    }));
+
+    const url = await getSignedUrl(s3Client, new GetObjectCommand({
+      Bucket: config.report.bucket,
+      Key: filePath,
+    }), { expiresIn: config.report.logTimeout });
 
     return cb(null, url);
-  });
+  } catch (err) {
+    return cb(err);
+  }
 };
 
-module.exports.s3UploadVerification = function s3UploadVerification(body, filePath, cb) {
-  const params = {
-    Bucket: config.ageVerification.bucket,
-    Key: filePath,
-    Body: body,
-  };
+module.exports.s3UploadVerification = async function s3UploadVerification(body, filePath, cb) {
+  try {
+    await s3Client.send(new PutObjectCommand({
+      Bucket: config.ageVerification.bucket,
+      Key: filePath,
+      Body: body,
+      CacheControl: 'public, max-age=86400',
+    }));
 
-  return s3Client
-    .putObject(params)
-    .on('build', (req) => {
-      log.debug('setting cache controll header');
-      req.httpRequest.headers['Cache-Control'] = 'public, max-age=86400';
-    })
-    .send((err) => {
-      if (err) {
-        return cb(err);
-      }
+    const url = await getSignedUrl(s3Client, new GetObjectCommand({
+      Bucket: config.ageVerification.bucket,
+      Key: filePath,
+    }), { expiresIn: config.ageVerification.timeout });
 
-      const url = s3Client.getSignedUrl('getObject', {
-        Bucket: config.ageVerification.bucket,
-        Key: filePath,
-        Expires: config.ageVerification.timeout,
-      });
-
-      return cb(null, url);
-    });
+    return cb(null, url);
+  } catch (err) {
+    return cb(err);
+  }
 };
 
-module.exports.s3RemoveObject = function s3RemoveObject(bucket, object, cb) {
-  const params = {
-    Bucket: bucket,
+module.exports.s3RemoveObject = function s3RemoveObject(bucketName, object, cb) {
+  s3Client.send(new DeleteObjectCommand({
+    Bucket: bucketName,
     Key: object,
-  };
-
-  return s3Client.deleteObject(params, (err, data) => {
-    if (err) {
-      return cb(err);
-    }
-
-    return cb(null, data);
-  });
+  }))
+    .then(data => cb(null, data))
+    .catch(err => cb(err));
 };
 
 

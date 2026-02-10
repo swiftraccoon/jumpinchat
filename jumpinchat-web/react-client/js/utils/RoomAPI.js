@@ -1,6 +1,6 @@
 /* global window */
 
-import request from 'superagent';
+import axios from 'axios';
 import * as uuid from 'uuid';
 import { trackEvent } from './AnalyticsUtil';
 import SocketUtil from './SocketUtil';
@@ -64,16 +64,13 @@ const events = {
 const checkJoinedTimer = 1000 * 60 * 5;
 
 export function setInfoRead(roomId) {
-  request
-    .put(`/api/rooms/${roomId}/inforead`)
-    .end((err) => {
-      if (err) {
-        console.error({ err });
-        addNotification({
-          color: ALERT_COLORS.WARNING,
-          message: 'Failed to update room',
-        });
-      }
+  axios.put(`/api/rooms/${roomId}/inforead`)
+    .catch((err) => {
+      console.error({ err });
+      addNotification({
+        color: ALERT_COLORS.WARNING,
+        message: 'Failed to update room',
+      });
     });
 }
 
@@ -307,15 +304,20 @@ export function sendReport(room, reporterId, targetId, reason, description, mess
     privateMessages: PmStore.getConversation(targetId),
   };
 
-  request
-    .post('/api/report', body)
-    .end((err, response) => {
-      if (response.statusCode >= 400) {
-        trackEvent('Error', 'User report', response.statusCode);
-        if (response.body) {
-          const { message } = response.body;
+  axios.post('/api/report', body)
+    .then(() => {
+      return addNotification({
+        color: ALERT_COLORS.SUCCESS,
+        message: 'Report sent successfully',
+      });
+    })
+    .catch((err) => {
+      if (err.response) {
+        trackEvent('Error', 'User report', err.response.status);
+        if (err.response.data) {
+          const { message } = err.response.data;
 
-          if (response.statusCode === 429) {
+          if (err.response.status === 429) {
             return chatActions.addMessage({
               message,
               id: uuid.v4(),
@@ -337,68 +339,49 @@ export function sendReport(room, reporterId, targetId, reason, description, mess
         });
       }
 
-      if (err) {
-        console.error({ err });
-        return addNotification({
-          color: ALERT_COLORS.WARNING,
-          message: 'Failed to send report',
-        });
-      }
-
-
+      console.error({ err });
       return addNotification({
-        color: ALERT_COLORS.SUCCESS,
-        message: 'Report sent successfully',
+        color: ALERT_COLORS.WARNING,
+        message: 'Failed to send report',
       });
     });
 }
 
 export function submitRoomPassword(room, password, cb) {
-  return request
-    .post(`/api/rooms/${room}/password`, { password })
-    .end((err, response) => {
-      if (err) {
-        return cb(err.response.body);
-      }
-
-      if (response.statusCode >= 400) {
-        return cb(response.body);
-      }
-
+  return axios.post(`/api/rooms/${room}/password`, { password })
+    .then(() => {
       return cb();
+    })
+    .catch((err) => {
+      if (err.response) {
+        return cb(err.response.data);
+      }
+      return cb(err);
     });
 }
 
 export function submitAgeConfirm(cb) {
-  return request
-    .post('/api/rooms/confirmAge', {})
-    .end((err, response) => {
-      if (err) {
-        return cb(err.response.body);
-      }
-
-      if (response.statusCode >= 400) {
-        return cb(response.body);
-      }
-
+  return axios.post('/api/rooms/confirmAge', {})
+    .then(() => {
       return cb();
+    })
+    .catch((err) => {
+      if (err.response) {
+        return cb(err.response.data);
+      }
+      return cb(err);
     });
 }
 
 export function getCustomEmoji() {
-  return new Promise((resolve, reject) => request
-    .get(`/api/rooms/${getRoomName()}/emoji`)
-    .end((err, response) => {
-      if (err) {
-        return reject(err.response.body);
+  return axios.get(`/api/rooms/${getRoomName()}/emoji`)
+    .then((response) => response.data)
+    .catch((err) => {
+      if (err.response) {
+        throw err.response.data;
       }
-
-      if (response.statusCode >= 400) {
-        return reject(response.body);
-      }
-
-      return resolve(response.body);
-    }));
+      throw err;
+    });
 }
 
 
@@ -415,24 +398,22 @@ export function unignoreUser(id) {
 }
 
 export function getRoom(room, cb) {
-  request
-    .get(`/api/rooms/${room}`)
-    .end(async (err, response) => {
-      if (err) {
-        return cb(err);
-      }
-
+  axios.get(`/api/rooms/${room}`)
+    .then(async (response) => {
       try {
         const emoji = await getCustomEmoji();
         chatActions.setRoomEmoji(emoji);
-      } catch (err) {
+      } catch (emojiErr) {
         addNotification({
           color: ALERT_COLORS.WARNING,
           message: 'Failed fetch emoji',
         });
       }
 
-      return cb(null, response.body);
+      return cb(null, response.data);
+    })
+    .catch((err) => {
+      return cb(err);
     });
 }
 

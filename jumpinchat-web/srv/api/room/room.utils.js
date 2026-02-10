@@ -2,7 +2,6 @@
  */
 const jwt = require('jsonwebtoken');
 const { omit, pick } = require('lodash');
-const async = require('async');
 const uuid = require('uuid');
 const Queue = require('../../utils/queue.util');
 const RoomModel = require('./room.model');
@@ -431,39 +430,40 @@ async function clearEmptyRoomsInServer(serverId, cb) {
     .filter(room => room.num_particpants === 0)
     .map(({ room }) => room);
 
-  async.each(emptyJanusRooms, (room, unusedCb) => {
-    log.debug({ serverId, room }, 'removing unused janus room');
-    janusUtil.removeRoom(serverId, room, (err) => {
-      if (err) {
-        return unusedCb(err);
-      }
-
-      return unusedCb();
-    });
-  }, (err) => {
-    if (err) {
-      log.error({ err }, 'error removing empty janus rooms');
-      return cb(err);
-    }
-
+  try {
+    await Promise.all(emptyJanusRooms.map(room => {
+      log.debug({ serverId, room }, 'removing unused janus room');
+      return new Promise((resolve, reject) => {
+        janusUtil.removeRoom(serverId, room, (err) => {
+          if (err) return reject(err);
+          return resolve();
+        });
+      });
+    }));
     log.info({ count: emptyJanusRooms.length }, 'cleaned up empty rooms');
     return cb();
-  });
+  } catch (err) {
+    log.error({ err }, 'error removing empty janus rooms');
+    return cb(err);
+  }
 }
 
 module.exports.clearEmptyJanusRooms = function clearEmptyJanusRooms(cb) {
   log.info('clearing empty janus rooms');
-  async
-    .each(config.janus.serverIds, (serverId, serverCb) => clearEmptyRoomsInServer(serverId, serverCb),
-      (err) => {
-        if (err) {
-          log.fatal({ err }, 'error clearing empty janus rooms');
-          return cb(err);
-        }
-
-        log.debug('cleared empty janus rooms');
-        return cb();
+  Promise.all(
+    config.janus.serverIds.map(serverId => new Promise((resolve, reject) => {
+      clearEmptyRoomsInServer(serverId, (err) => {
+        if (err) return reject(err);
+        return resolve();
       });
+    })),
+  ).then(() => {
+    log.debug('cleared empty janus rooms');
+    return cb();
+  }).catch((err) => {
+    log.fatal({ err }, 'error clearing empty janus rooms');
+    return cb(err);
+  });
 };
 
 module.exports.getSocketCacheInfo = async function getSocketCacheInfo(socketId, cb) {

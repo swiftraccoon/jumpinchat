@@ -4,7 +4,7 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-import moment from 'moment';
+import { format, formatDistanceToNow } from 'date-fns';
 
 const BanListItem = ({ removeLabel, item, onRemove }) => (
   <div className="banlist__Item">
@@ -22,9 +22,9 @@ const BanListItem = ({ removeLabel, item, onRemove }) => (
       </div>
       <div
         className="banlist__Timestamp"
-        title={moment(item.timestamp).format('ddd, h:mmA')}
+        title={format(new Date(item.timestamp), 'EEE, h:mmaaa')}
       >
-        {moment(item.timestamp).fromNow()}
+        {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
       </div>
     </div>
     <div className="banlist__Actions">

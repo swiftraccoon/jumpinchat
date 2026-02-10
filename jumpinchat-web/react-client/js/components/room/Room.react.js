@@ -79,7 +79,7 @@ class Room extends Component {
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     connectToRoom(this.props);
   }
 

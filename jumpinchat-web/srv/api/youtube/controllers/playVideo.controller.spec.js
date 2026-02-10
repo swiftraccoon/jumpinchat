@@ -4,7 +4,7 @@ const proxyquire = require('proxyquire').noCallThru();
 const { PermissionError } = require('../../../utils/error.util');
 const config = require('../../../config/env');
 
-const sandbox = sinon.sandbox.create();
+const sandbox = sinon.createSandbox();
 
 describe('youtube play controller', () => {
   let playVideoController;

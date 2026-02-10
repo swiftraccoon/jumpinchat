@@ -1,4 +1,5 @@
-const moment = require('moment-timezone');
+const { differenceInYears, getDate, getMonth, getYear } = require('date-fns');
+const { toZonedTime } = require('date-fns-tz');
 const log = require('../../utils/logger.util')({ name: 'trophy utils' });
 const trophyModel = require('./trophy.model');
 const { types } = require('./trophies');
@@ -29,13 +30,13 @@ module.exports.getTrophies = function getTrophies() {
 };
 
 function checkDateMatchesCondition(conditionDate) {
-  const date = moment();
+  const date = new Date();
 
-  const dateMatches = date.date() === conditionDate.date;
-  const monthMatches = (date.month() + 1) === conditionDate.month;
+  const dateMatches = getDate(date) === conditionDate.date;
+  const monthMatches = (getMonth(date) + 1) === conditionDate.month;
   let yearMatches = true;
   if (conditionDate.year) {
-    yearMatches = date.year() === conditionDate.year;
+    yearMatches = getYear(date) === conditionDate.year;
   }
 
   return dateMatches && monthMatches && yearMatches;
@@ -44,7 +45,7 @@ function checkDateMatchesCondition(conditionDate) {
 module.exports.checkDateMatchesCondition = checkDateMatchesCondition;
 
 function checkMembershipDuration(userJoinDate, trophies) {
-  const duration = moment.duration(moment().diff(moment(userJoinDate))).as('years');
+  const duration = differenceInYears(new Date(), new Date(userJoinDate));
   return trophies
     .filter(t => t.type === types.TYPE_MEMBER_DURATION)
     .filter(t => duration >= t.conditions.duration.years);
@@ -53,8 +54,8 @@ function checkMembershipDuration(userJoinDate, trophies) {
 module.exports.checkMembershipDuration = checkMembershipDuration;
 
 function checkOccasion(trophies) {
-  const dateMax = moment().tz('Pacific/Kiritimati');
-  const dateMin = moment().tz('Pacific/Niue');
+  const dateMax = toZonedTime(new Date(), 'Pacific/Kiritimati');
+  const dateMin = toZonedTime(new Date(), 'Pacific/Niue');
 
   return trophies
     .filter(t => t.type === types.TYPE_OCCASION)
@@ -67,13 +68,13 @@ function checkOccasion(trophies) {
         },
       } = t.conditions;
 
-      const matchesMax = day === dateMax.date()
-        && month === dateMax.month() + 1
-        && year === dateMax.year();
+      const matchesMax = day === getDate(dateMax)
+        && month === getMonth(dateMax) + 1
+        && year === getYear(dateMax);
 
-      const matchesMin = day === dateMin.date()
-        && month === dateMin.month() + 1
-        && year === dateMin.year();
+      const matchesMin = day === getDate(dateMin)
+        && month === getMonth(dateMin) + 1
+        && year === getYear(dateMin);
 
       return matchesMin || matchesMax;
     });

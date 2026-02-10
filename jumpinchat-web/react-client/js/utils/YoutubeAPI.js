@@ -1,4 +1,4 @@
-import request from 'superagent';
+import axios from 'axios';
 import { trackEvent } from './AnalyticsUtil';
 import SocketUtil from './SocketUtil';
 import {
@@ -37,84 +37,62 @@ export function getSearch(query) {
   setYoutubeSearchResults([]);
   setModalError(null);
 
-  request
-    .get(`/api/youtube/search/${encodeURIComponent(query)}`)
-    .end((err, response) => {
+  axios.get(`/api/youtube/search/${encodeURIComponent(query)}`)
+    .then((response) => {
+      setResultsLoading(false);
+      return setYoutubeSearchResults(response.data);
+    })
+    .catch((err) => {
       setResultsLoading(false);
 
-      if (response.statusCode >= 400) {
-        if (response.body.message) {
-          return setModalError({ message: response.body.message });
-        }
-
-        return setModalError({ message: 'error getting search results' });
+      if (err.response && err.response.data && err.response.data.message) {
+        return setModalError({ message: err.response.data.message });
       }
 
-
-      return setYoutubeSearchResults(response.body);
+      return setModalError({ message: 'error getting search results' });
     });
 }
 
 export function getPlaylist() {
   const roomName = getRoomName();
-  request
-    .get(`/api/youtube/${roomName}/playlist`)
-    .end((err, response) => {
-      if (err) {
-        trackEvent('Error', 'Playlist', err.message || err);
+  axios.get(`/api/youtube/${roomName}/playlist`)
+    .then((response) => {
+      return setPlaylist(response.data);
+    })
+    .catch((err) => {
+      if (err.response && err.response.data && err.response.data.message) {
+        trackEvent('Error', 'Playlist', err.response.data.message);
         return addNotification({
           color: ALERT_COLORS.ERROR,
-          message: 'error getting video playlist',
+          message: err.response.data.message,
         });
       }
 
-      if (response.statusCode > 400) {
-        if (response.body && response.body.message) {
-          trackEvent('Error', 'Playlist', response.body.message);
-          return addNotification({
-            color: ALERT_COLORS.ERROR,
-            message: response.body.message,
-          });
-        }
-
-        trackEvent('Error', 'Playlist', 'Unknown');
-        return addNotification({
-          color: ALERT_COLORS.ERROR,
-          message: 'error getting video playlist',
-        });
-      }
-
-      return setPlaylist(response.body);
+      trackEvent('Error', 'Playlist', err.message || 'Unknown');
+      return addNotification({
+        color: ALERT_COLORS.ERROR,
+        message: 'error getting video playlist',
+      });
     });
 }
 
 export function setPlayYoutubeVideos(playVideos) {
   trackEvent('Youtube', 'Set play videos', playVideos ? 'true' : 'false');
-  request
-    .put(`/api/youtube/playvideos?play=${playVideos}`)
-    .end((err, response) => {
-      if (err) {
-        return addNotification({
+  axios.put(`/api/youtube/playvideos?play=${playVideos}`)
+    .catch((err) => {
+      if (err.response && err.response.data && err.response.data.error && err.response.data.error.text) {
+        setModalError({ message: err.response.data.error.text });
+        addNotification({
+          color: 'red',
+          message: err.response.data.error.text,
+          autoClose: false,
+        });
+      } else {
+        addNotification({
           color: 'red',
           message: 'Error changing settings',
+          autoClose: false,
         });
-      }
-
-      if (response.statusCode > 400) {
-        if (response.body && response.body.error && response.body.error.text) {
-          setModalError({ message: response.body.error.text });
-          addNotification({
-            color: 'red',
-            message: response.body.error.text,
-            autoClose: false,
-          });
-        } else {
-          addNotification({
-            color: 'red',
-            message: 'Error changing settings ',
-            autoClose: false,
-          });
-        }
       }
     });
 }

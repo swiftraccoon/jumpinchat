@@ -3,7 +3,7 @@
  */
 
 const jwt = require('jsonwebtoken');
-const moment = require('moment');
+const { isAfter } = require('date-fns');
 const log = require('../../../utils/logger.util')({ name: 'userCreateSession' });
 const utils = require('../../../utils/utils');
 const config = require('../../../config/env');
@@ -93,7 +93,7 @@ module.exports = function createSession(req, res) {
       if (user) {
         const { supportExpires } = user.attrs;
         const isGold = user.attrs.isGold
-          || (supportExpires && moment(supportExpires).isAfter(moment()));
+          || (supportExpires && isAfter(new Date(supportExpires), new Date()));
 
         responseBody.user = {
           user_id: user._id,

@@ -1,4 +1,4 @@
-const moment = require('moment');
+const { isAfter } = require('date-fns');
 const log = require('../../../utils/logger.util')({ name: 'fulfillPayment.controller' });
 const { getUserById } = require('../../user/user.utils');
 const paymentUtils = require('../payment.utils');
@@ -90,7 +90,7 @@ module.exports = async function fulfillPayment({
     const currentExpire = user.attrs.supportExpires;
     log.debug({ supportDuration, currentExpire }, 'adding support exipiry to user');
 
-    if (currentExpire && moment(currentExpire).isAfter(moment())) {
+    if (currentExpire && isAfter(new Date(currentExpire), new Date())) {
       log.debug('adding time to existing support');
       user.attrs.supportExpires = new Date(new Date(currentExpire).getTime() + supportDuration);
     } else {
@@ -144,7 +144,7 @@ module.exports = async function fulfillPayment({
     const currentExpire = user.attrs.supportExpires;
     log.debug({ supportDuration, currentExpire }, 'adding support exipiry to user');
 
-    if (currentExpire && moment(currentExpire).isAfter(moment())) {
+    if (currentExpire && isAfter(new Date(currentExpire), new Date())) {
       user.attrs.supportExpires = new Date(new Date(currentExpire).getTime() + supportDuration);
     } else {
       user.attrs.supportExpires = new Date(Date.now() + supportDuration);

@@ -14,13 +14,12 @@ if (isProduction()) {
     minimize: true,
     minimizer: [
       new TerserPlugin({
-        sourceMap: true,
         terserOptions: {
-          extractComments: 'all',
           compress: {
             drop_console: true,
           },
         },
+        extractComments: 'all',
       }),
     ],
   };
@@ -58,6 +57,7 @@ module.exports = ({ esNext = true, watch }) => ({
   resolve: {
     extensions: ['.js', '.jsx', '.css', '.scss'],
     modules: [
+      'node_modules',
       `${root}/node_modules`,
     ],
   },

@@ -16,7 +16,7 @@ module.exports = function uploadUserIcon(req, res) {
   let busboy;
   let hasErr = false;
   try {
-    busboy = new Busboy({
+    busboy = Busboy({
       headers: req.headers,
       limits: {
         fileSize: config.uploads.userIcon.size,
@@ -33,7 +33,7 @@ module.exports = function uploadUserIcon(req, res) {
     return res.status(401).send();
   }
 
-  busboy.on('file', (fieldname, file, fileName, encoding, mimeType) => {
+  busboy.on('file', (fieldname, file, { filename: fileName, encoding, mimeType }) => {
     log.debug('Processing file');
 
     if (!isValidImage(mimeType)) {

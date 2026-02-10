@@ -1,11 +1,9 @@
-const moment = require('moment-timezone');
 const { expect } = require('chai');
 const sinon = require('sinon');
 const proxyquire = require('proxyquire').noCallThru();
 const { types } = require('./trophies');
 
 describe('trophyUtils', () => {
-  let momentMock;
   const trophyModel = {
     find: sinon.stub().yields(null, {
       exec: sinon.stub().yields(null),
@@ -39,7 +37,6 @@ describe('trophyUtils', () => {
 
   function getController(overrides = {}) {
     const mocks = {
-      'moment-timezone': overrides.momentMock || momentMock,
       './trophy.model': Object.assign(trophyModel, overrides.trophyModel),
       '../user/user.utils': Object.assign(userUtils, overrides.userUtils),
       '../message/utils/metaSendMessage.util': sinon.stub().returns(Promise.resolve()),
@@ -48,21 +45,23 @@ describe('trophyUtils', () => {
     return proxyquire('./trophy.utils.js', mocks);
   }
 
+  let clock;
+
   beforeEach(() => {
-    momentMock = moment;
-    momentMock.prototype = () => moment('2018-01-01T00:00:00.000Z');
-    sinon.useFakeTimers(new Date('2018-01-01T00:00:00.000Z').getTime());
+    clock = sinon.useFakeTimers(new Date('2018-01-01T00:00:00.000Z').getTime());
 
     userUtils = {
       getUserById: sinon.stub().yields(null, {}),
     };
   });
 
+  afterEach(() => {
+    clock.restore();
+  });
+
   describe('checkDateMatchesCondition', () => {
     it('should return true if date and month matches', () => {
-      const { checkDateMatchesCondition } = getController({
-        momentMock,
-      });
+      const { checkDateMatchesCondition } = getController();
 
       const condition = {
         date: 1,
@@ -73,9 +72,7 @@ describe('trophyUtils', () => {
     });
 
     it('should return true if date, month and year matches', () => {
-      const { checkDateMatchesCondition } = getController({
-        momentMock,
-      });
+      const { checkDateMatchesCondition } = getController();
 
       const condition = {
         date: 1,
@@ -133,18 +130,15 @@ describe('trophyUtils', () => {
 
   describe('checkOccasion', () => {
     it('should return occasion matching current date', () => {
-      const { checkOccasion } = getController({
-        momentMock,
-      });
+      const { checkOccasion } = getController();
 
       expect(checkOccasion(trophies)).to.eql([trophies[0]]);
     });
 
     it('should return occasion matching current date if in tz range', () => {
-      sinon.useFakeTimers(new Date('2017-12-31T18:00:00.000Z').getTime());
-      const { checkOccasion } = getController({
-        momentMock,
-      });
+      clock.restore();
+      clock = sinon.useFakeTimers(new Date('2017-12-31T18:00:00.000Z').getTime());
+      const { checkOccasion } = getController();
 
       expect(checkOccasion(trophies)).to.eql([trophies[0]]);
     });

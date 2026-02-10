@@ -2,7 +2,7 @@
  * Created by Zaccary on 24/05/2016.
  */
 
-const moment = require('moment');
+const { format } = require('date-fns');
 const log = require('../../../utils/logger.util')({ name: 'runCommand.socket' });
 const roomController = require('../room.controller');
 const utils = require('../../../utils/utils');
@@ -612,7 +612,7 @@ module.exports = function runCommandSocket(socket, io) {
             ];
 
             if (topic.text) {
-              const topicTime = moment(topic.updatedAt).format('DD/MM/YYYY');
+              const topicTime = format(new Date(topic.updatedAt), 'dd/MM/yyyy');
               topicMessages = [
                 ' ',
                 `room topic: ${topic.text}`,

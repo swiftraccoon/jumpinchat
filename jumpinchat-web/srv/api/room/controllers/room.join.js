@@ -3,8 +3,7 @@
  */
 
 const jwt = require('jsonwebtoken');
-const moment = require('moment');
-const momentDurationFormat = require('moment-duration-format');
+const { intervalToDuration } = require('date-fns');
 const log = require('../../../utils/logger.util')({ name: 'room.join' });
 const { getCookie } = require('../../../utils/utils');
 const { customError } = require('../../../utils/error.util');
@@ -23,8 +22,6 @@ const {
   getDefaultRoles,
   getUserHasRolePermissions,
 } = require('../../role/role.utils');
-
-momentDurationFormat(moment);
 
 /**
  * Behaviour:
@@ -272,9 +269,14 @@ class RoomJoin {
       if (this.getHasMinAccountAge(account)) {
         return cb({
           error: 'ERR_MIN_ACCOUNT_AGE',
-          body: moment
-            .duration(this.room.settings.minAccountAge)
-            .format('d [days] h [hours] m [minutes]', { trim: 'both' }),
+          body: (() => {
+            const dur = intervalToDuration({ start: 0, end: this.room.settings.minAccountAge });
+            const parts = [];
+            if (dur.days) parts.push(`${dur.days} days`);
+            if (dur.hours) parts.push(`${dur.hours} hours`);
+            if (dur.minutes) parts.push(`${dur.minutes} minutes`);
+            return parts.join(' ') || '0 minutes';
+          })(),
         });
       }
     }

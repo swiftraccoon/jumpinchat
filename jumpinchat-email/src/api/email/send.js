@@ -1,19 +1,20 @@
-const aws = require('aws-sdk');
+const { SESClient, SendRawEmailCommand } = require('@aws-sdk/client-ses');
 const nodemailer = require('nodemailer');
 const config = require('../../config/env');
 const log = require('../../utils/logger')({ name: 'api.email.send' });
 const Queue = require('../../utils/queue');
 
-const SES = new aws.SES({
-  apiVersion: '2010-12-01',
-  accessKeyId: config.aws.ses.accessKey,
-  secretAccessKey: config.aws.ses.secret,
+const ses = new SESClient({
+  credentials: {
+    accessKeyId: config.aws.ses.accessKey,
+    secretAccessKey: config.aws.ses.secret,
+  },
   region: config.aws.ses.region,
 });
 
 // create Nodemailer SES transporter
 const transporter = nodemailer.createTransport({
-  SES,
+  SES: { ses, aws: { SendRawEmailCommand } },
 });
 
 const defaults = {

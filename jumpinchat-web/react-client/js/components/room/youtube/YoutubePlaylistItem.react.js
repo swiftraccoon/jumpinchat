@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import moment from 'moment';
+import { formatDistanceToNow } from 'date-fns';
+import formatDuration from '../../../utils/formatDuration';
 import YoutubePlaylistItemOptions, {
   playlistItemActions,
 } from './YoutubePlaylistItemOptions.react';
@@ -41,14 +42,9 @@ const YoutubePlaylistItem = ({
             {startedBy.username}
           </span>
         &nbsp;&bull;&nbsp;
-          {moment
-            .duration(item.duration, 'seconds')
-            .format('hh:mm:ss', {
-              stopTrim: 'm',
-            })
-          }
+          {formatDuration(item.duration)}
         &nbsp;&bull;&nbsp;
-          {moment(item.createdAt).fromNow()}
+          {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
         </span>
       </div>
       <div className="youtube__PlaylistItemActions">

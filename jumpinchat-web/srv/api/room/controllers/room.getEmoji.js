@@ -1,4 +1,4 @@
-const moment = require('moment');
+const { isBefore } = require('date-fns');
 const roomEmojiModel = require('../roomEmoji.model');
 const { getRoomByName } = require('../room.utils');
 const { getUserById } = require('../../user/user.utils');
@@ -27,7 +27,7 @@ module.exports = async function getEmoji(req, res) {
     }
 
 
-    const supportExpired = moment(owner.attrs.supportExpires).isBefore(moment());
+    const supportExpired = isBefore(new Date(owner.attrs.supportExpires), new Date());
     if (!owner.attrs.isGold && supportExpired) {
       return res.status(200).send([]);
     }

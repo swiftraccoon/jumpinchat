@@ -72,13 +72,13 @@ describe('<RoomCams />', () => {
     });
   });
 
-  describe('componentWillReceiveProps', () => {
+  describe('UNSAFE_componentWillReceiveProps', () => {
     beforeEach(() => {
       roomCams._getCamDimensions = jest.fn();
     });
 
     it('should not get dimensions if there are no feeds in next props', () => {
-      roomCams.componentWillReceiveProps({ ...roomCams.props, feeds: [] });
+      roomCams.UNSAFE_componentWillReceiveProps({ ...roomCams.props, feeds: [] });
       expect(roomCams._getCamDimensions).not.toHaveBeenCalled();
     });
 
@@ -94,7 +94,7 @@ describe('<RoomCams />', () => {
         ],
         globalVolume: 0,
       };
-      roomCams.componentWillReceiveProps({
+      roomCams.UNSAFE_componentWillReceiveProps({
         feeds: [
           {
             remoteFeed: { rfid: '123' },
@@ -115,7 +115,7 @@ describe('<RoomCams />', () => {
           },
         ],
       };
-      roomCams.componentWillReceiveProps({
+      roomCams.UNSAFE_componentWillReceiveProps({
         feeds: [
           {
             remoteFeed: { rfid: '123' },
@@ -138,7 +138,7 @@ describe('<RoomCams />', () => {
           duration: 123,
         },
       };
-      roomCams.componentWillReceiveProps({ feeds: [], currentlyPlaying: null });
+      roomCams.UNSAFE_componentWillReceiveProps({ feeds: [], currentlyPlaying: null });
       expect(roomCams._getCamDimensions).toHaveBeenCalled();
     });
   });

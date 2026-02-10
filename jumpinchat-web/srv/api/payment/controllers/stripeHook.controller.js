@@ -9,7 +9,7 @@ const {
 } = require('../payment.utils');
 const fulfillPayment = require('./fulfillPayment.controller');
 
-const stripe = Stripe(config.payment.stripe.secretKey);
+const stripe = new Stripe(config.payment.stripe.secretKey);
 
 module.exports = async function stripeHook(req, res) {
   const sig = req.headers['stripe-signature'];

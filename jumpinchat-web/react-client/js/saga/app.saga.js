@@ -1,4 +1,4 @@
-import request from 'superagent';
+import axios from 'axios';
 import { ApplicationDispatcher } from '../dispatcher/AppDispatcher';
 import * as types from '../constants/ActionTypes';
 import { addNotification } from '../actions/NotificationActions';
@@ -14,24 +14,15 @@ function setLayout({ layout, save }) {
   }
 
   const wideLayout = layout === layouts.HORIZONTAL;
-  return request
-    .put('/api/user/setLayout', { wideLayout })
-    .end((err, response) => {
-      if (err) {
-        return addNotification({
-          color: ALERT_COLORS.ERROR,
-          message: 'Error saving layout settings',
-        });
-      }
-
-      if (response.statusCode >= 400) {
-        return addNotification({
-          color: ALERT_COLORS.ERROR,
-          message: 'Error saving layout settings',
-        });
-      }
-
+  return axios.put('/api/user/setLayout', { wideLayout })
+    .then(() => {
       return true;
+    })
+    .catch(() => {
+      return addNotification({
+        color: ALERT_COLORS.ERROR,
+        message: 'Error saving layout settings',
+      });
     });
 }
 

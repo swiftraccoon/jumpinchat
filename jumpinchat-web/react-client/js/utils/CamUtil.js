@@ -6,7 +6,7 @@
 
 import React from 'react';
 import * as uuid from 'uuid';
-import request from 'superagent';
+import axios from 'axios';
 import camStore from '../stores/CamStore/CamStore';
 import {
   destroyLocalStream,
@@ -42,71 +42,58 @@ const closeBroadcast = () => {
   setMediaDeviceId(null, 'audio');
 };
 
-const getResponseError = (response) => {
-  const error = new Error();
-  error.name = 'RequestError';
-  error.message = response.body || response.statusText;
-  error.code = response.statusCode;
+const getServerEndpoints = () => axios.get('/api/janus/endpoints')
+  .then((response) => response.data)
+  .catch((err) => {
+    const error = new Error();
+    error.name = 'RequestError';
+    if (err.response) {
+      error.message = err.response.data || err.response.statusText;
+      error.code = err.response.status;
+    } else {
+      error.message = err.message;
+    }
+    throw error;
+  });
 
-  return error;
-};
+const getTurnCreds = () => axios.get('/api/turn/')
+  .then((response) => response.data)
+  .catch((err) => {
+    const error = new Error();
+    error.name = 'RequestError';
+    if (err.response) {
+      error.message = err.response.data || err.response.statusText;
+      error.code = err.response.status;
+    } else {
+      error.message = err.message;
+    }
+    throw error;
+  });
 
-const getServerEndpoints = () => new Promise((resolve, reject) => {
-  request
-    .get('/api/janus/endpoints')
-    .end((err, response) => {
-      if (err) {
-        return reject(err);
-      }
+const getToken = () => axios.get('/api/janus/token')
+  .then((response) => {
+    if (!response.data || !response.data.token) {
+      const error = new Error('missing authentication token');
+      trackEvent('Error', 'Cam Util', error.name);
+      throw error;
+    }
 
-      if (response.statusCode >= 400) {
-        const error = getResponseError(response);
-        return reject(error);
-      }
-
-      return resolve(response.body);
-    });
-});
-
-const getTurnCreds = () => new Promise((resolve, reject) => {
-  request
-    .get('/api/turn/')
-    .end((err, response) => {
-      if (err) {
-        return reject(err);
-      }
-
-      if (response.statusCode >= 400) {
-        const error = getResponseError(response);
-        return reject(error);
-      }
-
-      return resolve(response.body);
-    });
-});
-
-const getToken = () => new Promise((resolve, reject) => {
-  request
-    .get('/api/janus/token')
-    .end((err, response) => {
-      if (err) {
-        return reject(err);
-      }
-
-      if (response.statusCode >= 400) {
-        const error = getResponseError(response);
-        return reject(error);
-      }
-
-      if (!response.body || !response.body.token) {
-        const error = new Error('missing authentication token');
-        trackEvent('Error', 'Cam Util', error.name);
-        return reject(error);
-      }
-
-      return resolve(response.body.token);
-    });
-});
+    return response.data.token;
+  })
+  .catch((err) => {
+    if (err.message === 'missing authentication token') {
+      throw err;
+    }
+    const error = new Error();
+    error.name = 'RequestError';
+    if (err.response) {
+      error.message = err.response.data || err.response.statusText;
+      error.code = err.response.status;
+    } else {
+      error.message = err.message;
+    }
+    throw error;
+  });
 
 /**
  * gets janus endpoints and turn data
@@ -161,12 +148,6 @@ const getServerInfo = function getServerInfo(roomName, cb) {
         message: 'Error connecting to media server',
         autoClose: false,
       });
-      if (window.Raven) {
-        const error = new Error();
-        error.name = err.name;
-        error.message = err.message;
-        window.Raven.captureException(err);
-      }
       return cb(err);
     });
 };
@@ -302,12 +283,6 @@ function publishOwnFeed(isGold, videoQuality, videoDevice, audioDevice, sendAudi
           }
 
           trackEvent('Error', 'Cam Util', `Create offer: ${err.toString()}`);
-          if (window.Raven) {
-            const error = new Error();
-            error.name = err.name;
-            error.message = err.message;
-            window.Raven.captureException(error);
-          }
           setMediaSelectionModal(false);
         }
 

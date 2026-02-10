@@ -65,7 +65,8 @@ const SortItem = ({
   });
 
   const [{ isDragging }, drag] = useDrag({
-    item: { type, id, index },
+    type,
+    item: { id, index },
     collect: monitor => ({
       isDragging: monitor.isDragging(),
     }),

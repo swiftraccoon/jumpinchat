@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import moment from 'moment';
+import { formatRelative } from 'date-fns';
 import TextInput from './controls/TextInput.react';
 import { setTopic } from '../../utils/RoomAPI';
 import { setSettingsError } from '../../actions/AppActions';
@@ -51,7 +51,7 @@ class SettingsRoomInfo extends Component {
     const { changed } = this.state;
     const { settings, errors, room } = this.props;
     const subTitle = settings.topic.updatedBy
-      ? `Set by ${settings.topic.updatedBy.username} ${moment(settings.topic.updatedAt).calendar()}`
+      ? `Set by ${settings.topic.updatedBy.username} ${formatRelative(new Date(settings.topic.updatedAt), new Date())}`
       : null;
     return (
       <div className="settings__Page">

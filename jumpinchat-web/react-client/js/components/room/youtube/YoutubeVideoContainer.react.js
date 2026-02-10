@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import ReactYoutube from 'react-youtube';
+import YouTube from 'react-youtube';
 import {
   setYoutubeVideo,
   setYoutubeOptions,
@@ -54,8 +54,7 @@ export class YoutubeVideoContainer extends Component {
     };
   }
 
-  // TODO deprecate this lifecycle method
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const {
       videoDetails: {
         pausedAt,
@@ -232,10 +231,10 @@ export class YoutubeVideoContainer extends Component {
         className="youtube__VideoContainer"
         style={{ width: `${dimensions.width}px`, height: `${dimensions.height}px` }}
       >
-        <ReactYoutube
+        <YouTube
           videoId={mediaId}
           opts={opts}
-          containerClassName="youtube__VideoWrapper"
+          className="youtube__VideoWrapper"
           onEnd={this.handleVideoDidEnd}
           onReady={this.handleVideoReady}
           onError={this.handleVideoHasError}

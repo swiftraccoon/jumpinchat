@@ -2,7 +2,7 @@
 
 import { EventEmitter } from 'events';
 import debounce from 'lodash/debounce';
-import moment from 'moment';
+import { formatRelative } from 'date-fns';
 import * as uuid from 'uuid';
 import { ChatDispatcher } from '../../dispatcher/AppDispatcher';
 import * as types from '../../constants/ActionTypes';
@@ -28,7 +28,7 @@ function handleRetrieveMessages(room) {
   const messages = get(`${messageHistoryKey}:${room}`);
   const messagesTimestamp = get(`${messageHistoryTimestampKey}:${room}`);
   if (messages && messages.length > 0) {
-    const timestampString = moment(messagesTimestamp).calendar();
+    const timestampString = formatRelative(new Date(messagesTimestamp), new Date());
     const timestampMessage = [
       {
         id: uuid.v4(),

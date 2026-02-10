@@ -1,4 +1,3 @@
-const co = require('co');
 const log = require('../../utils/logger.util')({ name: 'migrations.conversationId' });
 const MessageModel = require('../../api/message/message.model');
 const {
@@ -76,11 +75,9 @@ module.exports = async function conversationIdMigration() {
     );
   };
 
-  co(function* loopMessages() {
-    for (let doc = yield cursor.next(); doc != null; doc = yield cursor.next()) {
-      yield handleMessage(doc);
-    }
+  for await (const doc of cursor) {
+    await handleMessage(doc);
+  }
 
-    log.info('migration complete');
-  });
+  log.info('migration complete');
 };

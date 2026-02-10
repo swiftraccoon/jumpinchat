@@ -37,7 +37,7 @@ module.exports = function uploadEmoji(req, res) {
   const { roomName } = req.params;
 
   try {
-    busboy = new Busboy({
+    busboy = Busboy({
       headers: req.headers,
       limits: {
         fileSize: config.uploads.userIcon.size,
@@ -54,7 +54,7 @@ module.exports = function uploadEmoji(req, res) {
     body[fieldName] = val;
   });
 
-  busboy.on('file', (fieldname, file, fileName, encoding, mimeType) => {
+  busboy.on('file', (fieldname, file, { filename: fileName, encoding, mimeType }) => {
     log.debug('Processing file');
 
     if (!isValidImage(mimeType)) {

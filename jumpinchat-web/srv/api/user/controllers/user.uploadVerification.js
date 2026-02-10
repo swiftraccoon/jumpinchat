@@ -1,6 +1,5 @@
 const Busboy = require('busboy');
-const moment = require('moment');
-const { parallel } = require('async');
+const { formatDistance } = require('date-fns');
 const log = require('../../../utils/logger.util')({ name: 'uploadDisplayImage' });
 const { getUserById } = require('../user.utils');
 const {
@@ -82,7 +81,7 @@ module.exports = async function uploadVerificationImages(req, res) {
   const { userId } = req.params;
   const processedImages = [];
   try {
-    busboy = new Busboy({
+    busboy = Busboy({
       headers: req.headers,
       limits: {
         files: 2,
@@ -102,7 +101,7 @@ module.exports = async function uploadVerificationImages(req, res) {
   }
 
   if (!canSubmit && timeRemaining) {
-    const timeRemainingFormatted = moment.duration(timeRemaining).humanize();
+    const timeRemainingFormatted = formatDistance(0, timeRemaining, { includeSeconds: true });
 
     switch (reason) {
       case noSubmitReasons.DENIED:
@@ -135,7 +134,7 @@ module.exports = async function uploadVerificationImages(req, res) {
 
     log.debug({ headers: req.headers }, 'watching for files');
 
-    busboy.on('file', (fieldname, file, fileName, encoding, mimeType) => {
+    busboy.on('file', (fieldname, file, { filename: fileName, encoding, mimeType }) => {
       log.debug({ fieldname, fileName }, 'Processing file');
 
       if (!isValidImage(mimeType)) {
@@ -183,44 +182,50 @@ module.exports = async function uploadVerificationImages(req, res) {
         return res.status(500).send();
       }
 
-      const genS3Funcs = ({ imageData, fileName }) => cb => s3UploadVerification(imageData, fileName, cb);
+      let uploadedImages;
+      try {
+        uploadedImages = await Promise.all(
+          processedImages.map(({ imageData, fileName }) =>
+            new Promise((resolve, reject) => {
+              s3UploadVerification(imageData, fileName, (err, result) => {
+                if (err) return reject(err);
+                return resolve(result);
+              });
+            })),
+        );
+      } catch (err) {
+        log.fatal({ err }, 'error uploading images');
+        return res.status(500).send();
+      }
 
-      return parallel(processedImages.map(genS3Funcs), async (err, uploadedImages) => {
-        if (err) {
-          log.fatal({ err }, 'error uploading images');
-          return res.status(500).send();
-        }
+      log.debug({ uploadedImages }, 'verification images uploaded');
+      try {
+        const verification = await AgeVerificationModel.create({
+          user: user._id,
+          images: uploadedImages,
+          expiresAt: Date.now() + (config.ageVerification.timeout * 1000),
+        });
 
-        log.debug({ uploadedImages }, 'verification images uploaded');
-        try {
-          const verification = await AgeVerificationModel.create({
-            user: user._id,
-            images: uploadedImages,
-            expiresAt: Date.now() + (config.ageVerification.timeout * 1000),
-          });
+        email.sendMail({
+          to: 'contact@example.com',
+          subject: `Age verification request: ${String(verification._id)}`,
+          html: ageVerifyTemplate({
+            userId: verification.user,
+            verificationId: verification._id,
+          }),
+        }, (err, info) => {
+          if (err) {
+            log.fatal({ err }, 'failed to send verification email');
+            return;
+          }
 
+          log.info({ verificationId: verification._id }, 'verification email sent');
+        });
 
-          email.sendMail({
-            to: 'contact@example.com',
-            subject: `Age verification request: ${String(verification._id)}`,
-            html: ageVerifyTemplate({
-              userId: verification.user,
-              verificationId: verification._id,
-            }),
-          }, (err, info) => {
-            if (err) {
-              log.fatal({ err }, 'failed to send verification email');
-              return;
-            }
-
-            log.info({ verificationId: verification._id }, 'verification email sent');
-          });
-
-          return res.status(200).send({ verification });
-        } catch (err) {
-          log.fatal({ err }, 'failed to create verification doc');
-        }
-      });
+        return res.status(200).send({ verification });
+      } catch (err) {
+        log.fatal({ err }, 'failed to create verification doc');
+      }
     });
 
     busboy.on('partsLimit', () => {

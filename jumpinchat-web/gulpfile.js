@@ -227,7 +227,7 @@ function writeServiceWorkerFile(rootDir) {
     runtimeCaching: [
       {
         urlPattern: new RegExp('/api/(.*)'),
-        handler: 'networkFirst',
+        handler: 'NetworkFirst',
         options: {
           cacheName: 'api-cache',
           expiration: {
@@ -238,19 +238,19 @@ function writeServiceWorkerFile(rootDir) {
       },
       {
         urlPattern: /\/\w+(?:\/[^.]+\/?)?$/,
-        handler: 'networkFirst',
+        handler: 'NetworkFirst',
       },
       {
         urlPattern: new RegExp('\\.(js|css|jpg|png|gif)$'),
-        handler: 'staleWhileRevalidate',
+        handler: 'StaleWhileRevalidate',
       },
       {
         urlPattern: /\/(admin|settings)\//,
-        handler: 'networkOnly',
+        handler: 'NetworkOnly',
       },
       {
         urlPattern: new RegExp('/api/user/checkCanBroadcast/(.*)'),
-        handler: 'networkOnly',
+        handler: 'NetworkOnly',
       },
     ],
     globDirectory: rootDir,
@@ -259,7 +259,6 @@ function writeServiceWorkerFile(rootDir) {
       '**/*.{mp3,ogg}',
       '**/*.{js,mjs,css}',
     ],
-    globStrict: false,
     importScripts: [
       '/js/push-manager.js',
     ],

@@ -1,4 +1,4 @@
-const stripe = require('stripe');
+const Stripe = require('stripe');
 const log = require('../../../utils/logger.util')({ name: 'getSubscription.controller' });
 const config = require('../../../config/env');
 const errors = require('../../../config/constants/errors');
@@ -7,7 +7,7 @@ const {
   getCustomerByUserId,
 } = require('../payment.utils');
 
-const stripeClient = stripe(config.payment.stripe.secretKey);
+const stripeClient = new Stripe(config.payment.stripe.secretKey);
 
 module.exports = async function getSubscription(req, res) {
   const { userId } = req.params;

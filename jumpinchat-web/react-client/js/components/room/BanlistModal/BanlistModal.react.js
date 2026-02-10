@@ -5,7 +5,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-modal';
-import moment from 'moment';
+import { isBefore, addHours } from 'date-fns';
 import { setBanlistModal } from '../../../actions/ModalActions';
 import { sendOperatorAction } from '../../../utils/RoomAPI';
 import BanListItem from './BanlistItem.react';
@@ -36,7 +36,7 @@ class BanListModal extends Component {
     const { error, banlist, isOpen } = this.props;
 
     banlistItems = banlist
-      .filter(listItem => !moment(listItem.timestamp).add(24, 'hours').isBefore(moment()));
+      .filter(listItem => !isBefore(addHours(new Date(listItem.timestamp), 24), new Date()));
 
     return (
       <Modal

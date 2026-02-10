@@ -40,7 +40,7 @@ export class RoomCam extends Component {
     this.hark = null;
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.setState({
       handle: this.chatStore.getHandleByUserId(this._getUserId(this.props)),
     });
@@ -113,8 +113,7 @@ export class RoomCam extends Component {
     return true;
   }
 
-  // TODO: do this through props or something better than this
-  componentWillUpdate(nextProps) {
+  UNSAFE_componentWillUpdate(nextProps) {
     const handle = this.chatStore.getHandleByUserId(this._getUserId(nextProps));
 
     if (handle) {

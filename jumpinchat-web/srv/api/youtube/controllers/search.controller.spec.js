@@ -6,7 +6,7 @@ const sinon = require('sinon');
 const proxyquire = require('proxyquire').noCallThru();
 const log = require('../../../utils/logger.util')({ name: 'search.controller.spec' });
 
-const sandbox = sinon.sandbox.create();
+const sandbox = sinon.createSandbox();
 
 describe('youtube search controller', () => {
   let SearchYoutube;

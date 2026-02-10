@@ -1,4 +1,4 @@
-const moment = require('moment');
+const { isBefore } = require('date-fns');
 const log = require('../../../utils/logger.util')({ name: 'getCurrentlyPlaying.controller' });
 const roomUtils = require('../../room/room.utils');
 const { playVideo } = require('./playVideo.controller');
@@ -25,7 +25,7 @@ module.exports = function getCurrentlyPlaying(socket, cb) {
     // then, return the new current item with applied start time
 
     try {
-      const current = moment();
+      const current = new Date();
 
       return playVideo.getCurrentMedia(roomName, (err, currentlyPlaying) => {
         if (err) {
@@ -36,7 +36,7 @@ module.exports = function getCurrentlyPlaying(socket, cb) {
           return cb();
         }
 
-        const currentHasCompleted = moment(currentlyPlaying.endTime).isBefore(current);
+        const currentHasCompleted = isBefore(new Date(currentlyPlaying.endTime), current);
         const currentHasStarted = !!currentlyPlaying.startTime;
 
         if (!currentHasStarted) {

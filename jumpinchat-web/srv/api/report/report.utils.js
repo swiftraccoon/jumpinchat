@@ -1,4 +1,4 @@
-const moment = require('moment');
+const { formatDistance } = require('date-fns');
 const log = require('../../utils/logger.util')({ name: 'report.utils' });
 const config = require('../../config/env');
 const email = require('../../config/email.config');
@@ -58,7 +58,7 @@ module.exports.incrementReport = async function incrementReport(session, cb) {
 };
 
 module.exports.getTimeLeft = function getTimeLeft(ttl) {
-  return moment.duration(ttl, 'seconds').humanize();
+  return formatDistance(0, ttl * 1000, { includeSeconds: true });
 };
 
 module.exports.sendReportMessages = function sendReportMessages(body, roomName) {

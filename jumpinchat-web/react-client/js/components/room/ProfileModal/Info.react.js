@@ -1,6 +1,6 @@
 import React, { Fragment } from 'react';
 import PropTypes from 'prop-types';
-import moment from 'moment';
+import { formatRelative } from 'date-fns';
 
 const ProfileInfo = ({ profile }) => {
   const name = profile.username || profile.handle;
@@ -11,8 +11,8 @@ const ProfileInfo = ({ profile }) => {
       {profile.joinDate && (
         <Fragment>
           {' '}
-          who joined {moment(profile.joinDate).calendar()} and
-          was last seen {moment(profile.lastSeen).calendar()}
+          who joined {formatRelative(new Date(profile.joinDate), new Date())} and
+          was last seen {formatRelative(new Date(profile.lastSeen), new Date())}
         </Fragment>
       )}
     </div>

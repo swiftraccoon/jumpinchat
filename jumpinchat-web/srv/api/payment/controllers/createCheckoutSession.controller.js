@@ -1,4 +1,4 @@
-const stripe = require('stripe');
+const Stripe = require('stripe');
 const log = require('../../../utils/logger.util')({ name: 'createCheckoutSession.controller' });
 const { getHostDomain } = require('../../../utils/utils');
 const errors = require('../../../config/constants/errors');
@@ -13,7 +13,7 @@ const paymentUtils = require('../payment.utils');
 
 module.exports = async function createCheckoutSession(req, res) {
   const { product, amount, beneficiary } = req.body;
-  const stripeClient = stripe(config.payment.stripe.secretKey);
+  const stripeClient = new Stripe(config.payment.stripe.secretKey);
   const domain = getHostDomain(req);
   const successUrl = `${domain}/support/payment/success?amount=${amount / 100}`;
   const cancelUrl = `${domain}/support`;
@@ -89,12 +89,11 @@ module.exports = async function createCheckoutSession(req, res) {
 
     try {
       const sessionOpts = {
-        payment_method_types: ['card'],
-        subscription_data: {
-          items: [{
-            plan: productDetail.id,
-          }],
-        },
+        mode: 'subscription',
+        line_items: [{
+          price: productDetail.id,
+          quantity: 1,
+        }],
         success_url: successUrl,
         cancel_url: cancelUrl,
       };
@@ -120,12 +119,16 @@ module.exports = async function createCheckoutSession(req, res) {
 
   if (productDetail.type === productTypes.TYPE_CHARGE) {
     const sessionOpts = {
-      payment_method_types: ['card'],
+      mode: 'payment',
       line_items: [{
-        name: 'Site Supporter',
-        description: `One-off supporter payment of $${amount / 100}`,
-        amount,
-        currency: 'usd',
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'Site Supporter',
+            description: `One-off supporter payment of $${amount / 100}`,
+          },
+          unit_amount: amount,
+        },
         quantity: 1,
       }],
       success_url: successUrl,

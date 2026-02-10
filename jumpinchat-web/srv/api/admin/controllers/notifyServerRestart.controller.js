@@ -1,5 +1,5 @@
 const log = require('../../../utils/logger.util')({ name: 'notifyServerRestart.controller' });
-const moment = require('moment');
+const { formatDistanceToNow } = require('date-fns');
 /**
  * return a formatted string for a difference in time
  *
@@ -9,7 +9,7 @@ const moment = require('moment');
  */
 function getFormattedTimeDiff(currentTime, seconds) {
   const restartTime = currentTime.getTime() + (parseInt(seconds, 10) * 1000);
-  return moment().to(moment(restartTime));
+  return formatDistanceToNow(new Date(restartTime), { addSuffix: true });
 }
 
 module.exports = function notifyServerRestart(seconds, io, cb) {

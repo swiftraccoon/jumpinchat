@@ -47,7 +47,7 @@ export class RoomCams extends Component {
     window.addEventListener('resize', this.handleResize);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const {
       feeds,
       currentlyPlaying,

@@ -1,4 +1,4 @@
-const moment = require('moment');
+const { startOfHour, startOfDay } = require('date-fns');
 const { groupBy } = require('lodash');
 const config = require('../../config/env');
 const log = require('../../utils/logger.util')({ name: 'adminUtils' });
@@ -60,7 +60,7 @@ module.exports.formatData = function formatData(data) {
 };
 
 function mergeData(data, unit) {
-  const groupedResults = groupBy(data, ({ x }) => moment(x).startOf(unit));
+  const groupedResults = groupBy(data, ({ x }) => unit === 'hour' ? startOfHour(new Date(x)) : startOfDay(new Date(x)));
 
   return Object.entries(groupedResults)
     .map(([label, groupedData]) => {

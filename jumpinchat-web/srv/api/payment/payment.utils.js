@@ -1,5 +1,5 @@
 const axios = require('axios');
-const stripe = require('stripe');
+const Stripe = require('stripe');
 const config = require('../../config/env');
 const errors = require('../../config/constants/errors');
 const trophyUtils = require('../trophy/trophy.utils');
@@ -8,7 +8,7 @@ const log = require('../../utils/logger.util')({ name: 'payment.utils' });
 const paymentModel = require('./payment.model');
 const CheckoutSession = require('./checkoutSession.model');
 
-const stripeClient = stripe(config.payment.stripe.secretKey);
+const stripeClient = new Stripe(config.payment.stripe.secretKey);
 
 module.exports.savePayment = function savePayment(userId, customerId, subscriptionId, planId) {
   const payment = {
@@ -122,7 +122,7 @@ module.exports.cancelSubscription = async function cancelSubscription(userId) {
     throw error;
   }
 
-  await stripeClient.subscriptions.del(payment.subscription.id);
+  await stripeClient.subscriptions.cancel(payment.subscription.id);
   await deletePayment(payment.id);
 
   log.info({ payment }, 'subscription cancelled');

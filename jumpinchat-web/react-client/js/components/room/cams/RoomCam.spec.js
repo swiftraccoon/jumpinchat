@@ -249,7 +249,7 @@ describe('<RoomCam />', () => {
     });
   });
 
-  describe('componentWillUpdate', () => {
+  describe('UNSAFE_componentWillUpdate', () => {
     let roomCam;
 
     beforeEach(() => {
@@ -260,7 +260,7 @@ describe('<RoomCam />', () => {
       roomCam.chatStore.getHandleByUserId = sinon.spy();
       roomCam._getUserId = sinon.spy();
 
-      roomCam.componentWillUpdate();
+      roomCam.UNSAFE_componentWillUpdate();
       expect(roomCam.chatStore.getHandleByUserId.called).toEqual(true);
     });
 
@@ -269,7 +269,7 @@ describe('<RoomCam />', () => {
       roomCam._getUserId = sinon.spy();
       roomCam.setState = sinon.spy();
 
-      roomCam.componentWillUpdate();
+      roomCam.UNSAFE_componentWillUpdate();
 
       // eql compares object values instead of instances
       expect(roomCam.setState.firstCall.args[0]).toEqual({ handle: 'foo' });

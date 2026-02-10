@@ -3,7 +3,7 @@
  */
 
 const jwt = require('jsonwebtoken');
-const moment = require('moment');
+const { format } = require('date-fns');
 const log = require('../../../utils/logger.util')({ name: 'handleJoinRoom.socket' });
 const utils = require('../../../utils/utils');
 const RoomJoin = require('../controllers/room.join');
@@ -247,7 +247,7 @@ module.exports = function handleJoinRoomSocket(socket, io) {
         welcomeMessages = [
           ...welcomeMessages,
           `Room topic: ${room.settings.topic.text}`,
-          `Set by: ${room.settings.topic.updatedBy && room.settings.topic.updatedBy.username} ${moment(room.settings.topic.updatedAt).format('DD/MM/YYYY')}`,
+          `Set by: ${room.settings.topic.updatedBy && room.settings.topic.updatedBy.username} ${format(new Date(room.settings.topic.updatedAt), 'dd/MM/yyyy')}`,
           ' ',
         ];
       }

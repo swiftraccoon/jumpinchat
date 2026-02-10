@@ -1,6 +1,6 @@
 /* global Notification, navigator, window */
 
-import request from 'superagent';
+import axios from 'axios';
 import {
   setManager,
 } from '../actions/PushActions';
@@ -43,17 +43,8 @@ function generateKeys(subscription) {
 }
 
 function fetchPushKey() {
-  return new Promise((resolve, reject) => {
-    request
-      .get('/api/rooms/push/publickey')
-      .end((err, response) => {
-        if (err) {
-          return reject(err);
-        }
-
-        return resolve(urlB64ToUint8Array(response.body.key));
-      });
-  });
+  return axios.get('/api/rooms/push/publickey')
+    .then((response) => urlB64ToUint8Array(response.data.key));
 }
 
 export function setRoomName(roomName) {
@@ -126,17 +117,13 @@ export function registerPushNotifications() {
 
       const { key, authSecret } = generateKeys(subscription);
 
-      request
-        .post(`/api/rooms/push/${socketId}/register`)
-        .send({ endpoint, key, authSecret })
-        .end((err) => {
-          if (err) {
-            console.error(err);
-            return;
-          }
-
+      axios.post(`/api/rooms/push/${socketId}/register`, { endpoint, key, authSecret })
+        .then(() => {
           trackEvent('Service Worker', 'Push register', 'registered');
           console.log('registered push notifications');
+        })
+        .catch((err) => {
+          console.error(err);
         });
     });
 }

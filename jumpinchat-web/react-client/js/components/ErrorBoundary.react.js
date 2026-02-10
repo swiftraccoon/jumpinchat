@@ -1,7 +1,6 @@
-/* global Raven */
-
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import * as Sentry from '@sentry/browser';
 import { addNotification } from '../actions/NotificationActions';
 
 class ErrorBoundary extends Component {
@@ -21,9 +20,7 @@ class ErrorBoundary extends Component {
       autoClose: false,
     });
 
-    if (error instanceof 'Error') {
-      Raven.captureException(error, { extra: info });
-    }
+    Sentry.captureException(error, { extra: info });
   }
 
   render() {

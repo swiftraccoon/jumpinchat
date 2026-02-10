@@ -82,7 +82,6 @@ module.exports = function expressConfig(app, io) {
         "'self'",
         "'unsafe-inline'",
         "'unsafe-eval'",
-        'https://cdn.ravenjs.com',
         'https://www.google-analytics.com',
         'https://cdn.headwayapp.co',
       ],

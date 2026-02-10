@@ -43,7 +43,10 @@ describe('utils', () => {
     };
 
     awsMock = {
-      S3: class S3 { putObject() {} },
+      S3Client: class S3Client { send() { return Promise.resolve(); } },
+      PutObjectCommand: class PutObjectCommand {},
+      DeleteObjectCommand: class DeleteObjectCommand {},
+      GetObjectCommand: class GetObjectCommand {},
     };
 
     next = sinon.spy();
@@ -53,7 +56,8 @@ describe('utils', () => {
       '../api/room/room.utils': {},
       './redis.util': { callPromise: sinon.stub() },
       './rateLimit': sinon.stub(),
-      'aws-sdk': awsMock,
+      '@aws-sdk/client-s3': awsMock,
+      '@aws-sdk/s3-request-presigner': { getSignedUrl: sinon.stub().resolves('https://signed-url') },
     });
   });
 
