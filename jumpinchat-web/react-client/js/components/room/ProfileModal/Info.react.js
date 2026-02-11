@@ -2,7 +2,7 @@ import React, { Fragment } from 'react';
 import PropTypes from 'prop-types';
 import { formatRelative } from 'date-fns';
 
-const ProfileInfo = ({ profile }) => {
+const ProfileInfo = ({ profile = {} }) => {
   const name = profile.username || profile.handle;
   const userType = profile.userType || 'guest user';
   return (
@@ -17,10 +17,6 @@ const ProfileInfo = ({ profile }) => {
       )}
     </div>
   );
-};
-
-ProfileInfo.defaultProps = {
-  profile: {},
 };
 
 ProfileInfo.propTypes = {

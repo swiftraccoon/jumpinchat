@@ -7,10 +7,10 @@ import RoomRestrictions from '../RoomRestrictions.react';
 
 const RoomCamsHeader = ({
   room,
-  localStream,
-  audioPtt,
-  audioContext,
-  localAudioActive,
+  localStream = null,
+  audioPtt = null,
+  audioContext = null,
+  localAudioActive = false,
   feedCount,
   userCount,
   canBroadcast,
@@ -77,13 +77,6 @@ const RoomCamsHeader = ({
     </div>
   </div>
 );
-
-RoomCamsHeader.defaultProps = {
-  localStream: null,
-  audioPtt: null,
-  audioContext: null,
-  localAudioActive: false,
-};
 
 RoomCamsHeader.propTypes = {
   room: PropTypes.shape({

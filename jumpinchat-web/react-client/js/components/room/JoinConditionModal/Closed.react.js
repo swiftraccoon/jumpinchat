@@ -20,7 +20,7 @@ const NudityInfo = () => (
   </Fragment>
 );
 
-const Closed = ({ isOpen, reason }) => (
+const Closed = ({ isOpen, reason = null }) => (
   <Modal
     overlayClassName="modal"
     className="modal__Window"
@@ -58,10 +58,6 @@ const Closed = ({ isOpen, reason }) => (
     </div>
   </Modal>
 );
-
-Closed.defaultProps = {
-  reason: null,
-};
 
 Closed.propTypes = {
   isOpen: PropTypes.bool.isRequired,

@@ -3,16 +3,16 @@ import PropTypes from 'prop-types';
 import classNames from 'classnames';
 
 const TextInput = React.forwardRef(({
-  className,
+  className = '',
   label,
-  subTitle,
-  value,
-  defaultValue,
-  onSubmit,
-  onChange,
-  changed,
-  error,
-  success,
+  subTitle = null,
+  value = null,
+  defaultValue = null,
+  onSubmit = null,
+  onChange = () => {},
+  changed = false,
+  error = null,
+  success = false,
   buttonLabel,
   id,
 }, ref) => (
@@ -61,18 +61,6 @@ const TextInput = React.forwardRef(({
     )}
   </div>
 ));
-
-TextInput.defaultProps = {
-  className: '',
-  subTitle: null,
-  value: null,
-  defaultValue: null,
-  onChange: () => {},
-  changed: false,
-  error: null,
-  success: false,
-  onSubmit: null,
-};
 
 TextInput.propTypes = {
   className: PropTypes.string,

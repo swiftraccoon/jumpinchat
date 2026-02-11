@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import classnames from 'classnames';
 
-const Loading = ({ loading, title, fullHeight }) => (
+const Loading = ({ loading, title = '', fullHeight = false }) => (
   <div className={classnames('loading__Wrapper', { 'loading__Wrapper--fullHeight': fullHeight })}>
     {loading && (
       <div className="loading__Indicator">
@@ -44,11 +44,6 @@ const Loading = ({ loading, title, fullHeight }) => (
     {title && <span className="loading__Title">{title}</span>}
   </div>
 );
-
-Loading.defaultProps = {
-  title: '',
-  fullHeight: false,
-};
 
 Loading.propTypes = {
   loading: PropTypes.bool.isRequired,

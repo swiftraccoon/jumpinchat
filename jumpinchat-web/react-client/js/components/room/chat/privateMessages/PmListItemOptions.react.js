@@ -4,7 +4,7 @@ import TetherComponent from 'react-tether';
 import WrappedListItems from '../../../elements/ListItems.react';
 
 const PmListItemOptions = ({
-  menuOpen,
+  menuOpen = null,
   handle,
   userListId,
   onOpenMenu,
@@ -59,10 +59,6 @@ const PmListItemOptions = ({
       )}
     </TetherComponent>
   );
-};
-
-PmListItemOptions.defaultProps = {
-  menuOpen: null,
 };
 
 PmListItemOptions.propTypes = {

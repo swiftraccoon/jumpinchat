@@ -4,8 +4,8 @@ import classnames from 'classnames';
 import Tooltip from '../../elements/Tooltip.react';
 
 const RoomUserIcon = ({
-  userIcon,
-  userId,
+  userIcon = null,
+  userId = null,
   isAdmin,
   isSiteMod,
   isSupporter,
@@ -63,11 +63,6 @@ const RoomUserIcon = ({
       </div>
     </Tooltip>
   );
-};
-
-RoomUserIcon.defaultProps = {
-  userIcon: null,
-  userId: null,
 };
 
 RoomUserIcon.propTypes = {

@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-modal';
 
-const Banned = ({ isOpen, reason }) => (
+const Banned = ({ isOpen, reason = null }) => (
   <Modal
     overlayClassName="modal"
     className="modal__Window"
@@ -35,10 +35,6 @@ const Banned = ({ isOpen, reason }) => (
     </div>
   </Modal>
 );
-
-Banned.defaultProps = {
-  reason: null,
-};
 
 Banned.propTypes = {
   isOpen: PropTypes.bool.isRequired,

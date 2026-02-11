@@ -47,27 +47,13 @@ export class RoomCams extends Component {
     window.addEventListener('resize', this.handleResize);
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    const {
-      feeds,
-      currentlyPlaying,
-    } = this.props;
-
-    const diffPlaying = nextProps.currentlyPlaying !== currentlyPlaying;
-    const feedsUpdated = RoomCams.getFeedsUpdated(feeds, nextProps.feeds);
-
-    if (feedsUpdated || diffPlaying) {
-      this._getCamDimensions(nextProps);
-    }
-  }
-
   componentDidUpdate(prev) {
-    const { feeds, layout } = this.props;
+    const { feeds, layout, currentlyPlaying } = this.props;
     const layoutUpdated = layout !== prev.layout;
-
+    const diffPlaying = currentlyPlaying !== prev.currentlyPlaying;
     const feedsUpdated = RoomCams.getFeedsUpdated(feeds, prev.feeds);
 
-    if (feedsUpdated || layoutUpdated) {
+    if (feedsUpdated || layoutUpdated || diffPlaying) {
       this._getCamDimensions(this.props);
     }
   }

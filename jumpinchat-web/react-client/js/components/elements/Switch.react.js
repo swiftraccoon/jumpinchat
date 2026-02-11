@@ -6,9 +6,9 @@ const Switch = ({
   onChange,
   checked,
   label,
-  helpText,
+  helpText = null,
   id,
-  disabled,
+  disabled = false,
 }) => (
   <label
     className={classnames('switch__Wrapper', {
@@ -40,11 +40,6 @@ const Switch = ({
     />
   </label>
 );
-
-Switch.defaultProps = {
-  helpText: null,
-  disabled: false,
-};
 
 Switch.propTypes = {
   label: PropTypes.string.isRequired,

@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 const ListItemCheckbox = ({
-  className,
+  className = '',
   checked,
   onChange,
   label,
@@ -21,10 +21,6 @@ const ListItemCheckbox = ({
     />
   </label>
 );
-
-ListItemCheckbox.defaultProps = {
-  className: '',
-};
 
 ListItemCheckbox.propTypes = {
   className: PropTypes.string,

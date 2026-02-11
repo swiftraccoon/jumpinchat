@@ -5,9 +5,9 @@ import ScrollArea from '../../../elements/ScrollArea.react';
 
 const PmConversationList = ({
   privateMessages,
-  selectedConversation,
+  selectedConversation = null,
   selectConversation,
-  menuOpen,
+  menuOpen = null,
   openMenu,
   handleClickOutside,
   closeConversation,
@@ -32,11 +32,6 @@ const PmConversationList = ({
     ))}
   </ScrollArea>
 );
-
-PmConversationList.defaultProps = {
-  selectedConversation: null,
-  menuOpen: null,
-};
 
 PmConversationList.propTypes = {
   privateMessages: PropTypes.arrayOf(PropTypes.shape({

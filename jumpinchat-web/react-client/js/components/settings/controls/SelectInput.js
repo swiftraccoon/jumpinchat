@@ -3,13 +3,13 @@ import PropTypes from 'prop-types';
 import classNames from 'classnames';
 
 const SelectInput = React.forwardRef(({
-  className,
+  className = '',
   label,
-  subTitle,
-  value,
+  subTitle = null,
+  value = '',
   options,
-  onChange,
-  error,
+  onChange = () => {},
+  error = null,
   id,
 }, ref) => (
   <div className={classNames('settings__TextInputGroup', className)}>
@@ -42,14 +42,6 @@ const SelectInput = React.forwardRef(({
     )}
   </div>
 ));
-
-SelectInput.defaultProps = {
-  className: '',
-  subTitle: null,
-  value: '',
-  onChange: () => {},
-  error: null,
-};
 
 SelectInput.propTypes = {
   className: PropTypes.string,

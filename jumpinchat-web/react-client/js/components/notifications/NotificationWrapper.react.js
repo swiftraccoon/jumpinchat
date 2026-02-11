@@ -4,7 +4,9 @@ import PropTypes from 'prop-types';
 const NotificationWrapper = ({
   className,
   children,
-  action,
+  action = {
+    type: 'message',
+  },
   onPause,
   onResume,
   onClose,
@@ -35,12 +37,6 @@ const NotificationWrapper = ({
         </div>
       );
   }
-};
-
-NotificationWrapper.defaultProps = {
-  action: {
-    type: 'message',
-  },
 };
 
 NotificationWrapper.propTypes = {

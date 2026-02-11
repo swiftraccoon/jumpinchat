@@ -6,7 +6,7 @@ import cx from 'classnames';
 const EmojiPredict = ({
   query,
   emojis,
-  selected,
+  selected = 0,
   onSelect,
 }) => (
   <div className="emojiPredict__Container">
@@ -52,10 +52,6 @@ const EmojiPredict = ({
     </div>
   </div>
 );
-
-EmojiPredict.defaultProps = {
-  selected: 0,
-};
 
 EmojiPredict.propTypes = {
   selected: PropTypes.number,

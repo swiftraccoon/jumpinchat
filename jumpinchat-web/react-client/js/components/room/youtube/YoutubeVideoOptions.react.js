@@ -16,10 +16,6 @@ class YoutubeVideoOptions extends Component {
     this.handleToggleOptions = this.handleToggleOptions.bind(this);
     this.handleClickOutside = this.handleClickOutside.bind(this);
 
-    this.options = [];
-  }
-
-  UNSAFE_componentWillMount() {
     this.options = this.createListOptions();
   }
 

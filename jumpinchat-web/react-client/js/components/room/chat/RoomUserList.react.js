@@ -52,12 +52,12 @@ function sortCollectionByHasProp(array, roles) {
 }
 
 export const RoomUserList = ({
-  room,
-  users,
-  optionOpen,
-  user: clientUser,
-  showUserList,
-  ignoreList,
+  room = null,
+  users = [],
+  optionOpen = null,
+  user: clientUser = null,
+  showUserList = true,
+  ignoreList = [],
   roleState: {
     roles,
   },
@@ -83,15 +83,6 @@ export const RoomUserList = ({
       ))}
     </ScrollArea>
   );
-};
-
-RoomUserList.defaultProps = {
-  room: null,
-  users: [],
-  user: null,
-  optionOpen: null,
-  showUserList: true,
-  ignoreList: [],
 };
 
 RoomUserList.propTypes = {

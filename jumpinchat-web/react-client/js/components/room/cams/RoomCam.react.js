@@ -27,7 +27,7 @@ export class RoomCam extends Component {
     this.setReportModal = setReportModal;
 
     this.state = {
-      handle: null,
+      handle: this.chatStore.getHandleByUserId(this._getUserId(props)),
     };
 
     this._isStreamLocal = this._isStreamLocal.bind(this);
@@ -38,12 +38,6 @@ export class RoomCam extends Component {
     this.handleFullscreen = this.handleFullscreen.bind(this);
     this.handleReport = this.handleReport.bind(this);
     this.hark = null;
-  }
-
-  UNSAFE_componentWillMount() {
-    this.setState({
-      handle: this.chatStore.getHandleByUserId(this._getUserId(this.props)),
-    });
   }
 
   componentDidMount() {
@@ -113,15 +107,12 @@ export class RoomCam extends Component {
     return true;
   }
 
-  UNSAFE_componentWillUpdate(nextProps) {
-    const handle = this.chatStore.getHandleByUserId(this._getUserId(nextProps));
-
-    if (handle) {
+  componentDidUpdate(prevProps) {
+    const handle = this.chatStore.getHandleByUserId(this._getUserId(this.props));
+    if (handle && handle !== this.state.handle) {
       this.setState({ handle });
     }
-  }
 
-  componentDidUpdate(prevProps) {
     const {
       streamData,
       videoEnabled,

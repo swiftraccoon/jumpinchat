@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const YoutubePlayPause = ({ paused, onTogglePlay, disabled }) => (
+const YoutubePlayPause = ({ paused, onTogglePlay, disabled = false }) => (
   <button
     className="cams__CamControl"
     onClick={() => onTogglePlay(!paused)}
@@ -15,10 +15,6 @@ const YoutubePlayPause = ({ paused, onTogglePlay, disabled }) => (
     )}
   </button>
 );
-
-YoutubePlayPause.defaultProps = {
-  disabled: false,
-};
 
 YoutubePlayPause.propTypes = {
   paused: PropTypes.bool.isRequired,

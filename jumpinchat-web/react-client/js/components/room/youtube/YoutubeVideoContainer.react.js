@@ -54,24 +54,6 @@ export class YoutubeVideoContainer extends Component {
     };
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    const {
-      videoDetails: {
-        pausedAt,
-      },
-    } = nextProps;
-
-    if (pausedAt === this.props.videoDetails.pausedAt || !this.player) {
-      return;
-    }
-
-    if (pausedAt) {
-      this.player.pauseVideo();
-    } else {
-      this.player.playVideo();
-    }
-  }
-
   componentDidUpdate(prevProps) {
     const {
       hasChangedHandle,
@@ -81,6 +63,14 @@ export class YoutubeVideoContainer extends Component {
         endTime,
       },
     } = this.props;
+
+    if (pausedAt !== prevProps.videoDetails.pausedAt && this.player) {
+      if (pausedAt) {
+        this.player.pauseVideo();
+      } else {
+        this.player.playVideo();
+      }
+    }
 
     if (!prevProps.hasChangedHandle && hasChangedHandle && !pausedAt && this.player) {
       this.player.playVideo();

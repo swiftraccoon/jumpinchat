@@ -5,7 +5,7 @@ import classnames from 'classnames';
 
 const ScrollArea = React.forwardRef(({
   children,
-  className,
+  className = null,
   ...props
 }, ref) => (
   <ReactScrollBar
@@ -17,10 +17,6 @@ const ScrollArea = React.forwardRef(({
     {children}
   </ReactScrollBar>
 ));
-
-ScrollArea.defaultProps = {
-  className: null,
-};
 
 ScrollArea.propTypes = {
   children: PropTypes.node.isRequired,

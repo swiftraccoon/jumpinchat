@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import VideoVolumeControl from '../../elements/VideoVolumeControl.react';
 
 const YoutubeAudioControls = ({
-  volume,
+  volume = 1,
   showVolume,
   onSetControl,
   onChangeVolume,
@@ -21,10 +21,6 @@ const YoutubeAudioControls = ({
     }}
   />
 );
-
-YoutubeAudioControls.defaultProps = {
-  volume: 1,
-};
 
 YoutubeAudioControls.propTypes = {
   volume: PropTypes.number,

@@ -10,16 +10,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@aws-sdk/client-ses": "^3.700.0",
-    "body-parser": "^1.20.3",
+    "@aws-sdk/client-sesv2": "^3.987.0",
     "bunyan": "^1.8.14",
     "express": "^4.21.0",
-    "nodemailer": "^6.9.16"
+    "nodemailer": "^8.0.1"
   },
   "devDependencies": {
-    "eslint": "^7.8.1",
-    "eslint-config-airbnb-base": "^14.2.0",
-    "eslint-plugin-import": "^2.22.0",
+    "eslint": "^8.57.1",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.32.0",
     "nodemon": "^3.1.0"
   }
 }

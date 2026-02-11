@@ -44,7 +44,7 @@ Radio.propTypes = {
 
 const RadioContainer = ({
   value,
-  name,
+  name = null,
   title,
   onChange,
   children,
@@ -58,10 +58,6 @@ const RadioContainer = ({
     }))}
   </div>
 );
-
-RadioContainer.defaultProps = {
-  name: null,
-};
 
 RadioContainer.propTypes = {
   children: PropTypes.node.isRequired,

@@ -10,7 +10,7 @@ const EmojiPicker = ({
   onToggle,
   onSelect,
   onClickOutside,
-  customEmoji,
+  customEmoji = [],
   userState: {
     user: {
       settings: {
@@ -49,10 +49,6 @@ const EmojiPicker = ({
     )}
   </TetherComponent>
 );
-
-EmojiPicker.defaultProps = {
-  customEmoji: [],
-};
 
 EmojiPicker.propTypes = {
   open: PropTypes.bool.isRequired,

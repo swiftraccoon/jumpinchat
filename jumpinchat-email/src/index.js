@@ -1,14 +1,13 @@
 const express = require('express');
 const http = require('http');
-const bodyParser = require('body-parser');
 const config = require('./config/env');
 const log = require('./utils/logger')({ name: 'server' });
 const routes = require('./routes');
 
 const app = express();
 const server = http.createServer(app);
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
 routes(app);
 
 server.listen(config.port, (err) => {

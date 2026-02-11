@@ -10,7 +10,7 @@ const IconPicker = ({
   onClose,
   onChange,
   isOpen,
-  value,
+  value = null,
   icons,
 }) => {
   const node = useRef();
@@ -80,10 +80,6 @@ const IconPicker = ({
       )}
     </TetherComponent>
   );
-};
-
-IconPicker.defaultProps = {
-  value: null,
 };
 
 IconPicker.propTypes = {

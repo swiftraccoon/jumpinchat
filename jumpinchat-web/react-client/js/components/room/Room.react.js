@@ -79,11 +79,8 @@ class Room extends Component {
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
   }
 
-  UNSAFE_componentWillMount() {
-    connectToRoom(this.props);
-  }
-
   async componentDidMount() {
+    connectToRoom(this.props);
     const { room } = this.props;
     appStore.addChangeListener(this._onChange);
     userStore.addChangeListener(this._onChange);
