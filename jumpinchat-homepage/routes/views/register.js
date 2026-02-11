@@ -36,7 +36,7 @@ module.exports = function register(req, res) {
     const schema = Joi.object().keys({
       username: Joi.string().alphanum().max(32).required(),
       email: Joi.string().email().required(),
-      password: Joi.string().min(6).required(),
+      password: Joi.string().min(10).required(),
       settings: Joi.object().keys({
         receiveUpdates: Joi.boolean().required(),
       }).required(),

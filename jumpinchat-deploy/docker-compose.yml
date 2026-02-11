@@ -92,6 +92,8 @@ services:
     image: echo.research.clinic/home
     environment:
       - DEPLOY_LOCATION=local
+      - COOKIE_SECRET=$COOKIE_SECRET
+      - JWT_SECRET=$JWT_SECRET
       - STRIPE_KEY_PUBLIC=$STRIPE_KEY_PUBLIC
       - MONGODB_URI=mongodb://mongodb,mongodbslave/tc?replicaSet=rs0
     ports:
@@ -107,6 +109,8 @@ services:
     image: echo.research.clinic/home
     environment:
       - DEPLOY_LOCATION=local
+      - COOKIE_SECRET=$COOKIE_SECRET
+      - JWT_SECRET=$JWT_SECRET
       - STRIPE_KEY_PUBLIC=$STRIPE_KEY_PUBLIC
       - MONGODB_URI=mongodb://mongodb,mongodbslave/tc?replicaSet=rs0
     expose:

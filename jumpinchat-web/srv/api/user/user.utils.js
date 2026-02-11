@@ -23,8 +23,9 @@ export function getUserByName(username, cb) {
 };
 
 export function getUserById(id, opts, cb) {
-  if (!cb) {
+  if (typeof opts === 'function') {
     cb = opts;
+    opts = {};
   }
 
   const promise = UserModel.findOne({ _id: id })

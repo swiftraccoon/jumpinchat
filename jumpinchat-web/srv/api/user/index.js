@@ -40,7 +40,7 @@ router.post('/:id/settings', utils.validateAccount, settings);
 router.post('/register', utils.rateLimit, controller.createUser);
 router.post('/login', utils.rateLimit, controller.login);
 router.post('/logout', controller.logout);
-router.get('/checkCanBroadcast/:roomName?', checkBroadcastRestrictions);
+router.get('/checkCanBroadcast{/:roomName}', checkBroadcastRestrictions);
 router.put('/:userId/uploadImage', utils.validateAccount, uploadDisplayImage);
 router.put('/:userId/uploadUserIcon', utils.validateAccount, uploadUserIcon);
 router.put('/:userId/setnotifications', utils.validateAccount, setNotificationsEnabled);

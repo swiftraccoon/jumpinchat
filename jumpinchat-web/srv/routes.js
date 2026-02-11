@@ -97,7 +97,7 @@ export default function routes(app) {
     });
 
 
-  app.route(`/:room(${config.roomRegExp})/manifest.json`)
+  app.route('/:room/manifest.json')
     .get((req, res) => {
       const roomName = req.params.room;
       const manifest = {
@@ -134,9 +134,9 @@ export default function routes(app) {
       }
     });
 
-  app.route(`/:room(${config.roomRegExp})`).post((req, res) => res.redirect(302, req.path));
+  app.route('/:room').post((req, res) => res.redirect(302, req.path));
 
-  app.route(`/:room(${config.roomRegExp})`)
+  app.route('/:room')
     .get((req, res, next) => {
       const roomName = req.params.room.toLowerCase().replace('-', '');
 
