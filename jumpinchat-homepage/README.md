@@ -1,45 +1,53 @@
-# JumpInChat homepage
+# JumpInChat Homepage
 
-Home page with user registration/login, room lists, user account settings and messaging. Also includes admin/site-mod functions
+Keystone.js 4 application serving the public homepage, user registration/login,
+room directory, user account settings, messaging, and admin functions.
 
-## Contents
-1. [Installation and setup](#installation-and-setup)
-1. [Development](#development)
-    1. [Requirements](#requirements)
-    1. [Running locally](#running-locally)
+## Requirements
 
-## Installation and setup
+- Node.js >= 22.0.0
+- MongoDB (replica set)
+- [jumpinchat-web](../jumpinchat-web) API server running
 
-```
-# install nvm and setup to use node version defined in .nvmrc
-nvm install
-nvm use
+## Installation
 
-# install Yarn via your preferred method
-yarn install --frozen-lockfile
+```bash
+npm install --legacy-peer-deps
 ```
 
 ## Development
 
-### Requirements
-
-Requires Node.js v10+
-
-Ideally use [node version manager (nvm)](https://github.com/nvm-sh/nvm). Running `nvm install && nvm use` should set the version to one best suited for the project, based on `.nvmrc`.
-
-Local environment variables are set in `nodemon.json`
-
-### Dependencies
-
-Install via yarn `yarn install --frozen-lockfile`
-
 ### Running locally
 
-1. start [API server](https://github.com/jumpinchat/jumpinchat-web)
-1. start local mongodb
-1. start local server:
+The easiest way is via podman-compose from the deploy repo:
 
 ```bash
-# run nodemon, output piped to bunyan to format logs
+cd ../jumpinchat-deploy
+podman-compose up -d home home2
+```
+
+To run standalone:
+
+1. Start MongoDB replica set and the API server
+2. Run the dev server:
+
+```bash
 npx nodemon | npx bunyan
+```
+
+Local environment variables are set in `nodemon.json`.
+
+### Building assets
+
+The Docker build compiles SCSS and bundles JS automatically:
+
+- **SCSS**: `src/styles/site.scss` compiled with `sass`
+- **JS**: `src/js/app.js` bundled with esbuild (IIFE + ESM outputs)
+- **Images**: copied from `src/images/`
+
+To compile CSS manually:
+
+```bash
+npx sass src/styles/site.scss src/styles/site.css \
+  --load-path=node_modules/normalize-scss
 ```
