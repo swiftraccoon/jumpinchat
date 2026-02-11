@@ -3,4 +3,4 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../jumpinchat-web"
 
-NODE_OPTIONS=--openssl-legacy-provider ./node_modules/.bin/gulp --gulpfile gulpfile.cjs compile:js compile:js:esNext "$@"
+./node_modules/.bin/gulp compile:js compile:js:esNext "$@"

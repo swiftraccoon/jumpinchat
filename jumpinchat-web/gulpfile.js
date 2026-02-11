@@ -2,27 +2,30 @@
  * Created by zaccaryprice on 24/12/2015.
  */
 
-const fs = require('fs');
-const gulp = require('gulp');
-const log = require('fancy-log');
-const sourcemaps = require('gulp-sourcemaps');
-const sass = require('gulp-sass')(require('sass'));
-const autoprefixer = require('gulp-autoprefixer');
-const gulpif = require('gulp-if');
-const rev = require('gulp-rev');
-const sort = require('gulp-sort');
-const rename = require('gulp-rename');
-const revReplace = require('gulp-rev-replace');
-const useref = require('gulp-useref');
-const webpack = require('webpack');
-const babel = require('gulp-babel');
-const path = require('path');
-// del v8 and vinyl-paths v5 are ESM-only; loaded via dynamic import below
-const inject = require('gulp-inject');
-const csso = require('gulp-csso');
-const workbox = require('workbox-build');
-const minifyEs = require('gulp-terser');
-const webpackConf = require('./webpack.conf.cjs');
+import fs from 'fs';
+import path from 'path';
+import gulp from 'gulp';
+import log from 'fancy-log';
+import sourcemaps from 'gulp-sourcemaps';
+import gulpSassFactory from 'gulp-sass';
+import * as sassCompiler from 'sass';
+import autoprefixer from 'gulp-autoprefixer';
+import gulpif from 'gulp-if';
+import rev from 'gulp-rev';
+import sort from 'gulp-sort';
+import rename from 'gulp-rename';
+import revReplace from 'gulp-rev-replace';
+import useref from 'gulp-useref';
+import webpack from 'webpack';
+import babel from 'gulp-babel';
+import { deleteAsync } from 'del';
+import inject from 'gulp-inject';
+import csso from 'gulp-csso';
+import workbox from 'workbox-build';
+import minifyEs from 'gulp-terser';
+import { default as webpackConf } from './webpack.conf.cjs';
+
+const sass = gulpSassFactory(sassCompiler);
 
 const paths = {
   src: 'react-client',
@@ -31,16 +34,10 @@ const paths = {
 };
 
 // clean <tmp> directory
-gulp.task('clean:tmp', async () => {
-  const { deleteAsync } = await import('del');
-  return deleteAsync([path.join(paths.tmp, '*')]);
-});
+gulp.task('clean:tmp', () => deleteAsync([path.join(paths.tmp, '*')]));
 
 // clean <dist> directory
-gulp.task('clean:dist', async () => {
-  const { deleteAsync } = await import('del');
-  return deleteAsync([path.join(paths.dist, '*')]);
-});
+gulp.task('clean:dist', () => deleteAsync([path.join(paths.dist, '*')]));
 
 gulp.task('copy:sounds', () => gulp.src([
   path.join(paths.src, 'sounds/*'),
