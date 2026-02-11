@@ -1,5 +1,5 @@
 
-import marked from 'marked';
+import { marked } from 'marked';
 import jwt from 'jsonwebtoken';
 import logFactory from '../../../utils/logger.util.js';
 import Queue from '../../../utils/queue.util.js';

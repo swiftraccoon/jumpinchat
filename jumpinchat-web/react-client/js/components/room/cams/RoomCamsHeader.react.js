@@ -49,8 +49,8 @@ const RoomCamsHeader = ({
           title={(room.settings.topic && room.settings.topic.text) || room.settings.description}
         >
           <Clamp
+            id="room-description"
             className="cams__RoomDescription"
-            innerClassName="inner-card"
             text={(room.settings.topic && room.settings.topic.text) || room.settings.description}
             lines={2}
             buttons={false}
