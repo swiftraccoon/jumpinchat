@@ -63,7 +63,7 @@
   height: 100%;
 
   outline: 1px solid var(--blue);
-  outline-color: color(var(--blue) alpha(75%));
+  outline-color: rgba(51, 122, 183, 0.75);
 }
 
 .cropper-dashed {

@@ -19,12 +19,13 @@ RUN npm install --legacy-peer-deps
 # Copy the rest of the source
 COPY jumpinchat-homepage/ ./
 
-# Build JS bundles with esbuild and copy assets
-RUN npm install --no-save esbuild && \
+# Build JS bundles with esbuild, compile SCSS, and copy assets
+RUN npm install --no-save esbuild sass && \
     mkdir -p public/styles public/js public/images && \
     echo '{}' > public/rev-manifest.json && \
     cp -r src/images/* public/images/ && \
-    cp src/styles/site.css public/styles/site.css && \
+    ./node_modules/.bin/sass src/styles/site.scss public/styles/site.css \
+      --no-source-map --style=compressed --load-path=node_modules/normalize-scss --quiet && \
     ./node_modules/.bin/esbuild src/js/app.js --bundle --outfile=public/js/bundle.js \
       --format=iife --target=es2015 --platform=browser && \
     ./node_modules/.bin/esbuild src/js/app.js --bundle --outfile=public/js/bundle.mjs \
