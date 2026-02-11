@@ -1,4 +1,4 @@
-FROM node:18-bullseye AS builder
+FROM node:22-bullseye AS builder
 
 ENV SERVER_PATH /var/www
 
@@ -11,8 +11,6 @@ COPY jumpinchat-web/ ./
 RUN npm install --legacy-peer-deps
 
 # Build with gulp (use local binary, not npx)
-# Node 18 uses OpenSSL 3.0 which drops MD4; webpack 4 needs legacy provider
-ENV NODE_OPTIONS="--openssl-legacy-provider"
 RUN ./node_modules/.bin/gulp --gulpfile gulpfile.cjs build
 
 # Generate version.js (normally done by publish-artifact.sh)
@@ -37,8 +35,8 @@ RUN apt-get update > /dev/null && \
         curl \
         sudo
 
-# Install Node.js 18 in the nginx image for the server runtime
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+# Install Node.js 22 in the nginx image for the server runtime
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get install -y nodejs
 
 # Copy built assets and server code

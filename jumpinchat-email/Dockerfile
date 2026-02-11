@@ -1,4 +1,4 @@
-FROM docker.io/library/node:18-alpine
+FROM docker.io/library/node:22-alpine
 
 RUN mkdir -p /opt
 

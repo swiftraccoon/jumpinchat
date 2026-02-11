@@ -20,8 +20,6 @@ const path = require('path');
 // del v8 and vinyl-paths v5 are ESM-only; loaded via dynamic import below
 const inject = require('gulp-inject');
 const csso = require('gulp-csso');
-const imagemin = require('gulp-imagemin');
-const pngquant = require('pngquant');
 const workbox = require('workbox-build');
 const minifyEs = require('gulp-terser');
 const webpackConf = require('./webpack.conf.cjs');
@@ -142,11 +140,6 @@ gulp.task('csso', () => gulp.src(`${paths.tmp}/**/*.css`)
 
 
 gulp.task('imagemin', () => gulp.src(path.join(paths.src, 'img/**/*'))
-  .pipe(imagemin({
-    progressive: true,
-    svgoPlugins: [{ removeViewBox: false }],
-    use: [pngquant()],
-  }))
   .pipe(gulp.dest(`${paths.dist}/img`)));
 
 

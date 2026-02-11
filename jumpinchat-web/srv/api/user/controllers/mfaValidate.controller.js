@@ -1,5 +1,5 @@
 
-import { authenticator } from 'otplib';
+import { verifySync } from 'otplib';
 import { getUserById } from '../user.utils.js';
 import OtpBackupCodeSchema from '../otpBackupCode.model.js';
 import { NotFoundError, ValidationError } from '../../../utils/error.util.js';
@@ -29,7 +29,7 @@ export default async function mfaValidate(body) {
 
   let isValid;
   try {
-    isValid = authenticator.verify({ token, secret });
+    isValid = verifySync({ token, secret }).valid;
   } catch (err) {
     throw err;
   }

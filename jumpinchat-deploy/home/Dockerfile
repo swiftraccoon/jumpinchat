@@ -1,4 +1,4 @@
-FROM node:18-bullseye AS builder
+FROM node:22-bullseye AS builder
 
 ENV SERVER_PATH /var/www
 ENV NODE_ENV "production"
@@ -30,7 +30,7 @@ RUN npm install --no-save esbuild && \
     ./node_modules/.bin/esbuild src/js/app.js --bundle --outfile=public/js/bundle.mjs \
       --format=esm --target=es2017 --platform=browser
 
-FROM node:18-bullseye-slim
+FROM node:22-bullseye-slim
 ENV NODE_ENV "production"
 COPY --from=builder /var/www /var/www
 COPY jumpinchat-deploy/home/entry.sh /tmp/scripts/entry.sh

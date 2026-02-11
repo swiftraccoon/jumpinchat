@@ -1,5 +1,5 @@
 
-import { authenticator } from 'otplib';
+import { verifySync } from 'otplib';
 import { getUserById } from '../user.utils.js';
 import OtpRequestModel from '../otpRequest.model.js';
 import { NotFoundError, ValidationError } from '../../../utils/error.util.js';
@@ -36,7 +36,7 @@ export default async function mfaConfirmEnroll(body) {
 
   let isValid;
   try {
-    isValid = authenticator.verify({ token, secret: otpRequest.secret });
+    isValid = verifySync({ token, secret: otpRequest.secret }).valid;
   } catch (err) {
     throw err;
   }

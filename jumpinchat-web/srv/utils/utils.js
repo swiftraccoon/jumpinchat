@@ -1,6 +1,6 @@
 
 import jwt from 'jsonwebtoken';
-import Jimp from 'jimp';
+import { Jimp, HorizontalAlign, VerticalAlign } from 'jimp';
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import * as uuid from 'uuid';
@@ -202,40 +202,29 @@ export function updateLastSeen(socketId, cb = () => {}) {
  * @param {number} dimensions.height
  * @param {function} cb
  */
-export function convertImages(fileBuffer, dimensions, cb) {
+export async function convertImages(fileBuffer, dimensions, cb) {
   log.debug('converting images');
 
-  Jimp
-    .read(fileBuffer)
-    .then((image) => {
-      const mime = image.getMIME();
+  try {
+    const image = await Jimp.read(fileBuffer);
+    const mime = image.mime;
 
-      if (mime === 'image/gif') {
-        return cb(null, fileBuffer);
-      }
+    if (mime === 'image/gif') {
+      return cb(null, fileBuffer);
+    }
 
-      image
-        .contain(
-          dimensions.width,
-          dimensions.height,
-          Jimp.HORIZONTAL_ALIGN_CENTER | Jimp.VERTICAL_ALIGN_MIDDLE,
-        );
-
-      return image
-        .quality(60)
-        .getBuffer(mime, (err, convertedBuffer) => {
-          if (err) {
-            log.fatal({ err }, 'error getting image buffer');
-            return cb(err);
-          }
-
-          return cb(null, convertedBuffer);
-        });
-    })
-    .catch((err) => {
-      log.fatal({ err }, 'error converting image');
-      return cb(err);
+    image.contain({
+      w: dimensions.width,
+      h: dimensions.height,
+      align: HorizontalAlign.CENTER | VerticalAlign.MIDDLE,
     });
+
+    const convertedBuffer = await image.getBuffer(mime, { quality: 60 });
+    return cb(null, convertedBuffer);
+  } catch (err) {
+    log.fatal({ err }, 'error converting image');
+    return cb(err);
+  }
 };
 
 export function mergeBuffers(dataArr) {

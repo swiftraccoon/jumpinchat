@@ -1,6 +1,6 @@
 
 import qrcode from 'qrcode';
-import { authenticator } from 'otplib';
+import { generateSecret, generateURI } from 'otplib';
 import { getUserById } from '../user.utils.js';
 import OtpRequestModel from '../otpRequest.model.js';
 import { NotFoundError } from '../../../utils/error.util.js';
@@ -27,11 +27,11 @@ export default async function mfaRequestEnroll(body) {
   if (otpRequest) {
     ({ secret } = otpRequest);
   } else {
-    secret = authenticator.generateSecret();
+    secret = generateSecret();
   }
 
   let qrUrl;
-  const otpUri = authenticator.keyuri(user.username, 'JumpInChat', secret);
+  const otpUri = generateURI({ secret, label: user.username, issuer: 'JumpInChat' });
 
   try {
     qrUrl = await qrcode.toDataURL(otpUri);
