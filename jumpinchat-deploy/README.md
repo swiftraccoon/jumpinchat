@@ -1,59 +1,32 @@
-# JumpInChat deployment scripts
+# JumpInChat Deployment
 
-## Getting started
+Container configs and compose file for running JumpInChat.
 
-Requires docker and docker-compose
+See the [root README](../README.md) for setup instructions.
 
-## Services list
+## Services
 
-* [srv](./srv): Web and chat client server
-* [home](./home): Home page, directory and user settings site
-* [janus](./janus): media server config
-* [mongodb](./mongodb): mongodb database config
-* [nginx](./nginx): nginx config
-* [haproxy](./haproxy): load balancer proxy config
+| Directory | Builds |
+|---|---|
+| `srv/` | web / web2 (Node.js app + nginx) |
+| `home/` | home / home2 (Keystone.js homepage) |
+| `janus/` | janus / janus2 (WebRTC media server) |
+| `nginx/` | nginx (reverse proxy) |
+| `haproxy/` | haproxy (load balancer) |
 
-Also required is [jumpinchat/jumpinchat-emails](https://github.com/jumpinchat/jumpinchat-email) for the email service
+MongoDB, Redis, and email use upstream images and don't have build directories.
 
-## How to use
+## Key Files
 
-### Running Janus locally
+- `docker-compose.yml` -- all service definitions
+- `example.env` -- environment variable template (copy to `.env`)
+- `fullchain.pem` / `privkey.pem` -- TLS certs (mounted into Janus containers)
+- `nginx/fullchain.pem` / `nginx/privkey.pem` / `nginx/dhparam.pem` -- TLS certs (copied into nginx image at build time)
+- `data/db` / `data/db2` -- MongoDB data directories (persisted across restarts)
 
-```shell
-  docker-compose -f docker-compose.yml -f local-compose.yml up -d janus && docker-compose logs -f janus
-```
+## Image Registry
 
-### Run all services
-
-You will need to update a .env file with the appropriate secrets
-
-```shell
-  docker-compose --env-file ./example.env up
-```
-
-Since MongoDB replication is used, you'll have to set that up by running `./initMongoRepl.sh`
-
-## Publishing packages
-
-Since I used a privately hosted docker registry, you will have to update the image URLs in `docker-compose.yml` with your own, or a public registry
-
-```yaml
-  # e.g.
-  web:
-    image: registry.example.com/<user>/web
-```
-
-buld the image
-
-```shell
-  docker-compose build web
-```
-
-then push them
-
-```shell
-  docker push registry.example.com/<user>/web:<tag>
-```
-
-It's best to do this if you plan on hosting efficiently on a remote server, to avoid having to build containers
-on the server itself.
+The compose file references `echo.research.clinic/*` as image names. These
+are local image tags -- they don't need an actual registry. Podman/Docker
+builds and tags them locally. Change the image names if you want to push
+to your own registry.
