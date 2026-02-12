@@ -73,7 +73,8 @@
     "socket.io-client": "^4.8.0",
     "stripe": "^20.0.0",
     "uuid": "^13.0.0",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "webrtc-adapter": "^9.0.3"
   },
   "devDependencies": {
     "@babel/cli": "^7.2.3",

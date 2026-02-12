@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import Clamp from 'react-clamp-lines';
+import _Clamp from 'react-clamp-lines';
+const Clamp = _Clamp.default || _Clamp;
 import RoomBroadcastButton from './RoomBroadcastButton.react';
 import RoomCamsLocalAudioActions from './RoomCamsLocalAudioActions.react';
 import RoomRestrictions from '../RoomRestrictions.react';

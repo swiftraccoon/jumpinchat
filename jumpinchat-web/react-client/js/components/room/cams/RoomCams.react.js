@@ -26,7 +26,7 @@ export class RoomCams extends Component {
     const currentFeeds = current.map(getFeedId).join('');
     const prevFeeds = previous.map(getFeedId).join('');
 
-    return previous.length > 0 && (currentFeeds !== prevFeeds);
+    return currentFeeds !== prevFeeds;
   }
 
   static calcMaxWidth(height, x, y) {

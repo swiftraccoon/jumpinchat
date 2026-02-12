@@ -24,7 +24,7 @@ export function getJanusEndpoints(req, res) {
   }
 
   if (config.janus.http_uri) {
-    endpoints.push(`https://${hostname}${config.janus.http_uri}`);
+    endpoints.push(`http://${hostname}${config.janus.http_uri}`);
   }
 
   return res.status(200).send(endpoints);

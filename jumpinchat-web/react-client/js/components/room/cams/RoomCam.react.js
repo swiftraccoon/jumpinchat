@@ -124,7 +124,13 @@ export class RoomCam extends Component {
 
     const tokenDiff = streamData.token !== prevProps.streamData.token;
     const videoEnabledDiff = videoEnabled !== prevProps.videoEnabled;
-    if (tokenDiff || videoEnabledDiff) {
+    if ((tokenDiff || videoEnabledDiff) && this.stream) {
+      this._attachStream();
+    }
+
+    // Attach stream when video element becomes available for the first time
+    // (e.g. after dimensions change from null to non-null)
+    if (this.stream && streamData.stream && !this.stream.srcObject) {
       this._attachStream();
     }
 
@@ -143,9 +149,11 @@ export class RoomCam extends Component {
       audioTrack.enabled = feed.volume > 0;
     }
 
-    this.stream.volume = parseFloat(feed.volume / 100) || 0;
+    if (this.stream) {
+      this.stream.volume = parseFloat(feed.volume / 100) || 0;
+    }
 
-    if (!prevProps.hasChangedHandle && hasChangedHandle) {
+    if (!prevProps.hasChangedHandle && hasChangedHandle && this.stream) {
       this.stream.play()
         .then(() => {})
         .catch((err) => {

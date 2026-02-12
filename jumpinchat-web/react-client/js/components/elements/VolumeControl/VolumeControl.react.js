@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react';
 import PropTypes from 'prop-types';
-import Slider from 'react-rangeslider';
+import _Slider from 'react-rangeslider';
+const Slider = _Slider.default || _Slider;
 
 const VolumeControl = forwardRef(({ volume, onChangeVolume }, ref) => (
   <div

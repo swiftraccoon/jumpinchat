@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import ReactScrollBar from 'react-scrollbar';
+import _ReactScrollBar from 'react-scrollbar';
+const ReactScrollBar = _ReactScrollBar.default || _ReactScrollBar;
 import classnames from 'classnames';
 
 const ScrollArea = React.forwardRef(({

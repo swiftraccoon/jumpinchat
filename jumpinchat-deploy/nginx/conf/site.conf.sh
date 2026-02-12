@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
-EXTERNAL_IP=`curl -s icanhazip.com`
+EXTERNAL_IP=$(curl -s --connect-timeout 5 icanhazip.com || echo "")
 ENV='local'
 
-# streamtest upstream removed — no longer defined
 LOC_STREAM=""
 
 if [[ $ENV == 'local' ]]; then
@@ -80,6 +79,10 @@ upstream websrv {
 upstream homesrv {
   server home:3000 max_fails=3 fail_timeout=30s;
   server home2:3000 max_fails=3 fail_timeout=30s;
+}
+
+upstream haproxybackend {
+  server haproxy:80 max_fails=3 fail_timeout=30s;
 }
 
 geo \$limit {
@@ -165,7 +168,7 @@ server {
   }
 
   location /api {
-    proxy_pass http://haproxy:80;
+    proxy_pass http://haproxybackend;
     proxy_set_header X-Real-IP \$remote_addr;
     proxy_set_header Host \$host;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
