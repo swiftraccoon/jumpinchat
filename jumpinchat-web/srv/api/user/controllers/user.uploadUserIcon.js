@@ -10,6 +10,7 @@ import {
   s3Upload,
   isValidImage,
   getExtFromMime,
+  validateMagicBytes,
 } from '../../../utils/utils.js';
 
 
@@ -61,21 +62,27 @@ export default function uploadUserIcon(req, res) {
         return;
       }
 
+      const fileBuffer = mergeBuffers(dataArr);
+      if (!validateMagicBytes(fileBuffer, mimeType)) {
+        log.error({ mimeType }, 'magic bytes do not match claimed MIME type');
+        return res.status(400).send(errors.ERR_FILE_TYPE);
+      }
+
       const dimensions = {
         width: config.uploads.userIcon.width,
         height: config.uploads.userIcon.height,
       };
 
-      convertImages(mergeBuffers(dataArr), dimensions, (err, convertedImage) => {
+      convertImages(fileBuffer, dimensions, (err, convertedImage) => {
         if (err) {
           log.fatal({ err }, 'failed to convert images');
-          return res.status(500).send(err);
+          return res.status(500).send();
         }
 
         getUserById(req.params.userId, (err, user) => {
           if (err) {
             log.fatal('error fetching user', { err });
-            return res.status(500).send(err);
+            return res.status(500).send();
           }
 
           const filePath = `user-icons/${user.username}.${getExtFromMime(mimeType)}`;
@@ -90,7 +97,7 @@ export default function uploadUserIcon(req, res) {
 
             log.info(`upload done: ${filePath}`);
 
-            user.settings.userIcon = `${filePath}?t=${Date.now()}`;
+            user.settings.userIcon = filePath;
 
             user.save()
               .then(() => res.status(200).send({ url: filePath }))

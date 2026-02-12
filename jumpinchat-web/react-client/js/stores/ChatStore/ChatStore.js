@@ -495,7 +495,7 @@ export class ChatStore extends EventEmitter {
       text: '',
       emoticons: [],
       keywords: [alias],
-      imageUrl: `https://s3.amazonaws.com/jic-uploads/${image}`,
+      imageUrl: `/uploads/${image}`,
       custom: true,
     }));
 

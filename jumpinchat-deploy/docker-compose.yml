@@ -20,11 +20,8 @@ services:
       - JANUS_SERVER_IDS=janus,janus2
       - JANUS_PLUGINS=janus.plugin.videoroom
       - YT_API_KEY=$YT_API_KEY
-      - AWS_SES_ACCESS_KEY=$AWS_SES_ACCESS_KEY
-      - AWS_SES_SECRET=$AWS_SES_SECRET
-      - AWS_S3_UPLOADS_ACCESS_KEY=$AWS_S3_UPLOADS_ACCESS_KEY
-      - AWS_S3_UPLOADS_SECRET=$AWS_S3_UPLOADS_SECRET
-      - AWS_S3_UPLOADS_BUCKET=jic-uploads
+      - UPLOAD_BASE_PATH=/data/uploads
+      - FILE_TOKEN_SECRET=$FILE_TOKEN_SECRET
       - TURN_URIS=lima.research.clinic
       - GCM_API_KEY=$GCM_API_KEY # key for push notifications
       - STRIPE_SK=$STRIPE_SK
@@ -34,6 +31,8 @@ services:
       - EMAIL_URL=http://email:3001
     expose:
       - "80"
+    volumes:
+      - uploads:/data/uploads:z
     depends_on:
       - redis
       - mongodb
@@ -60,11 +59,8 @@ services:
       - JANUS_SERVER_IDS=janus,janus2
       - JANUS_PLUGINS=janus.plugin.videoroom
       - YT_API_KEY=$YT_API_KEY
-      - AWS_SES_ACCESS_KEY=$AWS_SES_ACCESS_KEY
-      - AWS_SES_SECRET=$AWS_SES_SECRET
-      - AWS_S3_UPLOADS_ACCESS_KEY=$AWS_S3_UPLOADS_ACCESS_KEY
-      - AWS_S3_UPLOADS_SECRET=$AWS_S3_UPLOADS_SECRET
-      - AWS_S3_UPLOADS_BUCKET=jic-uploads
+      - UPLOAD_BASE_PATH=/data/uploads
+      - FILE_TOKEN_SECRET=$FILE_TOKEN_SECRET
       - TURN_URIS=lima.research.clinic
       - GCM_API_KEY=$GCM_API_KEY # key for push notifications
       - STRIPE_SK=$STRIPE_SK
@@ -74,6 +70,8 @@ services:
       - EMAIL_URL=http://email:3001
     expose:
       - "80"
+    volumes:
+      - uploads:/data/uploads:z
     depends_on:
       - redis
       - mongodb
@@ -165,6 +163,8 @@ services:
     ports:
       - "8080:80"
       - "8443:443"
+    volumes:
+      - uploads:/data/uploads:z,ro
     logging:
       options:
         max-size: '1m'
@@ -250,10 +250,17 @@ services:
       - "3001"
     environment:
       - PORT=3001
-      - AWS_SES_ACCESS_KEY=$AWS_SES_ACCESS_KEY
-      - AWS_SES_SECRET=$AWS_SES_SECRET
+      - SMTP_HOST=$SMTP_HOST
+      - SMTP_PORT=$SMTP_PORT
+      - SMTP_SECURE=$SMTP_SECURE
+      - SMTP_USER=$SMTP_USER
+      - SMTP_PASS=$SMTP_PASS
+      - SMTP_FROM=$SMTP_FROM
       - SHARED_SECRET=$SHARED_SECRET
     logging:
       options:
         max-size: '1m'
     restart: always
+
+volumes:
+  uploads:

@@ -13,7 +13,9 @@ import message from './api/message/index.js';
 import ageVerification from './api/ageVerification/index.js';
 import payment from './api/payment/index.js';
 import role from './api/role/index.js';
+import internal from './api/internal/index.js';
 import config from './config/env/index.js';
+import { getHostDomain } from './utils/utils.js';
 import roomUtils from './api/room/room.utils.js';
 import logFactory from './utils/logger.util.js';
 const log = logFactory({ name: 'routes' });
@@ -30,6 +32,7 @@ export default function routes(app) {
   app.use('/api/payment', payment);
   app.use('/api/message', message);
   app.use('/api/role', role);
+  app.use('/api/internal', internal);
 
   app.get('/api/status', (req, res) => res.status(200).send('It\'s all good'));
   app.post('/api/donate', (req, res) => {
@@ -42,12 +45,15 @@ export default function routes(app) {
         amount,
       } = data;
 
-      const slackHookUrl = 'https://hooks.slack.com/services/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';
+      if (!config.slack.hookUrl) {
+        log.warn('Slack hook URL not configured, skipping donation notification');
+        return res.status(200).send();
+      }
+
       const text = `${fromName} donated $${amount}`;
       const payload = {
         username: 'Ko-fi',
         channel: '#general',
-        icon_url: 'https://s3-us-west-2.amazonaws.com/slack-files2/avatar-temp/2018-05-20/367806459094_6a252d08d5880d6ba7ed.png',
         attachments: [
           {
             pretext: text,
@@ -65,7 +71,7 @@ export default function routes(app) {
         ];
       }
 
-      return axios.post(slackHookUrl, payload)
+      return axios.post(config.slack.hookUrl, payload)
         .then(() => {
           res.status(200).send();
         })
@@ -175,7 +181,7 @@ export default function routes(app) {
           }
 
           if (roomObj.settings.display) {
-            roomDisplay = `https://s3.amazonaws.com/jic-uploads/${roomObj.settings.display}`;
+            roomDisplay = `${getHostDomain(req)}/uploads/${roomObj.settings.display}`;
           }
 
           return res.render(path.join(config.root, config.appPath, 'index.ejs'),

@@ -1,5 +1,6 @@
 import Busboy from 'busboy';
 import { formatDistance } from 'date-fns';
+import * as uuid from 'uuid';
 import logFactory from '../../../utils/logger.util.js';
 import { getUserById } from '../user.utils.js';
 import AgeVerificationModel from '../../ageVerification/ageVerification.model.js';
@@ -9,7 +10,8 @@ import email from '../../../config/email.config.js';
 const log = logFactory({ name: 'uploadDisplayImage' });
 import { getRequestsByUser, findRecentDeniedRequests } from '../../ageVerification/ageVerification.utils.js';
 import { noSubmitReasons } from '../../ageVerification/ageVerification.const.js';
-import { mergeBuffers, s3UploadVerification, isValidImage } from '../../../utils/utils.js';
+import { Jimp } from 'jimp';
+import { mergeBuffers, s3UploadVerification, isValidImage, getExtFromMime, validateMagicBytes } from '../../../utils/utils.js';
 import { ageVerifyTemplate } from '../../../config/constants/emailTemplates.js';
 
 async function checkCanSubmitRequest(userId) {
@@ -124,6 +126,9 @@ export default async function uploadVerificationImages(req, res) {
 
     log.debug({ headers: req.headers }, 'watching for files');
 
+    // Track async file processing to avoid race between file.on('end') and busboy.on('finish')
+    const fileProcessingPromises = [];
+
     busboy.on('file', (fieldname, file, { filename: fileName, encoding, mimeType }) => {
       log.debug({ fieldname, fileName }, 'Processing file');
 
@@ -144,32 +149,61 @@ export default async function uploadVerificationImages(req, res) {
         return res.status(400).send(errors.ERR_FILE_LIMIT);
       });
 
-      file.on('end', () => {
-        log.debug('file end');
+      // Wrap async processing in a promise so busboy.on('finish') can await it
+      const processing = new Promise((resolve) => {
+        file.on('end', async () => {
+          log.debug('file end');
 
-        if (hasErr) {
-          return;
-        }
+          if (hasErr) {
+            return resolve();
+          }
 
-        const convertedImage = mergeBuffers(dataArr);
+          const rawBuffer = mergeBuffers(dataArr);
 
-        processedImages.push({
-          imageData: convertedImage,
-          fileName,
+          if (!validateMagicBytes(rawBuffer, mimeType)) {
+            log.error({ mimeType }, 'magic bytes do not match claimed MIME type');
+            hasErr = true;
+            if (!res.headersSent) res.status(400).send(errors.ERR_FILE_TYPE);
+            return resolve();
+          }
+
+          // Re-encode through Jimp to strip EXIF/metadata and sanitize
+          let convertedImage;
+          try {
+            const image = await Jimp.read(rawBuffer);
+            convertedImage = await image.getBuffer(image.mime, { quality: 80 });
+          } catch (err) {
+            log.error({ err }, 'failed to re-encode verification image');
+            hasErr = true;
+            if (!res.headersSent) res.status(400).send(errors.ERR_FILE_TYPE);
+            return resolve();
+          }
+
+          // Use server-generated filename instead of client-provided one
+          const safeFileName = `${uuid.v4()}.${getExtFromMime(mimeType)}`;
+
+          processedImages.push({
+            imageData: convertedImage,
+            fileName: safeFileName,
+          });
+
+          log.debug('image processed for upload');
+          return resolve();
         });
-
-        log.debug('uploading image to s3');
       });
+
+      fileProcessingPromises.push(processing);
     });
 
     busboy.on('finish', async () => {
       log.debug('finished');
-      if (hasErr) {
-        if (hasErr.code) {
-          return res.status(500).send(hasErr);
-        }
 
-        return res.status(500).send();
+      // Wait for all async file processing to complete before proceeding
+      await Promise.all(fileProcessingPromises);
+
+      if (hasErr) {
+        if (!res.headersSent) res.status(500).send();
+        return;
       }
 
       let uploadedImages;
@@ -185,7 +219,8 @@ export default async function uploadVerificationImages(req, res) {
         );
       } catch (err) {
         log.fatal({ err }, 'error uploading images');
-        return res.status(500).send();
+        if (!res.headersSent) return res.status(500).send();
+        return;
       }
 
       log.debug({ uploadedImages }, 'verification images uploaded');
@@ -215,6 +250,7 @@ export default async function uploadVerificationImages(req, res) {
         return res.status(200).send({ verification });
       } catch (err) {
         log.fatal({ err }, 'failed to create verification doc');
+        if (!res.headersSent) return res.status(500).send();
       }
     });
 

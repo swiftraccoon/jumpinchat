@@ -36,7 +36,7 @@ export default async function mfaConfirmEnroll(body) {
 
   let isValid;
   try {
-    isValid = verifySync({ token, secret: otpRequest.secret }).valid;
+    isValid = verifySync({ token, secret: otpRequest.secret, epochTolerance: 30 }).valid;
   } catch (err) {
     throw err;
   }

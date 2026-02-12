@@ -13,7 +13,7 @@ const generateLdJson = rooms => ({
     position: index + 1,
     name: room.name,
     image: room.settings.display
-      ? `https://s3.amazonaws.com/jic-uploads/${room.settings.display}`
+      ? `/uploads/${room.settings.display}`
       : undefined,
     url: `https://jumpin.chat/${room.name}`,
     description: room.settings.description,

@@ -12,7 +12,7 @@ import { getRemoteIpFromReq, uploadDataUriToS3 } from '../../../utils/utils.js';
 const slackBot = new SlackBot(
   config.slack.hookUrl,
   'Mod Bot',
-  'https://s3.amazonaws.com/jic-assets/trophies/trophy-site-mod.jpg',
+  '/images/trophies/trophy-site-mod.jpg',
   '#reports',
 );
 

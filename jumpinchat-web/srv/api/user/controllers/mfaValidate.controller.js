@@ -29,7 +29,7 @@ export default async function mfaValidate(body) {
 
   let isValid;
   try {
-    isValid = verifySync({ token, secret }).valid;
+    isValid = verifySync({ token, secret, epochTolerance: 30 }).valid;
   } catch (err) {
     throw err;
   }

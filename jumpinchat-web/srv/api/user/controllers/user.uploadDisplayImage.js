@@ -10,6 +10,7 @@ import {
   s3Upload,
   isValidImage,
   getExtFromMime,
+  validateMagicBytes,
 } from '../../../utils/utils.js';
 
 
@@ -62,12 +63,18 @@ export default function uploadDisplayImage(req, res) {
         return;
       }
 
+      const fileBuffer = mergeBuffers(dataArr);
+      if (!validateMagicBytes(fileBuffer, mimeType)) {
+        log.error({ mimeType }, 'magic bytes do not match claimed MIME type');
+        return res.status(400).send(errors.ERR_FILE_TYPE);
+      }
+
       const dimensions = {
         width: config.uploads.userProfileAvatar.width,
         height: config.uploads.userProfileAvatar.height,
       };
 
-      convertImages(mergeBuffers(dataArr), dimensions, (err, convertedImage) => {
+      convertImages(fileBuffer, dimensions, (err, convertedImage) => {
         if (err) {
           return res.status(500).send();
         }

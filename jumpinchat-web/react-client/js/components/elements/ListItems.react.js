@@ -18,10 +18,9 @@ export class ListItems extends PureComponent {
                 throw new Error('expected a `component` property');
               }
 
-              return {
-                ...option.component,
+              return React.cloneElement(option.component, {
                 key: JSON.stringify(option.component.props),
-              };
+              });
             case 'div':
               return (
                 <div

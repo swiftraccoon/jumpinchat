@@ -13,6 +13,7 @@ import {
   s3Upload,
   isValidImage,
   getExtFromMime,
+  validateMagicBytes,
 } from '../../../utils/utils.js';
 
 
@@ -82,15 +83,21 @@ export default function uploadEmoji(req, res) {
         return;
       }
 
+      const fileBuffer = mergeBuffers(dataArr);
+      if (!validateMagicBytes(fileBuffer, mimeType)) {
+        log.error({ mimeType }, 'magic bytes do not match claimed MIME type');
+        return res.status(400).send(errors.ERR_FILE_TYPE);
+      }
+
       const dimensions = {
         width: config.uploads.userIcon.width,
         height: config.uploads.userIcon.height,
       };
 
-      convertImages(mergeBuffers(dataArr), dimensions, async (err, convertedImage) => {
+      convertImages(fileBuffer, dimensions, async (err, convertedImage) => {
         if (err) {
           log.fatal({ err }, 'failed to convert images');
-          return res.status(500).send(err);
+          return res.status(500).send(errors.ERR_SRV);
         }
 
         const { userId, alias } = body;
@@ -148,7 +155,7 @@ export default function uploadEmoji(req, res) {
           });
         } catch (err) {
           log.fatal({ err }, 'error fetching room');
-          return res.status(500).send(err);
+          return res.status(500).send(errors.ERR_SRV);
         }
       });
     });

@@ -10,7 +10,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@aws-sdk/client-sesv2": "^3.987.0",
     "bunyan": "^1.8.14",
     "express": "^4.21.0",
     "nodemailer": "^8.0.1"

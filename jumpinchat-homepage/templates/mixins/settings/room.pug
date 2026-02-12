@@ -80,7 +80,7 @@ mixin settingsRoom(room)
     'roomdisplay',
     '/api/rooms/' + room.name + '/uploadImage',
     room.settings.display
-      ? 'https://s3.amazonaws.com/jic-uploads/' + room.settings.display
+      ? '/uploads/' + room.settings.display
       : null
   )
 

@@ -112,7 +112,7 @@ block content
                   span Resolved by
                   a(href=`/profile/${report.resolution.resolvedBy.username}`).profile__UserSnippet
                     img.userIconPreview__Icon(
-                      src=`https://s3.amazonaws.com/jic-uploads/${report.resolution.resolvedBy.profile.pic}`,
+                      src=`/uploads/${report.resolution.resolvedBy.profile.pic}`,
                       alt=`${report.resolution.resolvedBy.username}`
                     )
                     span= report.resolution.resolvedBy.username

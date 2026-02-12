@@ -6,7 +6,7 @@ const TrophySchema = new Schema({
   name: String,
   image: {
     type: String,
-    default: 'https://s3.amazonaws.com/jic-assets/trophies/trophy-placeholder.png',
+    default: '/images/trophies/trophy-placeholder.png',
   },
   title: String,
   description: { type: String, default: null },

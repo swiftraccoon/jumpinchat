@@ -40,7 +40,7 @@ const RoomUserIcon = ({
         {userIcon && (
           <img
             className="userList__UserIconImage"
-            src={`https://s3.amazonaws.com/jic-uploads/${userIcon}`}
+            src={`/uploads/${userIcon}`}
             alt=""
           />
         )}

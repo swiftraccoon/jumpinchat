@@ -2,12 +2,10 @@
 import roomEmojiModel from '../roomEmoji.model.js';
 import { getRoomById } from '../room.utils.js';
 import logFactory from '../../../utils/logger.util.js';
-import config from '../../../config/env/index.js';
 import { s3RemoveObject } from '../../../utils/utils.js';
 import errors from '../../../config/constants/errors.js';
 const log = logFactory({ name: 'removeEmoji' });
 export default async function getEmoji(req, res) {
-  const { bucket } = config.aws.s3.jicUploads;
   const {
     emojiId,
   } = req.params;
@@ -34,7 +32,7 @@ export default async function getEmoji(req, res) {
       return res.status(403).send(errors.ERR_NO_PERMISSION);
     }
 
-    return s3RemoveObject(bucket, emoji.image, async (err, data) => {
+    return s3RemoveObject(emoji.image, async (err, data) => {
       if (err) {
         log.fatal({ err }, 'failed to remove S3 object');
         return res.status(500).send(errors.ERR_SRV);

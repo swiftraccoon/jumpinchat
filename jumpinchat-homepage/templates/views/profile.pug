@@ -14,9 +14,9 @@ block content
               aside.profile__Container
                 .profile__DisplayImageContainer
                   if profileUser.profile.pic
-                    img.profile__DisplayImage(src="https://s3.amazonaws.com/jic-uploads/" + profileUser.profile.pic)
+                    img.profile__DisplayImage(src="/uploads/" + profileUser.profile.pic)
                   else
-                    img.profile__DisplayImage(src="https://s3.amazonaws.com/jic-uploads/user-avatar/avatar-blank.png")
+                    img.profile__DisplayImage(src="/uploads/user-avatar/avatar-blank.png")
 
               aside.profile__Container
                 h2.profile__ContainerTitle about

@@ -99,7 +99,6 @@ export default function expressConfig(app, io) {
       imgSrc: [
         "'self'",
         'data:',
-        'https://s3.amazonaws.com',
         'https://unpkg.com',
         'https://www.google-analytics.com',
       ],
@@ -124,12 +123,6 @@ export default function expressConfig(app, io) {
   app.set('views', `${config.root}/srv/views`);
   app.set('view engine', 'pug');
   app.engine('ejs', ejs.renderFile);
-  app.use((req, res, next) => {
-    if (req.headers['x-amz-sns-message-type']) {
-      req.headers['content-type'] = 'application/json;charset=UTF-8';
-    }
-    next();
-  });
   app.use('/api/payment/stripe/event', express.raw({ type: '*/*' }));
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());

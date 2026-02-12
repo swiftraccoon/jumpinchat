@@ -152,7 +152,7 @@ block content
                   h3
                   span.form__Label Current payment information
                   div.payment__Source
-                    img.payment__SourceLogo(src=`https://s3.amazonaws.com/jic-assets/card-${brandMap[subscription.source.brand]}.svg`, alt="")
+                    img.payment__SourceLogo(src=`/images/card-${brandMap[subscription.source.brand]}.svg`, alt="")
                     span.payment__SourceNum= `${subscription.source.brand} ending in ${subscription.source.last4}`
                     span.payment__SourceDate= `Exp. ${subscription.source.expiry.month}/${subscription.source.expiry.year}`
 

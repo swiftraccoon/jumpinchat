@@ -21,7 +21,7 @@ block content
                   | Gift to user&nbsp;
                   a(href=`/profile/${beneficiaryUser.username}`).profile__UserSnippet
                     img.userIconPreview__Icon(
-                      src=`https://s3.amazonaws.com/jic-uploads/${beneficiaryUser.profile.pic}`,
+                      src=`/uploads/${beneficiaryUser.profile.pic}`,
                       alt=`${beneficiaryUser.username}`
                     )
                     span= beneficiaryUser.username

@@ -2,17 +2,18 @@ import logFactory from '../../../utils/logger.util.js';
 import config from '../../../config/env/index.js';
 import { getUserByEmail } from '../../user/user.utils.js';
 const log = logFactory({ name: 'admin.bounceNotification' });
-import { addToBlacklist, isSubscriptionConfirmation, handleSnsSubscription } from '../../email/email.utils.js';
+import { addToBlacklist } from '../../email/email.utils.js';
 
 
 export default function bounceNotification(req, res) {
-  if (isSubscriptionConfirmation(req.headers)) {
-    return handleSnsSubscription(req, res);
-  }
-
-  const message = JSON.parse(req.body.Message);
+  const message = req.body;
   const type = message.bounce ? 'bounce' : 'complaint';
   const recipients = message.bounce ? 'bouncedRecipients' : 'complainedRecipients';
+
+  if (!message[type] || !message[type][recipients]) {
+    log.error({ message }, 'invalid bounce notification format');
+    return res.status(400).send({ error: 'Invalid bounce notification format' });
+  }
 
   message[type][recipients].forEach(({ emailAddress }) => getUserByEmail(emailAddress, (err, user) => {
     if (err) {

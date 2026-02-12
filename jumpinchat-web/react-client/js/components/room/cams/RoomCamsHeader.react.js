@@ -21,7 +21,7 @@ const RoomCamsHeader = ({
       {room.settings.display && (
         <img
           className="cams__RoomDisplayPic mobileHidden"
-          src={`https://s3.amazonaws.com/jic-uploads/${room.settings.display}`}
+          src={`/uploads/${room.settings.display}`}
           alt={room.name}
         />
       )}

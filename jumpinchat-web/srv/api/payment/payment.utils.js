@@ -149,7 +149,7 @@ export function notifySlack(user, plan) {
   const payload = {
     username: 'Supporter bot',
     channel: '#general',
-    icon_url: 'https://s3.amazonaws.com/jic-assets/trophies/trophy-site-supporter.jpg',
+    icon_url: '/images/trophies/trophy-site-supporter.jpg',
     attachments: [
       {
         pretext: text,

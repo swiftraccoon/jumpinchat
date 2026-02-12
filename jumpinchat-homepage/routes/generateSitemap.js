@@ -42,7 +42,7 @@ module.exports = function generateSitemap(req, res) {
 
             if (room.settings.display) {
               let img = {
-                url: `https://s3.amazonaws.com/jic-uploads/${room.settings.display}`,
+                url: `/uploads/${room.settings.display}`,
                 title: room.name,
               };
 

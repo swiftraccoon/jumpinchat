@@ -5,11 +5,10 @@
 
 import express from 'express';
 import logFactory from '../../utils/logger.util.js';
-import { verifyAdmin, verifySiteMod } from '../../utils/utils.js';
+import { verifyAdmin, verifySiteMod, verifyInternalSecret } from '../../utils/utils.js';
 import controller from './admin.controller.js';
 import sendBulkEmails from './controllers/sendBulkEmails.controller.js';
 import bounceNotification from './controllers/bounceNotification.controller.js';
-import openNotification from './controllers/openNotification.controller.js';
 import removeUser from './controllers/removeUser.controller.js';
 import siteBan from './controllers/siteBan.controller.js';
 import getBanItem from './controllers/getBanItem.controller.js';
@@ -29,8 +28,7 @@ router.get('/rooms/:roomId', verifyAdmin, controller.getRoomById);
 router.get('/users', verifyAdmin, controller.getUserList);
 router.delete('/users/remove/:userId', verifyAdmin, removeUser);
 router.post('/email/send', verifyAdmin, sendBulkEmails);
-router.post('/email/bounce', bounceNotification);
-router.post('/email/open', openNotification);
+router.post('/email/bounce', verifyInternalSecret, bounceNotification);
 router.post('/siteban', verifySiteMod, siteBan);
 router.get('/siteban/:banId', verifySiteMod, getBanItem);
 router.post('/rooms/:roomName/close', verifyAdmin, closeRoom);

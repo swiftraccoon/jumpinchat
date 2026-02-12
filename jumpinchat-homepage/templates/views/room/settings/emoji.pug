@@ -69,12 +69,12 @@ block content
                     each emojiItem in emoji
                       tr
                         td
-                          img.userIconPreview__Icon(src=`https://s3.amazonaws.com/jic-uploads/${emojiItem.image}`, alt="${emojiItem.alias}")
+                          img.userIconPreview__Icon(src=`/uploads/${emojiItem.image}`, alt="${emojiItem.alias}")
                         td
                           strong= `:${emojiItem.alias}:`
                         td
                           a(href=`/profile/${emojiItem.addedBy.username}`).profile__UserSnippet
-                            img.userIconPreview__Icon(src=`https://s3.amazonaws.com/jic-uploads/${emojiItem.addedBy.profile.pic}`, alt=`${emojiItem.addedBy.username}`)
+                            img.userIconPreview__Icon(src=`/uploads/${emojiItem.addedBy.profile.pic}`, alt=`${emojiItem.addedBy.username}`)
                             span= emojiItem.addedBy.username
                         td
                           if user && (String(user._id) === String(roomOwner._id) || String(emojiItem.addedBy._id) === String(user._id))

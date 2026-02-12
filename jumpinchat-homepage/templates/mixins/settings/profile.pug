@@ -74,7 +74,7 @@ mixin settingsProfile(user)
     'useravatar',
     '/api/user/' + user._id + '/uploadImage',
     user.profile.pic
-      ? 'https://s3.amazonaws.com/jic-uploads/' + user.profile.pic
+      ? '/uploads/' + user.profile.pic
       : null
   )
 

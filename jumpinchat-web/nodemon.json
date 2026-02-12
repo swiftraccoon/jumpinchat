@@ -6,11 +6,8 @@
   "env": {
     "DEPLOY_LOCATION": "http://localhost:3000",
     "YT_API_KEY": "",
-    "AWS_SES_ACCESS_KEY": "",
-    "AWS_SES_SECRET": "",
-    "AWS_S3_UPLOADS_ACCESS_KEY": "",
-    "AWS_S3_UPLOADS_SECRET": "",
-    "AWS_S3_UPLOADS_BUCKET": "jic-uploads",
+    "UPLOAD_BASE_PATH": "/data/uploads",
+    "FILE_TOKEN_SECRET": "dev-file-token-secret",
     "TURN_URIS": "lima.research.clinic",
     "REDIS_URI": "redis://localhost:6379",
     "MONGODB_URI": "mongodb://localhost/tc",

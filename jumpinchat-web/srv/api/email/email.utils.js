@@ -1,6 +1,5 @@
 
 import dns from 'dns';
-import axios from 'axios';
 import logFactory from '../../utils/logger.util.js';
 import blacklistModel from './blacklist.model.js';
 const log = logFactory({ name: 'email.utils' });
@@ -169,27 +168,4 @@ export function checkEmailDomain(address) {
   });
 };
 
-export function isSubscriptionConfirmation(headers) {
-  return headers['x-amz-sns-message-type'] === 'SubscriptionConfirmation';
-};
-
-export function handleSnsSubscription(req, res) {
-  return axios.get(req.body.SubscribeURL, { validateStatus: () => true })
-    .then((response) => {
-      if (response.status >= 400) {
-        log.error({ body: response.data }, 'bounce notification confirmation failed');
-        return res.status(204).send();
-      }
-
-      log.info({ response: response.status }, 'bounce notification subscription confirmed');
-      return res.status(204).send();
-    })
-    .catch((err) => {
-      log.error({ err }, 'error confirming bounce notification subscription');
-      return res.status(204).send();
-    });
-};
-
-
-
-export default { addToBlacklist, getBlacklistItem, checkEmailDomain, isSubscriptionConfirmation, handleSnsSubscription };
+export default { addToBlacklist, getBlacklistItem, checkEmailDomain };

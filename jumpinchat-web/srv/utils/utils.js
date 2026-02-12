@@ -1,8 +1,6 @@
 
 import jwt from 'jsonwebtoken';
 import { Jimp, HorizontalAlign, VerticalAlign } from 'jimp';
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import * as uuid from 'uuid';
 import requestIp from 'request-ip';
 import logFactory from './logger.util.js';
@@ -11,17 +9,10 @@ import errors from '../config/constants/errors.js';
 import userUtils from '../api/user/user.utils.js';
 import roomUtils from '../api/room/room.utils.js';
 import redisUtils from './redis.util.js';
+import { localUpload, localRemove, localUploadPrivate, validateMagicBytes } from './localStorage.util.js';
+import { generateSignedFileUrl } from './fileToken.util.js';
 import rateLimit from './rateLimit.js';
 const log = logFactory({ name: 'utils' });
-const { accessKey, secret, bucket } = config.aws.s3.jicUploads;
-
-const s3Client = new S3Client({
-  credentials: {
-    accessKeyId: accessKey,
-    secretAccessKey: secret,
-  },
-  region: 'us-east-1',
-});
 
 export function validateSession(req, res, next) {
   const token = req.cookies['jic.activity'];
@@ -233,16 +224,8 @@ export function mergeBuffers(dataArr) {
 };
 
 export function s3Upload(body, filePath, cb) {
-  const params = {
-    Bucket: bucket,
-    Key: filePath,
-    ACL: 'public-read',
-    Body: body,
-    CacheControl: 'public, max-age=86400',
-  };
-
-  s3Client.send(new PutObjectCommand(params))
-    .then(data => cb(null, data))
+  localUpload(body, filePath)
+    .then(() => cb(null))
     .catch(err => cb(err));
 };
 
@@ -400,23 +383,18 @@ export async function uploadDataUriToS3(filePath, uri, cb) {
     return cb();
   }
 
+  const mimeMatch = uri.match(/^data:(image\/\w+);base64,/);
+  const mimeType = mimeMatch ? mimeMatch[1] : null;
   const buf = Buffer.from(uri.replace(/^data:image\/\w+;base64,/, ''), 'base64');
 
+  if (!mimeType || !validateMagicBytes(buf, mimeType)) {
+    log.error({ mimeType }, 'invalid image data URI — magic bytes mismatch');
+    return cb(new Error('Invalid image data'));
+  }
+
   try {
-    await s3Client.send(new PutObjectCommand({
-      Bucket: config.report.bucket,
-      Key: filePath,
-      Body: buf,
-      ContentType: 'image/jpeg',
-      ContentEncoding: 'base64',
-      ACL: 'public-read',
-    }));
-
-    const url = await getSignedUrl(s3Client, new GetObjectCommand({
-      Bucket: config.report.bucket,
-      Key: filePath,
-    }), { expiresIn: config.report.logTimeout });
-
+    const dest = await localUploadPrivate(buf, 'report-screenshots', filePath);
+    const url = generateSignedFileUrl(dest, config.report.logTimeout);
     return cb(null, url);
   } catch (err) {
     return cb(err);
@@ -425,30 +403,17 @@ export async function uploadDataUriToS3(filePath, uri, cb) {
 
 export async function s3UploadVerification(body, filePath, cb) {
   try {
-    await s3Client.send(new PutObjectCommand({
-      Bucket: config.ageVerification.bucket,
-      Key: filePath,
-      Body: body,
-      CacheControl: 'public, max-age=86400',
-    }));
-
-    const url = await getSignedUrl(s3Client, new GetObjectCommand({
-      Bucket: config.ageVerification.bucket,
-      Key: filePath,
-    }), { expiresIn: config.ageVerification.timeout });
-
+    const dest = await localUploadPrivate(body, 'age-verification', filePath);
+    const url = generateSignedFileUrl(dest, config.ageVerification.timeout);
     return cb(null, url);
   } catch (err) {
     return cb(err);
   }
 };
 
-export function s3RemoveObject(bucketName, object, cb) {
-  s3Client.send(new DeleteObjectCommand({
-    Bucket: bucketName,
-    Key: object,
-  }))
-    .then(data => cb(null, data))
+export function s3RemoveObject(object, cb) {
+  localRemove(object)
+    .then(() => cb(null))
     .catch(err => cb(err));
 };
 
@@ -488,4 +453,6 @@ export function getIpFromSocket(socket) {
   return socket.handshake.address;
 };
 
-export default { validateSession, validateAccount, verifyInternalSecret, messageFactory, rateLimit, updateLastSeen, convertImages, mergeBuffers, s3Upload, isValidImage, getExtFromMime, getRemoteIpFromReq, createNotification, getCookie, verifyAdmin, verifySiteMod, getSocketRooms, uploadDataUriToS3, s3UploadVerification, s3RemoveObject, createError, getHostDomain, destroySocketConnection, getIpFromSocket };
+export { validateMagicBytes };
+
+export default { validateSession, validateAccount, verifyInternalSecret, messageFactory, rateLimit, updateLastSeen, convertImages, mergeBuffers, s3Upload, isValidImage, getExtFromMime, getRemoteIpFromReq, createNotification, getCookie, verifyAdmin, verifySiteMod, getSocketRooms, uploadDataUriToS3, s3UploadVerification, s3RemoveObject, createError, getHostDomain, destroySocketConnection, getIpFromSocket, validateMagicBytes };

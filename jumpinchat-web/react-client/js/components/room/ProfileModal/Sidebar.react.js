@@ -5,7 +5,7 @@ const ProfileSidebar = ({ profile }) => (
   <div className="profile__Sidebar">
     <img
       className="profile__Pic"
-      src={`https://s3.amazonaws.com/jic-uploads/${profile.pic || 'user-avatar/avatar-blank.png'}`}
+      src={`/uploads/${profile.pic || 'user-avatar/avatar-blank.png'}`}
       alt={profile.username || profile.handle}
     />
     <div className="profile__Trophies">

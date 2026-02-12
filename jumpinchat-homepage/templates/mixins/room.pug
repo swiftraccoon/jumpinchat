@@ -2,7 +2,7 @@ mixin room(room)
   a.room__Item(href="/" + room.name)
     .room__Header
       if room.settings && room.settings.display
-        .room__Cam.room__Cam--full(style={'background-image': 'url(' + 'https://s3.amazonaws.com/jic-uploads/' + room.settings.display + ')'})
+        .room__Cam.room__Cam--full(style={'background-image': 'url(' + '/uploads/' + room.settings.display + ')'})
       else
         .room__Cam(style={'background-color': room.color})
     .room__Details

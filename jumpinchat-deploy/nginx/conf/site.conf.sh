@@ -138,6 +138,24 @@ server {
 
   include /etc/nginx/root-ssl.conf;
 
+  # Serve uploaded images directly from shared volume (avoids proxy hop)
+  location /uploads/ {
+    alias /data/uploads/public/;
+    autoindex off;
+    disable_symlinks if_not_owner;
+
+    location ~* \.(jpg|jpeg|png|gif)\$ {
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header Content-Security-Policy "default-src 'none'; sandbox" always;
+      add_header X-Frame-Options "DENY" always;
+      add_header Cross-Origin-Resource-Policy "same-site" always;
+      add_header Cache-Control "public, max-age=86400" always;
+      try_files \$uri =404;
+    }
+
+    return 403;
+  }
+
   location / {
     try_files \$uri \$uri/ @homepage;
     proxy_cache one;

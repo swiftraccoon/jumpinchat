@@ -36,7 +36,7 @@ block content
                 a(href=`/messages/${conversation.participant.username}#latest`).messages__Conversation
                   div.messages__ConversationHeader
                     div.messages__ConversationAvatarWrapper
-                      img(src=`https://s3.amazonaws.com/jic-uploads/${conversation.participant.profile.pic}`).messages__ConversationAvatar
+                      img(src=`/uploads/${conversation.participant.profile.pic}`).messages__ConversationAvatar
                       if conversation.unread > 0
                         span.pill.pill--blue.messages__ConversationUnread= conversation.unread
                     span.messages__ConversationUser= conversation.participant.username
@@ -48,7 +48,7 @@ block content
                 div.messages__Conversation
                   div.messages__ConversationHeader
                     div.messages__ConversationAvatarWrapper
-                      img(src=`https://s3.amazonaws.com/jic-uploads/`).messages__ConversationAvatar
+                      img(src=`/uploads/`).messages__ConversationAvatar
                       if conversation.unread > 0
                         span.pill.pill--blue.messages__ConversationUnread= conversation.unread
                     span.messages__ConversationUser deleted user

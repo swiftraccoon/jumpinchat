@@ -13,7 +13,6 @@ describe('utils', () => {
   let controller;
   let redisMock;
   let userUtilsMock;
-  let awsMock;
 
   beforeEach(async function beforeEach() {
     this.timeout(5000);
@@ -41,13 +40,6 @@ describe('utils', () => {
       })),
     };
 
-    awsMock = {
-      S3Client: class S3Client { send() { return Promise.resolve(); } },
-      PutObjectCommand: class PutObjectCommand {},
-      DeleteObjectCommand: class DeleteObjectCommand {},
-      GetObjectCommand: class GetObjectCommand {},
-    };
-
     next = sinon.spy();
 
     controller = await esmock('./utils.js', {
@@ -55,8 +47,15 @@ describe('utils', () => {
       '../api/room/room.utils.js': {},
       './redis.util.js': { callPromise: sinon.stub() },
       './rateLimit.js': sinon.stub(),
-      '@aws-sdk/client-s3': awsMock,
-      '@aws-sdk/s3-request-presigner': { getSignedUrl: sinon.stub().resolves('https://signed-url') },
+      './localStorage.util.js': {
+        localUpload: sinon.stub().resolves(),
+        localRemove: sinon.stub().resolves(),
+        localUploadPrivate: sinon.stub().resolves('/tmp/test-file'),
+        validateMagicBytes: sinon.stub().returns(true),
+      },
+      './fileToken.util.js': {
+        generateSignedFileUrl: sinon.stub().returns('/api/internal/file/test-token'),
+      },
     });
   });
 
@@ -103,8 +102,15 @@ describe('utils', () => {
         '../api/room/room.utils.js': {},
         './redis.util.js': { callPromise: sinon.stub() },
         './rateLimit.js': sinon.stub(),
-        '@aws-sdk/client-s3': awsMock,
-        '@aws-sdk/s3-request-presigner': { getSignedUrl: sinon.stub().resolves('https://signed-url') },
+        './localStorage.util.js': {
+          localUpload: sinon.stub().resolves(),
+          localRemove: sinon.stub().resolves(),
+          localUploadPrivate: sinon.stub().resolves('/tmp/test-file'),
+          validateMagicBytes: sinon.stub().returns(true),
+        },
+        './fileToken.util.js': {
+          generateSignedFileUrl: sinon.stub().returns('/api/internal/file/test-token'),
+        },
       });
 
       ctrl.validateAccount(req, res, next);

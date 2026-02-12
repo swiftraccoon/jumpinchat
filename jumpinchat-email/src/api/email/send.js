@@ -1,27 +1,26 @@
-const { SESv2Client, SendEmailCommand } = require('@aws-sdk/client-sesv2');
 const nodemailer = require('nodemailer');
 const config = require('../../config/env');
 const log = require('../../utils/logger')({ name: 'api.email.send' });
 const Queue = require('../../utils/queue');
 
-const sesClient = new SESv2Client({
-  credentials: {
-    accessKeyId: config.aws.ses.accessKey,
-    secretAccessKey: config.aws.ses.secret,
-  },
-  region: config.aws.ses.region,
-});
+// create Nodemailer SMTP transporter
+const transportOpts = {
+  host: config.smtp.host,
+  port: config.smtp.port,
+  secure: config.smtp.secure,
+};
 
-// create Nodemailer SES transporter
-const transporter = nodemailer.createTransport({
-  SES: { sesClient, SendEmailCommand },
-});
+if (config.smtp.user) {
+  transportOpts.auth = {
+    user: config.smtp.user,
+    pass: config.smtp.pass,
+  };
+}
+
+const transporter = nodemailer.createTransport(transportOpts);
 
 const defaults = {
-  from: 'JumpInChat noreply@example.com',
-  ses: {
-    ConfigurationSetName: 'NotifySuccess',
-  },
+  from: config.smtp.from || 'JumpInChat <noreply@example.com>',
 };
 
 function sendMail(message) {
