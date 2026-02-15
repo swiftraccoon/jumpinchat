@@ -2,7 +2,7 @@
  * Created by Zaccary on 19/03/2017.
  */
 
-const { pick, omit } = require('lodash');
+import { pick, omit } from 'lodash';
 
 const filterRoomUser = function filterRoomUser(user) {
   return pick(user, [
@@ -28,7 +28,7 @@ const filterClientUser = function filterClientUser(user) {
   ]);
 };
 
-module.exports.filterRoom = function filterRoom(room) {
+export function filterRoom(room) {
   const filteredRoomUsers = room.users.map(filterRoomUser);
 
   const filteredRoomAttrs = pick(room.attrs, ['owner', 'janus_id']);
@@ -38,8 +38,6 @@ module.exports.filterRoom = function filterRoom(room) {
   filteredRoom.attrs = filteredRoomAttrs;
 
   return filteredRoom;
-};
+}
 
-
-module.exports.filterClientUser = filterClientUser;
-module.exports.filterRoomUser = filterRoomUser;
+export { filterClientUser, filterRoomUser };

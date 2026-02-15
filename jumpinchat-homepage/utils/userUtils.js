@@ -2,19 +2,19 @@
  * Created by Zaccary on 23/03/2017.
  */
 
-const keystone = require('keystone');
-const bcrypt = require('bcrypt');
-const request = require('request');
-const requestIp = require('request-ip');
-const log = require('./logger')({ name: 'utils.userUtils' });
-const { api, errors } = require('../constants/constants');
+import bcrypt from 'bcrypt';
+import requestIp from 'request-ip';
+import createLogger from './logger.js';
+import request from './request.js';
+import { api, errors } from '../constants/constants.js';
+import User from '../models/User.js';
 
-const User = keystone.list('User');
+const log = createLogger({ name: 'utils.userUtils' });
 
-module.exports.getRemoteIpFromReq = function getRemoteIpFromReq(req) {
+export function getRemoteIpFromReq(req) {
   const ip = requestIp.getClientIp(req);
   return ip;
-};
+}
 
 /**
  * Get a user by a unique ID. Takes a `lean` parameter which
@@ -24,34 +24,34 @@ module.exports.getRemoteIpFromReq = function getRemoteIpFromReq(req) {
  * @param {Boolean} lean
  * @param cb
  */
-module.exports.getUserById = (userId, lean = true, cb) => {
-  const query = User.model
+export const getUserById = (userId, lean = true, cb) => {
+  const query = User
     .findOne({ _id: userId })
     .lean(lean);
 
 
   if (cb) {
-    return query.exec((err, user) => {
-      if (err) {
+    return query.exec().then(
+      (user) => {
+        if (!user) {
+          log.warn('User not found');
+          return cb();
+        }
+        return cb(null, user);
+      },
+      (err) => {
         log.error(`Could not get user ${userId}`, err);
         return cb(err);
-      }
-
-      if (!user) {
-        log.warn('User not found');
-        return cb();
-      }
-
-      return cb(err, user);
-    });
+      },
+    );
   }
 
   return query.exec();
 };
 
-module.exports.searchUserByUsername = (term, lean = true, cb) => {
+export const searchUserByUsername = (term, lean = true, cb) => {
   const re = new RegExp(term, 'i');
-  const query = User.model
+  const query = User
     .find({
       username: {
         $regex: re,
@@ -64,26 +64,29 @@ module.exports.searchUserByUsername = (term, lean = true, cb) => {
     return query;
   }
 
-  return query.exec(cb);
+  return query.exec().then(
+    (users) => cb(null, users),
+    (err) => cb(err),
+  );
 };
 
-module.exports.getUserByUsername = (username, cb) => {
-  const query = User.model.findOne({ username });
+export const getUserByUsername = (username, cb) => {
+  const query = User.findOne({ username });
 
   if (cb) {
-    return query.exec((err, user) => {
-      if (err) {
+    return query.exec().then(
+      (user) => {
+        if (!user) {
+          log.warn(`User "${username}" not found`);
+          return cb();
+        }
+        return cb(null, user);
+      },
+      (err) => {
         log.error(`Could not get user ${username}`, err);
         return cb(err);
-      }
-
-      if (!user) {
-        log.warn(`User "${username}" not found`);
-        return cb();
-      }
-
-      return cb(err, user);
-    });
+      },
+    );
   }
 
   return query.exec();
@@ -95,7 +98,7 @@ module.exports.getUserByUsername = (username, cb) => {
  * @param password
  * @param cb
  */
-module.exports.generatePassHash = (password, cb) => bcrypt.genSalt(10, (err, salt) => {
+export const generatePassHash = (password, cb) => bcrypt.genSalt(10, (err, salt) => {
   if (err) {
     log.fatal('error generating salt', err);
     return cb(err);
@@ -111,63 +114,50 @@ module.exports.generatePassHash = (password, cb) => bcrypt.genSalt(10, (err, sal
   });
 });
 
-module.exports.adminGetUserCount = function adminGetUserCount(cb) {
-  return User.model.count().exec(cb);
-};
+export function adminGetUserCount(cb) {
+  return User.countDocuments().exec().then(
+    (count) => cb(null, count),
+    (err) => cb(err),
+  );
+}
 
-module.exports.adminGetUsers = function adminGetUsers(token, page, cb) {
-  return request({
-    method: 'GET',
-    url: `${api}/api/admin/users?page=${page}`,
-    headers: {
-      Authorization: token,
-    },
-    json: true,
-  }, (err, response, body) => {
-    if (err) {
-      log.error({ err }, 'error happened');
-      return cb(err);
-    }
-
-    if (response.statusCode >= 400) {
-      if (body && body.message) {
-        return cb(body.message);
-      }
-
-      log.error({ statusCode: response.statusCode }, 'error getting room list');
-      return cb('error');
-    }
-
+export async function adminGetUsers(token, page, cb) {
+  try {
+    const body = await request({
+      method: 'GET',
+      url: `${api}/api/admin/users?page=${page}`,
+      headers: {
+        Authorization: token,
+      },
+    });
     return cb(null, body);
-  });
-};
-
-module.exports.adminApplyTrophy = function adminGetUsers(token, userId, trophyName) {
-  return new Promise((resolve, reject) => request({
-    method: 'PUT',
-    url: `${api}/api/trophy/apply/${userId}`,
-    headers: {
-      Authorization: token,
-    },
-    body: {
-      trophyName,
-    },
-    json: true,
-  }, (err, response, body) => {
-    if (err) {
-      log.error({ err }, 'error happened');
-      return reject(err);
+  } catch (err) {
+    log.error({ err }, 'error happened');
+    if (err.response && err.response.data && err.response.data.message) {
+      return cb(err.response.data.message);
     }
+    return cb(err);
+  }
+}
 
-    if (response.statusCode >= 400) {
-      if (body && body.message) {
-        return reject(body.message);
-      }
-
-      log.error({ statusCode: response.statusCode }, 'error getting room list');
-      return reject(new Error(errors.ERR_SRV));
+export async function adminApplyTrophy(token, userId, trophyName) {
+  try {
+    const body = await request({
+      method: 'PUT',
+      url: `${api}/api/trophy/apply/${userId}`,
+      headers: {
+        Authorization: token,
+      },
+      body: {
+        trophyName,
+      },
+    });
+    return body;
+  } catch (err) {
+    log.error({ err }, 'error happened');
+    if (err.response && err.response.data && err.response.data.message) {
+      throw err.response.data.message;
     }
-
-    return resolve(body);
-  }));
-};
+    throw new Error(errors.ERR_SRV);
+  }
+}

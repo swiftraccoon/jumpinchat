@@ -23,7 +23,7 @@
     "lodash": "^4.17.21",
     "marked": "^17.0.1",
     "mongoose": "^9.2.0",
-    "multer": "^1.4.5",
+    "multer": "^2.0.0",
     "normalize-scss": "^6.0.0",
     "pagination-object": "^1.2.2",
     "pug": "^3.0.3",

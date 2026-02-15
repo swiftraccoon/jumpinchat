@@ -1,19 +1,18 @@
-const request = require('request');
+import axios from 'axios';
 
-module.exports = function requestPromise(opts) {
-  return new Promise((resolve, reject) => request(opts, (err, response, body) => {
-    if (err) {
-      return reject(err);
-    }
+export default async function request(opts) {
+  const config = {
+    method: opts.method || 'GET',
+    url: opts.uri || opts.url,
+    headers: opts.headers || {},
+  };
 
-    if (response.statusCode >= 400) {
-      if (body) {
-        return reject(body);
-      }
+  if (opts.body) config.data = opts.body;
+  if (opts.formData) {
+    config.data = opts.formData;
+    config.headers['Content-Type'] = 'multipart/form-data';
+  }
 
-      return reject(new Error());
-    }
-
-    return resolve(body);
-  }));
-};
+  const response = await axios(config);
+  return response.data;
+}

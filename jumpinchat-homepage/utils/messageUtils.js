@@ -1,102 +1,92 @@
-const request = require('request');
-const jwt = require('jsonwebtoken');
-const log = require('../utils/logger')({ name: 'messageUtils' });
-const { errors, api } = require('../constants/constants');
-const config = require('../config');
+import jwt from 'jsonwebtoken';
+import createLogger from './logger.js';
+import request from './request.js';
+import { errors, api } from '../constants/constants.js';
+import config from '../config/index.js';
 
-module.exports.getConversation = function getConversation(userId, recipientId, token, page, cache = 1) {
-  return new Promise((resolve, reject) => request({
-    url: `${api}/api/message/${userId}/${recipientId}?page=${page}&cache=${cache}`,
-    method: 'get',
-    headers: {
-      Authorization: token,
-    },
-    json: true,
-  }, (err, response, body) => {
-    if (err) {
-      log.error({ err }, 'error retrieving conversations');
-      return reject(err);
-    }
+const log = createLogger({ name: 'messageUtils' });
 
-    if (response.statusCode >= 400) {
+export async function getConversation(userId, recipientId, token, page, cache = 1) {
+  try {
+    return await request({
+      url: `${api}/api/message/${userId}/${recipientId}?page=${page}&cache=${cache}`,
+      method: 'get',
+      headers: {
+        Authorization: token,
+      },
+    });
+  } catch (err) {
+    if (err.response) {
+      const body = err.response.data;
       if (body && body.message) {
         log.error({ message: body.message });
         const error = new Error('RequestError');
         error.message = body.message;
-        return reject(error);
+        throw error;
       }
-
-      log.error({ statusCode: response.statusCode }, 'failed to get conversation');
+      log.error({ statusCode: err.response.status }, 'failed to get conversation');
       const error = new Error('ServerError');
       error.message = errors.ERR_SRV;
-      return reject(error);
+      throw error;
     }
+    log.error({ err }, 'error retrieving conversations');
+    throw err;
+  }
+}
 
-    return resolve(body);
-  }));
-};
-
-module.exports.getUnreadMessages = function getUnreadMessages(userId) {
+export async function getUnreadMessages(userId) {
   const token = jwt.sign(String(userId), config.auth.jwtSecret);
-  return new Promise((resolve, reject) => request({
-    url: `${api}/api/message/${userId}/unread`,
-    method: 'get',
-    headers: {
-      Authorization: token,
-    },
-    json: true,
-  }, (err, response, body) => {
-    if (err) {
-      log.error({ err }, 'error retrieving unread conversations');
-      return reject(err);
-    }
-
-    if (response.statusCode >= 400) {
+  try {
+    return await request({
+      url: `${api}/api/message/${userId}/unread`,
+      method: 'get',
+      headers: {
+        Authorization: token,
+      },
+    });
+  } catch (err) {
+    if (err.response) {
+      const body = err.response.data;
       if (body && body.message) {
         log.error({ message: body.message });
         const error = new Error('RequestError');
         error.message = body.message;
-        return reject(error);
+        throw error;
       }
-
-      log.error({ statusCode: response.statusCode }, 'failed to get conversation');
+      log.error({ statusCode: err.response.status }, 'failed to get conversation');
       const error = new Error('ServerError');
       error.message = errors.ERR_SRV;
-      return reject(error);
+      throw error;
     }
+    log.error({ err }, 'error retrieving unread conversations');
+    throw err;
+  }
+}
 
-    return resolve(body);
-  }));
-};
-
-module.exports.markMessagesRead = function markMessagesRead(userId, participantId, token) {
-  return new Promise((resolve, reject) => request({
-    url: `${api}/api/message/read/${userId}/${participantId}`,
-    method: 'put',
-    headers: {
-      Authorization: token,
-    },
-    json: true,
-  }, (err, response, body) => {
-    if (err) {
-      log.error({ err }, 'error setting messages read');
-      return reject(err);
-    }
-
-    if (response.statusCode >= 400) {
+export async function markMessagesRead(userId, participantId, token) {
+  try {
+    return await request({
+      url: `${api}/api/message/read/${userId}/${participantId}`,
+      method: 'put',
+      headers: {
+        Authorization: token,
+      },
+    });
+  } catch (err) {
+    if (err.response) {
+      const body = err.response.data;
       if (body && body.message) {
         log.error({ message: body.message });
         const error = new Error('RequestError');
         error.message = body.message;
-        return reject(error);
+        throw error;
       }
-
-      log.error({ statusCode: response.statusCode }, 'error setting messages read');
+      log.error({ statusCode: err.response.status }, 'error setting messages read');
       const error = new Error('ServerError');
       error.message = errors.ERR_SRV;
-      return reject(error);
+      throw error;
     }
-
-    return resolve(body);
-  }));
-};
+    log.error({ err }, 'error setting messages read');
+    throw err;
+  }
+}

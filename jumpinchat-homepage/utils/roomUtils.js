@@ -1,29 +1,33 @@
-const keystone = require('keystone');
-const request = require('request');
-const log = require('./logger')({ name: 'roomUtils' });
-const config = require('../config');
-const { colours, errors, api } = require('../constants/constants');
+import createLogger from './logger.js';
+import request from './request.js';
+import config from '../config/index.js';
+import { colours, errors, api } from '../constants/constants.js';
+import Room from '../models/Room.js';
+import RecentRooms from '../models/RecentRooms.js';
 
-const Room = keystone.list('Room');
-const RecentRooms = keystone.list('RecentRooms');
+const log = createLogger({ name: 'roomUtils' });
 
 /**
  * Get a count of the number of active rooms
  *
  * @param {Function} cb
  */
-module.exports.getRoomCount = function getRoomCount(cb) {
-  Room.model
-    .count({
+export function getRoomCount(cb) {
+  Room
+    .countDocuments({
       $or: [
         { users: { $gt: [] } },
         { 'attrs.owner': { $ne: null } },
       ],
+      'attrs.active': true,
+      'settings.public': true,
     })
-    .where('attrs.active', true)
-    .where('settings.public', true)
-    .exec(cb);
-};
+    .exec()
+    .then(
+      (count) => cb(null, count),
+      (err) => cb(err),
+    );
+}
 
 /**
  * Get a list of rooms, with a start and end for pagination.
@@ -31,31 +35,17 @@ module.exports.getRoomCount = function getRoomCount(cb) {
  * @param {Number} start
  * @param {Number} end
  * @param {Function} cb
- * @returns {Array}
+ * @returns {void}
  */
-module.exports.getRoomList = function getRoomList(start = 0, end = 9, cb) {
-  return request({
-    method: 'GET',
-    url: `${api}/api/rooms/public?start=${start}&end=${end}`,
-    headers: {
-      Authorization: config.auth.sharedSecret,
-    },
-    json: true,
-  }, (err, response, body) => {
-    if (err) {
-      log.fatal({ err }, 'error fetching room list');
-      return cb(err);
-    }
-
-    if (response.statusCode >= 400) {
-      if (body && body.message) {
-        log.error({ message: body.message }, 'error getting room list');
-        return cb(body.message);
-      }
-
-      log.error({ statusCode: response.statusCode }, 'error getting room list');
-      return cb('error');
-    }
+export async function getRoomList(start = 0, end = 9, cb) {
+  try {
+    const body = await request({
+      method: 'GET',
+      url: `${api}/api/rooms/public?start=${start}&end=${end}`,
+      headers: {
+        Authorization: config.auth.sharedSecret,
+      },
+    });
 
     const data = {
       ...body,
@@ -65,11 +55,23 @@ module.exports.getRoomList = function getRoomList(start = 0, end = 9, cb) {
     };
 
     return cb(null, data);
-  });
-};
+  } catch (err) {
+    if (err.response) {
+      const body = err.response.data;
+      if (body && body.message) {
+        log.error({ message: body.message }, 'error getting room list');
+        return cb(body.message);
+      }
+      log.error({ statusCode: err.response.status }, 'error getting room list');
+      return cb('error');
+    }
+    log.fatal({ err }, 'error fetching room list');
+    return cb(err);
+  }
+}
 
-module.exports.getRoomByName = function getRoomByName(name, cb) {
-  const query = Room.model
+export function getRoomByName(name, cb) {
+  const query = Room
     .findOne({ name })
     .populate({
       path: 'settings.moderators.user_id',
@@ -80,128 +82,118 @@ module.exports.getRoomByName = function getRoomByName(name, cb) {
       select: ['username', 'profile.pic'],
     });
   if (cb) {
-    return query.exec(cb);
+    return query.exec().then(
+      (room) => cb(null, room),
+      (err) => cb(err),
+    );
   }
 
   return query.exec();
-};
+}
 
-module.exports.getRoomById = function getRoomByName(id) {
-  return Room.model
+export function getRoomById(id) {
+  return Room
     .findOne({ _id: id })
     .exec();
-};
+}
 
-module.exports.adminGetRoomList = function adminGetRoomList(token, page, cb) {
-  return request({
-    method: 'GET',
-    url: `${api}/api/admin/rooms?page=${page}`,
-    headers: {
-      Authorization: token,
-    },
-    json: true,
-  }, (err, response, body) => {
-    if (err) {
-      log.error({ err }, 'error happened');
-      return cb(err);
-    }
-
-    if (response.statusCode >= 400) {
+export async function adminGetRoomList(token, page, cb) {
+  try {
+    const body = await request({
+      method: 'GET',
+      url: `${api}/api/admin/rooms?page=${page}`,
+      headers: {
+        Authorization: token,
+      },
+    });
+    return cb(null, body);
+  } catch (err) {
+    if (err.response) {
+      const body = err.response.data;
       if (body && body.message) {
         return cb(body.message);
       }
-
-      log.error({ statusCode: response.statusCode }, 'error getting room list');
+      log.error({ statusCode: err.response.status }, 'error getting room list');
       return cb(errors.ERR_SRV);
     }
+    log.error({ err }, 'error happened');
+    return cb(err);
+  }
+}
 
-    return cb(null, body);
-  });
-};
+export async function sendBan(token, reason, { restrictBroadcast = false, restrictJoin = false }, user, expires, reportId) {
+  const {
+    session_id,
+    user_id,
+    ip,
+    socket_id,
+  } = user;
 
-module.exports.sendBan = async function sendBan(token, reason, { restrictBroadcast = false, restrictJoin = false }, user, expires, reportId) {
-  return new Promise((resolve, reject) => {
-    const {
-      session_id,
-      user_id,
-      ip,
-      socket_id,
-    } = user;
+  const body = {
+    userId: user_id,
+    sessionId: session_id,
+    ip,
+    restrictBroadcast,
+    restrictJoin,
+    socketId: socket_id,
+    reason,
+    expires,
+    reportId,
+  };
 
-    const body = {
-      userId: user_id,
-      sessionId: session_id,
-      ip,
-      restrictBroadcast,
-      restrictJoin,
-      socketId: socket_id,
-      reason,
-      expires,
-      reportId,
-    };
-
-    return request({
+  try {
+    await request({
       method: 'POST',
       url: `${api}/api/admin/siteban`,
       headers: {
         Authorization: token,
       },
       body,
-      json: true,
-    }, (err, response, responseBody) => {
-      if (err) {
-        log.fatal({ err }, 'error sending request');
-        return reject(errors.ERR_SRV);
-      }
-
-      if (response.statusCode >= 400) {
-        if (responseBody && responseBody.message) {
-          return reject(responseBody.message);
-        }
-
-        log.error({ statusCode: response.statusCode }, 'error sending site ban');
-        return reject(errors.ERR_SRV);
-      }
-
-      return resolve('User banned');
     });
-  });
-};
+    return 'User banned';
+  } catch (err) {
+    if (err.response) {
+      const responseBody = err.response.data;
+      if (responseBody && responseBody.message) {
+        throw responseBody.message;
+      }
+      log.error({ statusCode: err.response.status }, 'error sending site ban');
+      throw errors.ERR_SRV;
+    }
+    log.fatal({ err }, 'error sending request');
+    throw errors.ERR_SRV;
+  }
+}
 
-module.exports.getRecentRooms = function getRecentRooms(user) {
+export function getRecentRooms(user) {
   return RecentRooms
-    .model
     .findOne({ user })
     .populate('rooms.roomId')
     .lean()
     .exec();
-};
+}
 
-module.exports.getRoomEmoji = function getRoomEmoji(roomName) {
-  return new Promise((resolve, reject) => request({
-    method: 'GET',
-    url: `${api}/api/rooms/${roomName}/emoji`,
-    json: true,
-  }, (err, response, responseBody) => {
-    if (err) {
-      log.fatal({ err }, 'error sending request');
-      return reject(errors.ERR_SRV);
-    }
-
-    if (response.statusCode >= 400) {
+export async function getRoomEmoji(roomName) {
+  try {
+    return await request({
+      method: 'GET',
+      url: `${api}/api/rooms/${roomName}/emoji`,
+    });
+  } catch (err) {
+    if (err.response) {
+      const responseBody = err.response.data;
       if (responseBody && responseBody.message) {
-        return reject(responseBody.message);
+        throw responseBody.message;
       }
-
-      log.error({ statusCode: response.statusCode }, 'error sending site ban');
-      return reject(errors.ERR_SRV);
+      log.error({ statusCode: err.response.status }, 'error fetching room emoji');
+      throw errors.ERR_SRV;
     }
+    log.fatal({ err }, 'error sending request');
+    throw errors.ERR_SRV;
+  }
+}
 
-    return resolve(responseBody);
-  }));
-};
-
-module.exports.checkUserIsMod = function checkUserIsMod(userId, room) {
+export function checkUserIsMod(userId, room) {
   const { moderators } = room.settings;
 
   const isMod = moderators.some((m) => {
@@ -213,4 +205,4 @@ module.exports.checkUserIsMod = function checkUserIsMod(userId, room) {
   const isOwner = String(room.attrs.owner) === String(userId);
 
   return isMod || isOwner;
-};
+}

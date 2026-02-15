@@ -8,7 +8,7 @@
  * @param {Number} number
  * @returns {string}
  */
-module.exports.ordinal = (number) => {
+export function ordinal(number) {
   const j = number % 10;
   const k = number % 100;
   if (j === 1 && k !== 11) {
@@ -24,4 +24,4 @@ module.exports.ordinal = (number) => {
   }
 
   return `${number}th`;
-};
+}
