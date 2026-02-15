@@ -1,14 +1,13 @@
-const keystone = require('keystone');
-const { Schema } = require('mongoose');
-const { videoQuality } = require('../constants/constants');
+import mongoose from 'mongoose';
+import { videoQuality } from '../constants/constants.js';
+
+const { Schema, model } = mongoose;
 
 /**
  * User Model
  * ==========
  */
-const User = new keystone.List('User');
-
-User.schema.add({
+const userSchema = new Schema({
   username: String,
   attrs: {
     join_date: { type: Date, default: Date.now },
@@ -68,5 +67,4 @@ User.schema.add({
   },
 });
 
-
-User.register();
+export default model('User', userSchema);

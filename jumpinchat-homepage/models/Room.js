@@ -2,12 +2,11 @@
  * Created by Zaccary on 19/03/2017.
  */
 
-const { List } = require('keystone');
-const { Schema } = require('mongoose');
+import mongoose from 'mongoose';
 
-const Room = new List('Room');
+const { Schema, model } = mongoose;
 
-Room.schema.add({
+const roomSchema = new Schema({
   name: String,
   attrs: {
     janus_id: String,
@@ -80,4 +79,4 @@ Room.schema.add({
   },
 });
 
-Room.register();
+export default model('Room', roomSchema);

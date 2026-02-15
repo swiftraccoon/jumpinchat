@@ -2,7 +2,7 @@
  * Created by Zaccary on 19/03/2017.
  */
 
-module.exports.colours = [
+export const colours = [
   '#cc0000',
   '#3466a5',
   '#5c3466',
@@ -13,11 +13,11 @@ module.exports.colours = [
   '#10a879',
 ];
 
-module.exports.api = process.env.NODE_ENV === 'production' ? 'http://haproxy' : 'http://localhost:3232';
+export const api = process.env.NODE_ENV === 'production' ? 'http://haproxy' : 'http://localhost:3232';
 
 const MSG_BAD_USER = 'Invalid username or password. Be sure to use your username, not your email address';
 
-module.exports.errors = {
+export const errors = {
   ERR_SRV: 'Something went wrong',
   ERR_VALIDATION: 'Invalid details',
   ERR_NO_USER: MSG_BAD_USER,
@@ -27,14 +27,14 @@ module.exports.errors = {
   ERR_USER_EXISTS: 'Username already exists',
 };
 
-module.exports.successMessages = {
+export const successMessages = {
   MSG_SETTINGS_UPDATED: 'Settings updated',
 };
 
-module.exports.jwtSecret = 'secret';
-module.exports.cookieTimeout = 1000 * 60 * 60 * 24 * 180;
+export const jwtSecret = 'secret';
+export const cookieTimeout = 1000 * 60 * 60 * 24 * 180;
 
-module.exports.calMonths = {
+export const calMonths = {
   1: 'January',
   2: 'February',
   3: 'March',
@@ -49,7 +49,7 @@ module.exports.calMonths = {
   12: 'December',
 };
 
-module.exports.banReasons = {
+export const banReasons = {
   BAN_BROADCAST_VIOLATION: 'Inappropriate broadcast',
   BAN_NUDITY: 'Nudity',
   BAN_RECORDING: 'Recording broadcasters',
@@ -58,21 +58,21 @@ module.exports.banReasons = {
   BAN_UNDERAGE: 'Under age',
 };
 
-module.exports.messageReportReasons = {
+export const messageReportReasons = {
   REPORT_NUDITY: 'Nudity',
   REPORT_EXPLICIT: 'Explicit or inappropriate content',
   REPORT_ABUSE: 'Abusing or promoting abuse',
   REPORT_HARASSMENT: 'Harassment',
 };
 
-module.exports.closeReasons = {
+export const closeReasons = {
   BAN_BROADCAST_VIOLATION: 'Inappropriate broadcasts',
   BAN_NUDITY: 'Nudity or encouraging nudity',
   BAN_ABUSE: 'Abusing or promoting abuse',
   BAN_UNDERAGE: 'Under age',
 };
 
-module.exports.ageVerifyRejectReasons = {
+export const ageVerifyRejectReasons = {
   REJECT_UNCLEAR_ID: 'Photo of ID document is blurry or unclear',
   REJECT_UNCLEAR_SELFIE: 'Selfie with ID document is blurry or unclear',
   REJECT_OBSCURED_INFORMATION: 'required information is obscured',
@@ -91,7 +91,7 @@ const features = {
   FEATURE_UPCOMING: 'More benefits for site supporters coming soon!',
 };
 
-module.exports.products = {
+export const products = {
   onetime: {
     title: 'One time payment',
     description: 'One-time, non-recurring payment.',
@@ -132,7 +132,7 @@ module.exports.products = {
   },
 };
 
-module.exports.videoQuality = {
+export const videoQuality = {
   VIDEO_240: {
     id: 'VIDEO_240',
     label: '240p',
@@ -159,7 +159,7 @@ module.exports.videoQuality = {
   },
 };
 
-module.exports.reportOutcomes = {
+export const reportOutcomes = {
   RESOLUTION_NONE: 'No action taken',
   RESOLUTION_BAN_BROADCAST: 'User banned from broadcasting',
   RESOLUTION_BAN_JOIN: 'User banned from joining rooms',

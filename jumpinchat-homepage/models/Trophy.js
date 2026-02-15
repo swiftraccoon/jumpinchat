@@ -1,9 +1,8 @@
-const keystone = require('keystone');
-const { Schema } = require('mongoose');
+import mongoose from 'mongoose';
 
-const Trophy = new keystone.List('Trophy');
+const { Schema, model } = mongoose;
 
-Trophy.schema.add({
+const trophySchema = new Schema({
   name: String,
   image: String,
   description: { type: String, default: null },
@@ -21,4 +20,4 @@ Trophy.schema.add({
   },
 });
 
-Trophy.register();
+export default model('Trophy', trophySchema);

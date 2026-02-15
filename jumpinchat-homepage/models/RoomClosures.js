@@ -1,9 +1,8 @@
-const { List } = require('keystone');
-const { Schema } = require('mongoose');
+import mongoose from 'mongoose';
 
-const RoomClose = new List('RoomClose');
+const { Schema, model } = mongoose;
 
-RoomClose.schema.add({
+const roomCloseSchema = new Schema({
   name: String,
   reason: String,
   createdAt: Date,
@@ -18,4 +17,4 @@ RoomClose.schema.add({
   ],
 });
 
-RoomClose.register();
+export default model('RoomClose', roomCloseSchema);

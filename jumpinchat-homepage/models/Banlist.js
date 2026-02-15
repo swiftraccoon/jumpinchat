@@ -1,9 +1,8 @@
-const { List } = require('keystone');
-const { Schema } = require('mongoose');
+import mongoose from 'mongoose';
 
-const Banlist = new List('Banlist');
+const { Schema, model } = mongoose;
 
-Banlist.schema.add({
+const banlistSchema = new Schema({
   ip: String,
   userId: { Type: Schema.Types.ObjectId },
   sessionId: String,
@@ -16,4 +15,4 @@ Banlist.schema.add({
   },
 });
 
-Banlist.register();
+export default model('Banlist', banlistSchema);

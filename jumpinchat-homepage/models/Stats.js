@@ -1,8 +1,8 @@
-const keystone = require('keystone');
+import mongoose from 'mongoose';
 
-const Stats = new keystone.List('Stats');
+const { Schema, model } = mongoose;
 
-Stats.schema.add({
+const statsSchema = new Schema({
   createdAt: { type: Date },
   rooms: [{
     name: String,
@@ -11,6 +11,6 @@ Stats.schema.add({
   }],
 });
 
-Stats.schema.index({ createdAt: 1 });
+statsSchema.index({ createdAt: 1 });
 
-Stats.register();
+export default model('Stats', statsSchema);
