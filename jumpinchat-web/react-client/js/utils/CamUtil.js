@@ -36,6 +36,7 @@ import {
 let janus = null;
 let janusMcuPlugin = null;
 let slowlinkTimeout;
+let localMediaStream = null;
 
 
 const closeBroadcast = () => {
@@ -45,6 +46,7 @@ const closeBroadcast = () => {
     tracks.forEach(track => track.stop());
   }
 
+  localMediaStream = null;
   destroyLocalStream(null);
   setMediaDeviceId(null, 'video');
   setMediaDeviceId(null, 'audio');
@@ -355,6 +357,7 @@ function checkVideoSupported() {
 export function newRemoteFeed(id, roomId, userId, video, audio) {
   // A new feed has been published, create a new plugin handle and attach to it as a listener
   let remoteFeed;
+  let remoteStream = null;
   janus.attach(
     {
       plugin: 'janus.plugin.videoroom',
@@ -463,20 +466,23 @@ export function newRemoteFeed(id, roomId, userId, video, audio) {
           setFeedLoading(userId, false);
         }
       },
-      onremotestream(stream) {
+      onremotetrack(track, mid, on) {
+        if (!on) return;
+
+        if (!remoteStream) {
+          remoteStream = new MediaStream();
+        }
+        remoteStream.addTrack(track);
+
         let userClosed = false;
-
         const { camsDisabled } = camStore.getState();
-
         if (camsDisabled) {
           userClosed = true;
         }
 
-        console.log('tracks', stream.getTracks());
-
         addRemoteStream({
           janusId: id,
-          stream,
+          stream: remoteStream,
           remoteFeed,
           roomId,
           userId,
@@ -821,8 +827,19 @@ export function init(roomId, roomName, userId, cb = () => {}) {
                 }
               },
 
-              onlocalstream(stream) {
-                addLocalStream({ stream, token: uuid.v4(), isLocal: true });
+              onlocaltrack(track, on) {
+                if (!on) return;
+                if (!localMediaStream) {
+                  localMediaStream = new MediaStream();
+                }
+                localMediaStream.addTrack(track);
+                // Only notify the store once we have the video track,
+                // so the feed is created with video: true.
+                // Audio track arrives first and would set video: false
+                // permanently since the store ignores subsequent calls.
+                if (track.kind === 'video') {
+                  addLocalStream({ stream: localMediaStream, token: uuid.v4(), isLocal: true });
+                }
               },
 
               oncleanup() {
