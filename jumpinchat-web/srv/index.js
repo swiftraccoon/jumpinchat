@@ -2,12 +2,15 @@ import http from 'http';
 import express from 'express';
 import { Server as SocketIOServer } from 'socket.io';
 import config from './config/env/index.js';
+import { validateEnv } from './config/validateEnv.js';
 import logFactory from './utils/logger.util.js';
 import expressConfig from './config/express.config.js';
 import mongooseConfig from './config/mongoose.config.js';
 import './lib/redis.util.js';
 import socketConfig from './config/socket.config.js';
 import routes from './routes.js';
+
+validateEnv(config.env, process.env);
 
 export const app = express();
 const server = http.createServer(app);
