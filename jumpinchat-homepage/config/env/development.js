@@ -2,7 +2,7 @@
  * Created by Zaccary on 20/03/2017.
  */
 
-module.exports = {
+export default {
   auth: {
     sharedSecret: process.env.SHARED_SECRET || 'secret',
     jwtSecret: 'jwtsecret',

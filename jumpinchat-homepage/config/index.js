@@ -2,12 +2,16 @@
  * Created by Zaccary on 20/03/2017.
  */
 
+import _ from 'lodash';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const _ = require('lodash');
-const path = require('path');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const env = process.env.NODE_ENV || 'development';
 
 const all = {
-  env: process.env.NODE_ENV || 'development',
+  env,
   port: process.env.PORT || 3000,
 
   // Root path of server
@@ -41,7 +45,5 @@ const all = {
   },
 };
 
-module.exports = _.merge(
-  all,
-  require(`./env/${all.env}.js`) // eslint-disable-line
-);
+const envModule = await import(`./env/${env}.js`);
+export default _.merge(all, envModule.default);
