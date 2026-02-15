@@ -205,7 +205,6 @@ class PlayVideo {
         });
     } catch (err) {
       log.fatal({ err, roomName }, 'Error getting room');
-      console.error({ err });
       return cb(err);
     }
   }
