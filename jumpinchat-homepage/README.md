@@ -1,6 +1,6 @@
 # JumpInChat Homepage
 
-Keystone.js 4 application serving the public homepage, user registration/login,
+Express 5 application serving the public homepage, user registration/login,
 room directory, user account settings, messaging, and admin functions.
 
 ## Requirements
@@ -45,7 +45,16 @@ The Docker build compiles SCSS and bundles JS automatically:
 - **JS**: `src/js/app.js` bundled with esbuild (IIFE + ESM outputs)
 - **Images**: copied from `src/images/`
 
-To compile CSS manually:
+### Testing
+
+```bash
+npm test
+```
+
+Tests use ESM via esmock for module mocking. Covers route handlers
+(register, login, MFA) and middleware.
+
+### Compiling CSS manually
 
 ```bash
 npx sass src/styles/site.scss src/styles/site.css \

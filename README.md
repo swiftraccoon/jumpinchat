@@ -130,7 +130,7 @@ Create a room by visiting `https://local.jumpin.chat:8443/yourroom`.
 | **nginx** | Reverse proxy, TLS termination |
 | **haproxy** | Load balances between web and web2 |
 | **web / web2** | Node.js app (chat rooms, Socket.io, API) |
-| **home / home2** | Homepage (registration, login, settings, room directory) |
+| **home / home2** | Express 5 homepage (registration, login, settings, room directory) |
 | **mongodb + mongodbslave** | MongoDB 4.4 replica set |
 | **redis** | Session store and cache |
 | **janus / janus2** | Janus WebRTC Gateway (video/audio media) |
@@ -153,11 +153,11 @@ podman-compose logs -f janus      # WebRTC media server
 podman-compose logs -f nginx      # reverse proxy
 ```
 
-Run server tests:
+Run tests:
 
 ```bash
-cd ../jumpinchat-web
-NODE_ENV=test npm test
+cd ../jumpinchat-web && NODE_ENV=test npm test     # server tests (379 specs)
+cd ../jumpinchat-homepage && NODE_ENV=test npm test # homepage tests
 ```
 
 ## Troubleshooting

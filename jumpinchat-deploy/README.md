@@ -9,7 +9,7 @@ See the [root README](../README.md) for setup instructions.
 | Directory | Builds |
 |---|---|
 | `srv/` | web / web2 (Node.js app + nginx) |
-| `home/` | home / home2 (Keystone.js homepage) |
+| `home/` | home / home2 (Express 5 homepage) |
 | `janus/` | janus / janus2 (WebRTC media server) |
 | `nginx/` | nginx (reverse proxy) |
 | `haproxy/` | haproxy (load balancer) |
