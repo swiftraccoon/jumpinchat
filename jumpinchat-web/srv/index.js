@@ -9,6 +9,7 @@ import mongooseConfig from './config/mongoose.config.js';
 import './lib/redis.util.js';
 import socketConfig from './config/socket.config.js';
 import routes from './routes.js';
+import { errorHandler } from './lib/asyncErrorHandler.js';
 
 validateEnv(config.env, process.env);
 
@@ -21,6 +22,7 @@ expressConfig(app, sio);
 mongooseConfig();
 socketConfig(sio);
 routes(app);
+app.use(errorHandler);
 
 server.listen(config.port, (err) => {
   if (err) {
