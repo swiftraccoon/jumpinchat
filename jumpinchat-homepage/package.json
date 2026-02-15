@@ -9,6 +9,7 @@
   "dependencies": {
     "@fingerprintjs/fingerprintjs": "^3.0.1",
     "axios": "^1.7.0",
+    "cropperjs": "^1.6.0",
     "bcrypt": "^6.0.0",
     "bunyan": "^1.8.15",
     "connect-mongo": "^5.1.0",
@@ -18,17 +19,20 @@
     "express-session": "^1.18.1",
     "helmet": "^8.0.0",
     "joi": "^18.0.2",
+    "jquery": "^3.7.0",
     "jsonwebtoken": "^9.0.2",
     "jstransformer-markdown-it": "^2.0.0",
     "lodash": "^4.17.21",
     "marked": "^17.0.1",
+    "moment": "^2.30.0",
     "mongoose": "^9.2.0",
     "multer": "^2.0.0",
     "normalize-scss": "^6.0.0",
     "pagination-object": "^1.2.2",
     "pug": "^3.0.3",
     "request-ip": "^3.3.0",
-    "sitemap": "^8.0.0"
+    "sitemap": "^8.0.0",
+    "tether": "^2.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",

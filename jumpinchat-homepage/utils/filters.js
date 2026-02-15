@@ -2,7 +2,8 @@
  * Created by Zaccary on 19/03/2017.
  */
 
-import { pick, omit } from 'lodash';
+import lodash from 'lodash';
+const { pick, omit } = lodash;
 
 const filterRoomUser = function filterRoomUser(user) {
   return pick(user, [

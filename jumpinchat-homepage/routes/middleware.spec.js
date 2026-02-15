@@ -43,6 +43,12 @@ function stubLogger() {
   });
 }
 
+function stubMulter() {
+  const fn = () => ({ any: () => (req, res, next) => next() });
+  fn.memoryStorage = () => ({});
+  return fn;
+}
+
 describe('middleware', () => {
   describe('checkUserSession', () => {
     it('should call next() when no jic.ident cookie is present', async () => {
@@ -55,7 +61,7 @@ describe('middleware', () => {
         },
         '../config/index.js': { default: { stripe: { publicKey: 'pk_test' }, auth: {} } },
         '../utils/logger.js': { default: stubLogger() },
-        'multer': { default: () => ({ any: () => (req, res, next) => next() }) },
+        'multer': { default: stubMulter() },
       });
 
       const req = createReq({ signedCookies: {} });
@@ -85,7 +91,7 @@ describe('middleware', () => {
         },
         '../config/index.js': { default: { stripe: { publicKey: 'pk_test' }, auth: {} } },
         '../utils/logger.js': { default: stubLogger() },
-        'multer': { default: () => ({ any: () => (req, res, next) => next() }) },
+        'multer': { default: stubMulter() },
       });
 
       const req = createReq({ signedCookies: { 'jic.ident': 'user123' } });
@@ -117,7 +123,7 @@ describe('middleware', () => {
         },
         '../config/index.js': { default: { stripe: { publicKey: 'pk_test' }, auth: {} } },
         '../utils/logger.js': { default: stubLogger() },
-        'multer': { default: () => ({ any: () => (req, res, next) => next() }) },
+        'multer': { default: stubMulter() },
       });
 
       const req = createReq({ signedCookies: { 'jic.ident': 'user456' } });
@@ -148,7 +154,7 @@ describe('middleware', () => {
         },
         '../config/index.js': { default: { stripe: { publicKey: 'pk_test' }, auth: {} } },
         '../utils/logger.js': { default: stubLogger() },
-        'multer': { default: () => ({ any: () => (req, res, next) => next() }) },
+        'multer': { default: stubMulter() },
       });
 
       const req = createReq({ signedCookies: { 'jic.ident': 'nonexistent' } });
@@ -172,7 +178,7 @@ describe('middleware', () => {
         },
         '../config/index.js': { default: { stripe: { publicKey: 'pk_test' }, auth: {} } },
         '../utils/logger.js': { default: stubLogger() },
-        'multer': { default: () => ({ any: () => (req, res, next) => next() }) },
+        'multer': { default: stubMulter() },
       });
 
       const req = createReq({ signedCookies: { 'jic.ident': 'user789' } });
@@ -203,7 +209,7 @@ describe('middleware', () => {
         },
         '../config/index.js': { default: { stripe: { publicKey: 'pk_test' }, auth: {} } },
         '../utils/logger.js': { default: stubLogger() },
-        'multer': { default: () => ({ any: () => (req, res, next) => next() }) },
+        'multer': { default: stubMulter() },
       });
 
       const req = createReq({ signedCookies: { 'jic.ident': 'user789' } });
@@ -225,7 +231,7 @@ describe('middleware', () => {
         '../utils/messageUtils.js': { getUnreadMessages: sinon.stub() },
         '../config/index.js': { default: { stripe: { publicKey: 'pk_test_abc' }, auth: {} } },
         '../utils/logger.js': { default: stubLogger() },
-        'multer': { default: () => ({ any: () => (req, res, next) => next() }) },
+        'multer': { default: stubMulter() },
       });
 
       const mockUser = { username: 'alice' };
@@ -256,7 +262,7 @@ describe('middleware', () => {
         '../utils/messageUtils.js': { getUnreadMessages: sinon.stub() },
         '../config/index.js': { default: { stripe: { publicKey: 'pk_test' }, auth: {} } },
         '../utils/logger.js': { default: stubLogger() },
-        'multer': { default: () => ({ any: () => (req, res, next) => next() }) },
+        'multer': { default: stubMulter() },
       });
 
       const req = createReq();
@@ -278,7 +284,7 @@ describe('middleware', () => {
         '../utils/messageUtils.js': { getUnreadMessages: sinon.stub() },
         '../config/index.js': { default: { stripe: { publicKey: 'pk_test' }, auth: {} } },
         '../utils/logger.js': { default: stubLogger() },
-        'multer': { default: () => ({ any: () => (req, res, next) => next() }) },
+        'multer': { default: stubMulter() },
       });
 
       const req = createReq();
@@ -298,7 +304,7 @@ describe('middleware', () => {
         '../utils/messageUtils.js': { getUnreadMessages: sinon.stub() },
         '../config/index.js': { default: { stripe: { publicKey: 'pk_test' }, auth: {} } },
         '../utils/logger.js': { default: stubLogger() },
-        'multer': { default: () => ({ any: () => (req, res, next) => next() }) },
+        'multer': { default: stubMulter() },
       });
 
       const req = createReq();
@@ -319,7 +325,7 @@ describe('middleware', () => {
         '../utils/messageUtils.js': { getUnreadMessages: sinon.stub() },
         '../config/index.js': { default: { stripe: { publicKey: 'pk_test' }, auth: {} } },
         '../utils/logger.js': { default: stubLogger() },
-        'multer': { default: () => ({ any: () => (req, res, next) => next() }) },
+        'multer': { default: stubMulter() },
       });
 
       const req = createReq({ user: { username: 'bob' } });
@@ -346,7 +352,7 @@ describe('middleware', () => {
         '../utils/messageUtils.js': { getUnreadMessages: sinon.stub() },
         '../config/index.js': { default: { stripe: { publicKey: 'pk_test' }, auth: {} } },
         '../utils/logger.js': { default: stubLogger() },
-        'multer': { default: () => ({ any: () => (req, res, next) => next() }) },
+        'multer': { default: stubMulter() },
       }));
     });
 
@@ -405,7 +411,7 @@ describe('middleware', () => {
         '../utils/messageUtils.js': { getUnreadMessages: sinon.stub() },
         '../config/index.js': { default: { stripe: { publicKey: 'pk_test' }, auth: {} } },
         '../utils/logger.js': { default: stubLogger() },
-        'multer': { default: () => ({ any: () => (req, res, next) => next() }) },
+        'multer': { default: stubMulter() },
       }));
     });
 
@@ -464,7 +470,7 @@ describe('middleware', () => {
         '../utils/messageUtils.js': { getUnreadMessages: sinon.stub() },
         '../config/index.js': { default: { stripe: { publicKey: 'pk_test' }, auth: {} } },
         '../utils/logger.js': { default: stubLogger() },
-        'multer': { default: () => ({ any: () => (req, res, next) => next() }) },
+        'multer': { default: stubMulter() },
       }));
     });
 
@@ -499,7 +505,7 @@ describe('middleware', () => {
         '../utils/messageUtils.js': { getUnreadMessages: sinon.stub() },
         '../config/index.js': { default: { stripe: { publicKey: 'pk_test' }, auth: {} } },
         '../utils/logger.js': { default: stubLogger() },
-        'multer': { default: () => ({ any: () => (req, res, next) => next() }) },
+        'multer': { default: stubMulter() },
       });
 
       const req = createReq();
