@@ -43,6 +43,7 @@
     "inline-css": "^4.0.2",
     "ioredis": "^5.4.0",
     "iso8601-duration": "^2.0.0",
+    "janus-gateway": "^1.4.0",
     "jimp": "^1.6.0",
     "joi": "^18.0.2",
     "jsonwebtoken": "^9.0.2",

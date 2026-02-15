@@ -65,24 +65,9 @@ gulp.task('copy:sourcemaps', () => {
     .pipe(gulp.dest(path.join(paths.dist, 'js')));
 });
 
-// inject javascript files into inject:js
-// block in index.ejs
-gulp.task('inject:js', () => {
-  const target = gulp.src(path.join(paths.src, '/index.ejs'));
-  const sources = [path.join(paths.src, 'js/lib/**/*.js')];
-
-  const opts = {
-    transform: (filePath) => {
-      filePath = filePath.replace(`/${paths.src}/`, '/');
-      filePath = filePath.replace('/.tmp/', '/');
-      return `<script src="${filePath}"></script>`;
-    },
-  };
-
-  return target
-    .pipe(inject(gulp.src(sources, { read: false }), opts))
-    .pipe(gulp.dest(path.join(paths.src, '/')));
-});
+// inject:js was used to inject vendored lib/ scripts into index.ejs.
+// Those are now npm packages bundled by webpack, so this is a no-op.
+gulp.task('inject:js', (done) => done());
 
 // inject scss files into `// inject:scss` block in main.scss
 gulp.task('inject:sass', () => {
@@ -169,13 +154,9 @@ function compile(watch, esNext = false) {
   });
 }
 
-gulp.task('babelify', () => gulp.src('react-client/js/lib/*.js')
-  .pipe(sourcemaps.init())
-  .pipe(babel({
-    presets: ['@babel/preset-env'],
-  }))
-  .pipe(sourcemaps.write('.'))
-  .pipe(gulp.dest(path.join(paths.tmp, 'js', 'lib'))));
+// babelify was used to transpile vendored lib/ files (adapter.js, janus.js).
+// Those are now npm packages bundled by webpack, so this is a no-op.
+gulp.task('babelify', (done) => done());
 
 
 // run concatenation, minification and reving

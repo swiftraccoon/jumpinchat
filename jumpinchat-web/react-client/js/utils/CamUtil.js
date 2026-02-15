@@ -2,11 +2,13 @@
  * Created by Zaccary on 09/09/2015.
  */
 
-/* global navigator,Janus,window */
+/* global navigator,window */
 
 import React from 'react';
 import * as uuid from 'uuid';
 import axios from 'axios';
+import Janus from 'janus-gateway';
+import adapter from 'webrtc-adapter';
 import camStore from '../stores/CamStore/CamStore';
 import {
   destroyLocalStream,
@@ -647,6 +649,7 @@ export function init(roomId, roomName, userId, cb = () => {}) {
 
     Janus.init({
       debug: process.env.NODE_ENV === 'production' ? 'error' : 'all',
+      dependencies: Janus.useDefaultDependencies({ adapter }),
       callback() {
         if (!Janus.isWebrtcSupported()) {
           console.warn('No WebRTC support... ');

@@ -1,4 +1,4 @@
-/* global navigator, Janus */
+/* global navigator */
 
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
