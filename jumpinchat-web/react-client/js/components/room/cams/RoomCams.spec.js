@@ -72,29 +72,26 @@ describe('<RoomCams />', () => {
     });
   });
 
-  describe('UNSAFE_componentWillReceiveProps', () => {
+  describe('componentDidUpdate', () => {
     beforeEach(() => {
       roomCams._getCamDimensions = jest.fn();
     });
 
-    it('should not get dimensions if there are no feeds in next props', () => {
-      roomCams.UNSAFE_componentWillReceiveProps({ ...roomCams.props, feeds: [] });
-      expect(roomCams._getCamDimensions).not.toHaveBeenCalled();
-    });
-
-    it('should not get dimensions if current feeds === next feeds', () => {
+    it('should not get dimensions if feeds have not changed', () => {
+      const feeds = [
+        {
+          remoteFeed: { rfid: '123' },
+        },
+        {
+          remoteFeed: { rfid: '321' },
+        },
+      ];
       roomCams.props = {
-        feeds: [
-          {
-            remoteFeed: { rfid: '123' },
-          },
-          {
-            remoteFeed: { rfid: '321' },
-          },
-        ],
-        globalVolume: 0,
+        feeds,
+        layout: layouts.VERTICAL,
+        currentlyPlaying: null,
       };
-      roomCams.UNSAFE_componentWillReceiveProps({
+      const prevProps = {
         feeds: [
           {
             remoteFeed: { rfid: '123' },
@@ -103,7 +100,10 @@ describe('<RoomCams />', () => {
             remoteFeed: { rfid: '321' },
           },
         ],
-      });
+        layout: layouts.VERTICAL,
+        currentlyPlaying: null,
+      };
+      roomCams.componentDidUpdate(prevProps);
       expect(roomCams._getCamDimensions).not.toHaveBeenCalled();
     });
 
@@ -113,24 +113,35 @@ describe('<RoomCams />', () => {
           {
             remoteFeed: { rfid: '123' },
           },
-        ],
-      };
-      roomCams.UNSAFE_componentWillReceiveProps({
-        feeds: [
-          {
-            remoteFeed: { rfid: '123' },
-          },
           {
             remoteFeed: { rfid: '321' },
           },
         ],
-      });
+        layout: layouts.VERTICAL,
+        currentlyPlaying: null,
+      };
+      const prevProps = {
+        feeds: [
+          {
+            remoteFeed: { rfid: '123' },
+          },
+        ],
+        layout: layouts.VERTICAL,
+        currentlyPlaying: null,
+      };
+      roomCams.componentDidUpdate(prevProps);
       expect(roomCams._getCamDimensions).toHaveBeenCalled();
     });
 
     it('should get cam dimensions if currentlyPlaying changes', () => {
       roomCams.props = {
         feeds: [],
+        layout: layouts.VERTICAL,
+        currentlyPlaying: null,
+      };
+      const prevProps = {
+        feeds: [],
+        layout: layouts.VERTICAL,
         currentlyPlaying: {
           mediaId: 'foo',
           startAt: '2019-01-29T22:46:26.356Z',
@@ -138,7 +149,7 @@ describe('<RoomCams />', () => {
           duration: 123,
         },
       };
-      roomCams.UNSAFE_componentWillReceiveProps({ feeds: [], currentlyPlaying: null });
+      roomCams.componentDidUpdate(prevProps);
       expect(roomCams._getCamDimensions).toHaveBeenCalled();
     });
   });

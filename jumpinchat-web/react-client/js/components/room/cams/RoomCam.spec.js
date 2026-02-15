@@ -249,27 +249,48 @@ describe('<RoomCam />', () => {
     });
   });
 
-  describe('UNSAFE_componentWillUpdate', () => {
+  describe('componentDidUpdate handle resolution', () => {
     let roomCam;
 
     beforeEach(() => {
       roomCam = new RoomCam();
+      roomCam.props = {
+        streamData: { token: 'abc' },
+        videoEnabled: true,
+        feed: { volume: 1 },
+        user: { hasChangedHandle: false },
+      };
+      roomCam.stream = null;
     });
 
     it('should get the user\'s handle', () => {
       roomCam.chatStore.getHandleByUserId = sinon.spy();
-      roomCam._getUserId = sinon.spy();
+      roomCam._getUserId = sinon.stub().returns('123');
 
-      roomCam.UNSAFE_componentWillUpdate();
+      const prevProps = {
+        streamData: { token: 'abc' },
+        videoEnabled: true,
+        feed: { volume: 1 },
+        hasChangedHandle: false,
+      };
+
+      roomCam.componentDidUpdate(prevProps);
       expect(roomCam.chatStore.getHandleByUserId.called).toEqual(true);
     });
 
     it('should set handle to state if it is set in store', () => {
       roomCam.chatStore.getHandleByUserId = sinon.stub().returns('foo');
-      roomCam._getUserId = sinon.spy();
+      roomCam._getUserId = sinon.stub().returns('123');
       roomCam.setState = sinon.spy();
 
-      roomCam.UNSAFE_componentWillUpdate();
+      const prevProps = {
+        streamData: { token: 'abc' },
+        videoEnabled: true,
+        feed: { volume: 1 },
+        hasChangedHandle: false,
+      };
+
+      roomCam.componentDidUpdate(prevProps);
 
       // eql compares object values instead of instances
       expect(roomCam.setState.firstCall.args[0]).toEqual({ handle: 'foo' });
