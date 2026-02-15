@@ -2,7 +2,6 @@
  * Created by Zaccary on 24/03/2017.
  */
 
-import 'core-js/stable';
 import './header';
 import './roomSettings';
 import './userSettings';
