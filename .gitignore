@@ -32,3 +32,6 @@ dist/
 jumpinchat-deploy/valgrind
 jumpinchat-deploy/core
 jumpinchat-deploy/logs.txt
+
+docs/
+CLAUDE.md
