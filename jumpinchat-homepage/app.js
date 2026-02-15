@@ -7,6 +7,8 @@ import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import config from './config/index.js';
+import { checkUserSession, initLocals, initErrorHandlers, cache } from './routes/middleware.js';
+import routes from './routes/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,10 +69,40 @@ app.use((req, res, next) => {
   next();
 });
 
+// Middleware (applied before all routes)
+app.use(cache);
+app.use(checkUserSession);
+app.use(initLocals);
+app.use(initErrorHandlers);
+
 // Health check
 app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
-// Route loading will be added in task A5
+// Routes
+routes(app);
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).render('errors/404', {
+    errorTitle: undefined,
+    errorMsg: undefined,
+    user: req.user,
+  });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  let title;
+  let message;
+  if (err instanceof Error) {
+    message = err.message;
+  }
+  res.status(500).render('errors/500', {
+    err,
+    errorTitle: title,
+    errorMsg: message,
+  });
+});
 
 // Connect to MongoDB and start server
 mongoose.connect(mongoUri)

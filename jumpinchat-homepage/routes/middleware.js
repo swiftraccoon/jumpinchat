@@ -7,12 +7,16 @@
  * you have more middleware you may want to group it as separate
  * modules in your project's /lib directory.
  */
-const multer = require('multer');
-const log = require('../utils/logger')({ name: 'middleware' });
+import multer from 'multer';
+import { createRequire } from 'module';
+import logFactory from '../utils/logger.js';
+import { getUserById } from '../utils/userUtils.js';
+import { getUnreadMessages } from '../utils/messageUtils.js';
+import config from '../config/index.js';
+
+const log = logFactory({ name: 'middleware' });
+const require = createRequire(import.meta.url);
 const manifest = require('../public/rev-manifest.json');
-const { getUserById } = require('../utils/userUtils');
-const { getUnreadMessages } = require('../utils/messageUtils');
-const config = require('../config');
 
 /**
  Initialises the standard view locals
@@ -21,7 +25,7 @@ const config = require('../config');
  the navigation in the header, you may wish to change this array
  or replace it with your own templates / logic.
  */
-exports.initLocals = function initLocals(req, res, next) {
+export function initLocals(req, res, next) {
   res.locals.path = req.path;
   res.locals.navLinks = [
     { label: 'Home', key: 'home', href: '/' },
@@ -41,13 +45,13 @@ exports.initLocals = function initLocals(req, res, next) {
     return path;
   };
   return next();
-};
+}
 
 
 /**
  Inits the error handler functions into `res`
  */
-exports.initErrorHandlers = function initErrorHandlers(req, res, next) {
+export function initErrorHandlers(req, res, next) {
   res.err = function error(err, title, message) {
     log.fatal(err);
     return res.status(500).render('errors/500', {
@@ -66,22 +70,22 @@ exports.initErrorHandlers = function initErrorHandlers(req, res, next) {
   };
 
   next();
-};
+}
 
 
 /**
  Prevents people from accessing protected pages when they're not signed in
  */
-exports.requireUser = function requireUser(req, res, next) {
+export function requireUser(req, res, next) {
   if (!req.user) {
     req.flash('error', 'Please sign in to access this page.');
-    res.redirect('/keystone/signin');
+    res.redirect('/login');
   } else {
     next();
   }
-};
+}
 
-exports.checkUserSession = async (req, res, next) => {
+export async function checkUserSession(req, res, next) {
   let unread;
   const userId = req.signedCookies['jic.ident'];
 
@@ -122,21 +126,20 @@ exports.checkUserSession = async (req, res, next) => {
       req.unreadMessages = unread;
     }
 
-    return user.save((err) => {
-      if (err) {
-        log.fatal('error saving updated user', err);
-        return res.status(500).send();
-      }
-
+    try {
+      await user.save();
       return next();
-    });
+    } catch (err) {
+      log.fatal('error saving updated user', err);
+      return res.status(500).send();
+    }
   } catch (err) {
     log.error({ err }, 'Error getting user');
     return res.status(500).end();
   }
-};
+}
 
-exports.validateUserIsAdmin = (req, res, next) => {
+export function validateUserIsAdmin(req, res, next) {
   if (!req.user) {
     log.warn('no user');
     return res.status(403).redirect('/');
@@ -150,9 +153,9 @@ exports.validateUserIsAdmin = (req, res, next) => {
   log.info('user is admin');
 
   return next();
-};
+}
 
-exports.validateUserIsSiteMod = (req, res, next) => {
+export function validateUserIsSiteMod(req, res, next) {
   if (!req.user) {
     log.warn('no user');
     return res.status(403).redirect('/');
@@ -166,14 +169,16 @@ exports.validateUserIsSiteMod = (req, res, next) => {
   log.info('user is sitemod');
 
   return next();
-};
+}
 
 
-exports.noFollow = (req, res, next) => {
+export function noFollow(req, res, next) {
   res.set('X-Robots-Tag', 'noindex,nofollow');
   next();
-};
+}
 
-exports.cache = (req, res, next) => next();
+export function cache(req, res, next) {
+  return next();
+}
 
-exports.upload = multer({ storage: multer.memoryStorage() }).any();
+export const upload = multer({ storage: multer.memoryStorage() }).any();

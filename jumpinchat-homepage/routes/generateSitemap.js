@@ -1,8 +1,9 @@
-const keystone = require('keystone');
-const sm = require('sitemap');
-const log = require('../utils/logger')({ name: 'generateSitemap' });
+import { SitemapStream, streamToPromise } from 'sitemap';
+import { Readable } from 'stream';
+import logFactory from '../utils/logger.js';
+import { Room } from '../models/index.js';
 
-const Room = keystone.list('Room');
+const log = logFactory({ name: 'generateSitemap' });
 
 const staticRoutes = [
   { url: '/', changefreq: 'always', priority: 0.8 },
@@ -17,57 +18,40 @@ const staticRoutes = [
   { url: '/directory', changefreq: 'always' },
 ];
 
-module.exports = function generateSitemap(req, res) {
-  return Room.model
-    .find({ 'attrs.owner': { $ne: null } })
-    .where('attrs.active', true)
-    .where('settings.public', true)
-    .lean()
-    .exec((err, rooms) => {
-      if (err) {
-        log.fatal({ err }, 'Could not get room list');
-        return res.status(500).end();
-      }
+export default async function generateSitemap(req, res) {
+  try {
+    const rooms = await Room.find({
+      'attrs.owner': { $ne: null },
+      'attrs.active': true,
+      'settings.public': true,
+    }).lean();
 
-      const sitemap = sm.createSitemap({
-        hostname: 'https://jumpin.chat',
-        cacheTime: 1000 * 60 * 60,
-        urls: [
-          ...staticRoutes,
-          ...rooms.map((room) => {
-            let url = {
-              url: `/${room.name}`,
-              changefreq: 'daily',
-            };
+    const links = [
+      ...staticRoutes,
+      ...rooms.map((room) => {
+        const entry = {
+          url: `/${room.name}`,
+          changefreq: 'daily',
+        };
 
-            if (room.settings.display) {
-              let img = {
-                url: `/uploads/${room.settings.display}`,
-                title: room.name,
-              };
-
-              if (room.settings.description) {
-                img = Object.assign(img, {
-                  caption: room.settings.description,
-                });
-              }
-
-              url = Object.assign(url, { img });
-            }
-
-            return url;
-          }),
-        ],
-      });
-
-      return sitemap.toXML((err, xml) => {
-        if (err) {
-          log.fatal({ err }, 'failed to generate sitemap');
-          return res.status(500).end();
+        if (room.settings.display) {
+          entry.img = [{
+            url: `/uploads/${room.settings.display}`,
+            title: room.name,
+            ...(room.settings.description && { caption: room.settings.description }),
+          }];
         }
 
-        res.header('Content-Type', 'application/xml');
-        return res.status(200).send(xml);
-      });
-    });
-};
+        return entry;
+      }),
+    ];
+
+    const stream = new SitemapStream({ hostname: 'https://jumpin.chat' });
+    const xml = await streamToPromise(Readable.from(links).pipe(stream));
+    res.header('Content-Type', 'application/xml');
+    return res.status(200).send(xml.toString());
+  } catch (err) {
+    log.fatal({ err }, 'failed to generate sitemap');
+    return res.status(500).end();
+  }
+}

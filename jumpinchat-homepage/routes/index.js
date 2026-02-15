@@ -1,98 +1,109 @@
-const keystone = require('keystone');
-const proxy = require('http-proxy-middleware');
-const middleware = require('./middleware');
-const removeIgnore = require('./removeIgnore');
-const generateSitemap = require('./generateSitemap');
-const { api } = require('../constants/constants');
-const log = require('../utils/logger')({ name: 'middleware' });
+import { checkUserSession, noFollow, validateUserIsAdmin, validateUserIsSiteMod } from './middleware.js';
+import removeIgnore from './removeIgnore.js';
+import generateSitemap from './generateSitemap.js';
 
-const importRoutes = keystone.importer(__dirname);
+// View handlers
+import indexView from './views/index.js';
+import loginView from './views/login.js';
+import registerView from './views/register.js';
+import mfaVerifyView from './views/mfaVerify.js';
+import directoryView from './views/directory.js';
+import settingsView from './views/settings.js';
+import profileView from './views/profile.js';
+import verifyEmailView from './views/verifyEmail.js';
+import resetPasswordRequestView from './views/resetPasswordRequest.js';
+import resetPasswordView from './views/resetPassword.js';
+import helpView from './views/help.js';
+import contactView from './views/contact.js';
+import ageVerifyView from './views/ageVerify.js';
+import ageVerificationSuccessView from './views/ageVerificationSuccess.js';
+import supportView from './views/support.js';
+import paymentView from './views/payment.js';
+import paymentSuccessView from './views/paymentSuccess.js';
+import paymentFailureView from './views/paymentFailure.js';
+import mfaEnrollView from './views/mfaEnroll.js';
+import mfaEnrollBackupCodesView from './views/mfaEnrollBackupCodes.js';
+import adminView from './views/admin.js';
+import adminRoomDetailsView from './views/adminRoomDetails.js';
+import adminRoomUserDetailsView from './views/adminRoomUserDetails.js';
+import adminUserDetailsView from './views/adminUserDetails.js';
+import adminReportDetailsView from './views/adminReportDetails.js';
+import adminAgeVerificationDetailsView from './views/adminAgeVerificationDetails.js';
+import adminBanListView from './views/adminBanList.js';
+import adminBanDetailsView from './views/adminBanDetails.js';
+import termsView from './views/terms.js';
+import privacyView from './views/privacy.js';
 
-// Common Middleware
-keystone.pre('routes', middleware.cache);
-keystone.pre('routes', middleware.checkUserSession);
-keystone.pre('routes', middleware.initLocals);
-keystone.pre('routes', middleware.initErrorHandlers);
-
-// Handle 404 errors
-keystone.set('404', (req, res) => {
-  res.notfound();
-});
-
-// Handle other errors
-keystone.set('500', (err, req, res) => {
-  let title;
-  let message;
-  if (err instanceof Error) {
-    message = err.message;
-    err = err.stack;
-  }
-  res.err(err, title, message);
-});
-
-// Import Route Controllers
-const routes = {
-  views: importRoutes('./views'),
-  settings: importRoutes('./views/settings'),
-  admin: importRoutes('./views/admin'),
-  messages: importRoutes('./views/messages'),
-  roomSettings: importRoutes('./views/room/settings'),
-  sitemod: importRoutes('./views/sitemod'),
-};
+// Nested view handlers
+import accountSettingsView from './views/settings/account.js';
+import communicationView from './views/admin/communication.js';
+import messageReportListView from './views/admin/messageReportList.js';
+import messageReportDetailsView from './views/admin/messageReportDetails.js';
+import roomCloseListView from './views/admin/roomCloseList.js';
+import roomCloseDetailView from './views/admin/roomCloseDetail.js';
+import siteModsView from './views/admin/siteMods.js';
+import modActivityView from './views/admin/modActivity.js';
+import inboxView from './views/messages/inbox.js';
+import composeView from './views/messages/compose.js';
+import roomInfoView from './views/room/settings/info.js';
+import roomEmojiView from './views/room/settings/emoji.js';
+import conductView from './views/sitemod/conduct.js';
+import sitemodReportListView from './views/sitemod/reportList.js';
+import sitemodReportDetailsView from './views/sitemod/reportDetails.js';
 
 // Setup Route Bindings
-module.exports = function routeIndex(app) {
+export default function routes(app) {
   // Views
-  app.all('/', routes.views.index);
-  app.all('/login', routes.views.login);
-  app.all('/login/totp', routes.views.mfaVerify);
-  app.all('/register', routes.views.register);
-  app.all('/directory', routes.views.directory);
+  app.all('/', indexView);
+  app.all('/login', loginView);
+  app.all('/login/totp', mfaVerifyView);
+  app.all('/register', registerView);
+  app.all('/directory', directoryView);
   app.all('/:roomName/settings', (req, res) => res.redirect('settings/info'));
-  app.all('/:roomName/settings/info', routes.roomSettings.info);
-  app.all('/:roomName/settings/emoji', routes.roomSettings.emoji);
-  app.all('/settings/account/mfa', routes.views.mfaEnroll);
-  app.all('/settings/account/mfa/backup', routes.views.mfaEnrollBackupCodes);
-  app.all('/settings/account', routes.settings.account);
-  app.delete('/settings/ignore', middleware.checkUserSession, removeIgnore);
-  app.all('/settings/:page?', routes.views.settings);
-  app.all('/profile/:username?', routes.views.profile);
-  app.get('/verify-email/:token', routes.views.verifyEmail);
-  app.all('/password-reset/request', routes.views.resetPasswordRequest);
-  app.all('/password-reset/reset/:token', routes.views.resetPassword);
-  app.all('/help/:page?', routes.views.help);
-  app.all('/contact', routes.views.contact);
-  app.all('/ageverify', routes.views.ageVerify);
-  app.get('/ageverify/success', routes.views.ageVerificationSuccess);
-  app.all('/support', routes.views.support);
-  app.all('/support/payment', routes.views.payment);
-  app.all('/support/payment/success', routes.views.paymentSuccess);
-  app.all('/support/payment/failed', routes.views.paymentFailure);
-  app.all('/messages', routes.messages.inbox);
-  app.all('/messages/:recipient', routes.messages.compose);
+  app.all('/:roomName/settings/info', roomInfoView);
+  app.all('/:roomName/settings/emoji', roomEmojiView);
+  app.all('/settings/account/mfa', mfaEnrollView);
+  app.all('/settings/account/mfa/backup', mfaEnrollBackupCodesView);
+  app.all('/settings/account', accountSettingsView);
+  app.delete('/settings/ignore', checkUserSession, removeIgnore);
+  app.all('/settings/{/:page}', settingsView);
+  app.all('/profile/{/:username}', profileView);
+  app.get('/verify-email/:token', verifyEmailView);
+  app.all('/password-reset/request', resetPasswordRequestView);
+  app.all('/password-reset/reset/:token', resetPasswordView);
+  app.all('/help/{/:page}', helpView);
+  app.all('/contact', contactView);
+  app.all('/ageverify', ageVerifyView);
+  app.get('/ageverify/success', ageVerificationSuccessView);
+  app.all('/support', supportView);
+  app.all('/support/payment', paymentView);
+  app.all('/support/payment/success', paymentSuccessView);
+  app.all('/support/payment/failed', paymentFailureView);
+  app.all('/messages', inboxView);
+  app.all('/messages/:recipient', composeView);
 
 
-  app.all('/admin/communication', middleware.noFollow, middleware.validateUserIsAdmin, routes.admin.communication);
-  app.all('/admin/rooms/:room', middleware.noFollow, middleware.validateUserIsAdmin, routes.views.adminRoomDetails);
-  app.all('/admin/rooms/:room/:userListId', middleware.noFollow, middleware.validateUserIsAdmin, routes.views.adminRoomUserDetails);
-  app.all('/admin/users/:userId', middleware.noFollow, middleware.validateUserIsAdmin, routes.views.adminUserDetails);
-  app.all('/admin/reports/messages', middleware.noFollow, middleware.validateUserIsAdmin, routes.admin.messageReportList);
-  app.all('/admin/reports/messages/:reportId', middleware.noFollow, middleware.validateUserIsAdmin, routes.admin.messageReportDetails);
-  app.all('/admin/reports/:reportId', middleware.noFollow, middleware.validateUserIsAdmin, routes.views.adminReportDetails);
-  app.all('/admin/ageverify/:requestId', middleware.noFollow, middleware.validateUserIsAdmin, routes.views.adminAgeVerificationDetails);
-  app.all('/admin/banlist', middleware.noFollow, middleware.validateUserIsAdmin, routes.views.adminBanList);
-  app.all('/admin/banlist/:banId', middleware.noFollow, middleware.validateUserIsAdmin, routes.views.adminBanDetails);
-  app.all('/admin/roomclosures', middleware.noFollow, middleware.validateUserIsAdmin, routes.admin.roomCloseList);
-  app.all('/admin/roomclosures/:closeId', middleware.noFollow, middleware.validateUserIsAdmin, routes.admin.roomCloseDetail);
-  app.all('/admin/sitemods', middleware.noFollow, middleware.validateUserIsAdmin, routes.admin.siteMods);
-  app.all('/admin/sitemods/activity', middleware.noFollow, middleware.validateUserIsAdmin, routes.admin.modActivity);
-  app.all('/admin/:page?', middleware.noFollow, middleware.validateUserIsAdmin, routes.views.admin);
+  app.all('/admin/communication', noFollow, validateUserIsAdmin, communicationView);
+  app.all('/admin/rooms/:room', noFollow, validateUserIsAdmin, adminRoomDetailsView);
+  app.all('/admin/rooms/:room/:userListId', noFollow, validateUserIsAdmin, adminRoomUserDetailsView);
+  app.all('/admin/users/:userId', noFollow, validateUserIsAdmin, adminUserDetailsView);
+  app.all('/admin/reports/messages', noFollow, validateUserIsAdmin, messageReportListView);
+  app.all('/admin/reports/messages/:reportId', noFollow, validateUserIsAdmin, messageReportDetailsView);
+  app.all('/admin/reports/:reportId', noFollow, validateUserIsAdmin, adminReportDetailsView);
+  app.all('/admin/ageverify/:requestId', noFollow, validateUserIsAdmin, adminAgeVerificationDetailsView);
+  app.all('/admin/banlist', noFollow, validateUserIsAdmin, adminBanListView);
+  app.all('/admin/banlist/:banId', noFollow, validateUserIsAdmin, adminBanDetailsView);
+  app.all('/admin/roomclosures', noFollow, validateUserIsAdmin, roomCloseListView);
+  app.all('/admin/roomclosures/:closeId', noFollow, validateUserIsAdmin, roomCloseDetailView);
+  app.all('/admin/sitemods', noFollow, validateUserIsAdmin, siteModsView);
+  app.all('/admin/sitemods/activity', noFollow, validateUserIsAdmin, modActivityView);
+  app.all('/admin/{/:page}', noFollow, validateUserIsAdmin, adminView);
 
-  app.all('/sitemod', middleware.noFollow, middleware.validateUserIsSiteMod,
+  app.all('/sitemod', noFollow, validateUserIsSiteMod,
     (req, res) => res.redirect('/sitemod/conduct'));
-  app.all('/sitemod/conduct', middleware.noFollow, middleware.validateUserIsSiteMod, routes.sitemod.conduct);
-  app.all('/sitemod/reports', middleware.noFollow, middleware.validateUserIsSiteMod, routes.sitemod.reportList);
-  app.all('/sitemod/reports/:reportId', middleware.noFollow, middleware.validateUserIsSiteMod, routes.sitemod.reportDetails);
+  app.all('/sitemod/conduct', noFollow, validateUserIsSiteMod, conductView);
+  app.all('/sitemod/reports', noFollow, validateUserIsSiteMod, sitemodReportListView);
+  app.all('/sitemod/reports/:reportId', noFollow, validateUserIsSiteMod, sitemodReportDetailsView);
 
   app.get('/logout', (req, res) => {
     res.clearCookie('jic.ident');
@@ -101,20 +112,12 @@ module.exports = function routeIndex(app) {
     res.redirect('/');
   });
 
-  app.get('/terms', routes.views.terms);
-  app.get('/privacy', routes.views.privacy);
+  app.get('/terms', termsView);
+  app.get('/privacy', privacyView);
   app.post('/session/register', (req, res) => {
     req.session.fingerprint = req.body.fp;
     return res.status(200).send();
   });
-
-  if (process.env.NODE_ENV !== 'production') {
-    app.all(/^\/api.*/, proxy({
-      target: api,
-      changeOrigin: true,
-      cookieDomainRewrite: 'http://localhost:3232',
-    }));
-  }
 
   app.get('/sitemap.xml', generateSitemap);
 
@@ -132,4 +135,4 @@ module.exports = function routeIndex(app) {
     code: 502,
     message: 'Looks like that part of the site was down, the admin will be shouted at shortly.',
   }));
-};
+}
