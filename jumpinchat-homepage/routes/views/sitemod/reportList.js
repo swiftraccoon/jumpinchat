@@ -1,52 +1,50 @@
-const keystone = require('keystone');
-const jwt = require('jsonwebtoken');
-const moment = require('moment');
-const Pagination = require('pagination-object');
-const log = require('../../../utils/logger')({ name: 'routes.sitemod.reportList' });
-const config = require('../../../config');
+import jwt from 'jsonwebtoken';
+import { isBefore } from 'date-fns';
+import Pagination from 'pagination-object';
+import logFactory from '../../../utils/logger.js';
+import config from '../../../config/index.js';
+import { getReports } from '../../../utils/reportUtils.js';
 
-const { getReports } = require('../../../utils/reportUtils');
+const log = logFactory({ name: 'routes.sitemod.reportList' });
 
-module.exports = function admin(req, res) {
-  const view = new keystone.View(req, res);
+export default async function sitemodReportList(req, res) {
   const { locals } = res;
 
-  let token;
   locals.page = 'reports';
   locals.section = 'Sitemod | Report list';
   locals.user = req.user;
   locals.users = [];
   locals.rooms = [];
   locals.requests = [];
-
   locals.stats = {};
   locals.pageNumber = req.query.page || 1;
 
-  view.on('init', async (next) => {
-    if (!locals.user) {
-      log.warn('no user');
-      return res.redirect('/');
-    }
+  // Init phase
+  if (!locals.user) {
+    log.warn('no user');
+    return res.redirect('/');
+  }
 
-    if (locals.user.attrs.userLevel < 20) {
-      log.warn({
-        userId: locals.user._id,
-        userLevel: locals.user.attrs.userLevel,
-      }, 'user is not an admin');
+  if (locals.user.attrs.userLevel < 20) {
+    log.warn({
+      userId: locals.user._id,
+      userLevel: locals.user.attrs.userLevel,
+    }, 'user is not an admin');
+    return res.redirect('/');
+  }
 
-      return res.redirect('/');
-    }
+  let token;
+  try {
+    token = jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
+  } catch (err) {
+    log.fatal({ err }, 'failed to create token');
+    return res.status(500).send(err);
+  }
 
-    try {
-      token = await jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
-    } catch (err) {
-      log.fatal({ err }, 'failed to create token');
-      return res.status(500).send(err);
-    }
-
-    return getReports(token, locals.pageNumber, (err, body) => {
+  await new Promise((resolve) => {
+    getReports(token, locals.pageNumber, (err, body) => {
       if (err) {
-        return next(err);
+        return resolve();
       }
 
       const { reports, count } = body;
@@ -60,19 +58,18 @@ module.exports = function admin(req, res) {
         });
       }
 
-
       locals.reports = reports
         .sort((a, b) => {
-          const aDate = moment(a.createdAt);
-          const bDate = moment(b.createdAt);
-          if (aDate.isBefore(bDate)) return 1;
-          if (bDate.isBefore(aDate)) return -1;
-
+          const aDate = new Date(a.createdAt);
+          const bDate = new Date(b.createdAt);
+          if (isBefore(aDate, bDate)) return 1;
+          if (isBefore(bDate, aDate)) return -1;
           return 0;
         });
-      return next();
+
+      return resolve();
     });
   });
 
-  view.render('sitemod/reportList');
-};
+  return res.render('sitemod/reportList');
+}

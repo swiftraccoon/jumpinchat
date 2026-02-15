@@ -1,11 +1,8 @@
-const url = require('url');
-const keystone = require('keystone');
-const Joi = require('joi');
-const { products, errors } = require('../../constants/constants');
-const log = require('../../utils/logger')({ name: 'support' });
+import url from 'url';
+import Joi from 'joi';
+import { products, errors } from '../../constants/constants.js';
 
-module.exports = function support(req, res) {
-  const view = new keystone.View(req, res);
+export default async function support(req, res) {
   const { locals } = res;
   const { error } = req.query;
 
@@ -16,18 +13,14 @@ module.exports = function support(req, res) {
   locals.products = products;
   locals.error = error || null;
 
-  view.on('post', { action: 'custom' }, async (next) => {
-    const schema = Joi.object().keys({
+  if (req.method === 'POST' && req.body.action === 'custom') {
+    const schema = Joi.object({
       amount: Joi.number().integer().min(3).max(50),
     });
 
-    try {
-      const {
-        amount,
-      } = await Joi.validate({ amount: req.body.amount }, schema);
+    const { error: validationError, value } = schema.validate({ amount: req.body.amount });
 
-      return res.redirect(`/support/payment?productId=onetime&amount=${amount * 100}`);
-    } catch (err) {
+    if (validationError) {
       locals.error = errors.ERR_VALIDATION;
       return res.redirect(url.format({
         path: './',
@@ -36,7 +29,9 @@ module.exports = function support(req, res) {
         },
       }));
     }
-  });
 
-  view.render('support');
-};
+    return res.redirect(`/support/payment?productId=onetime&amount=${value.amount * 100}`);
+  }
+
+  return res.render('support');
+}

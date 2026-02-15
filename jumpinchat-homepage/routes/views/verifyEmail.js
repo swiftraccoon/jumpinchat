@@ -1,10 +1,10 @@
-const keystone = require('keystone');
-const request = require('request');
-const log = require('../../utils/logger')({ name: 'routes.verifyEmail' });
-const { api } = require('../../constants/constants');
+import axios from 'axios';
+import logFactory from '../../utils/logger.js';
+import { api } from '../../constants/constants.js';
 
-module.exports = function verifyEmail(req, res) {
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'routes.verifyEmail' });
+
+export default async function verifyEmail(req, res) {
   const { locals } = res;
 
   // locals.section is used to set the currently selected
@@ -14,33 +14,29 @@ module.exports = function verifyEmail(req, res) {
   locals.errors = null;
   locals.success = null;
 
-  view.on('init', (next) => {
-    request({
+  // Init phase - verify the email token
+  try {
+    const response = await axios({
       method: 'GET',
       url: `${api}/api/user/verify/email/${req.params.token}`,
-      json: true,
-    }, (err, response, body) => {
-      if (err) {
-        log.error('error happened', err);
-        return res.status(500).send();
-      }
-
-      if (response.statusCode >= 400) {
-        if (body && body.message) {
-          log.error({ err: body.message }, 'error verifying email');
-          locals.errors = body.message;
-          return next();
-        }
-
-        locals.errors = 'Failed to validate your email, sorry!';
-        return next();
-      }
-
-      locals.success = 'Your email has been verified, thanks!';
-      return next();
+      validateStatus: () => true,
     });
-  });
+
+    if (response.status >= 400) {
+      if (response.data && response.data.message) {
+        log.error({ err: response.data.message }, 'error verifying email');
+        locals.errors = response.data.message;
+      } else {
+        locals.errors = 'Failed to validate your email, sorry!';
+      }
+    } else {
+      locals.success = 'Your email has been verified, thanks!';
+    }
+  } catch (err) {
+    log.error('error happened', err);
+    return res.status(500).send();
+  }
 
   // Render the view
-  view.render('verifyEmail');
-};
+  return res.render('verifyEmail');
+}

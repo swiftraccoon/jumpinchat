@@ -1,16 +1,17 @@
-const keystone = require('keystone');
-const request = require('request');
-const moment = require('moment');
-const fs = require('fs');
-const Joi = require('joi');
-const jwt = require('jsonwebtoken');
-const log = require('../../../utils/logger')({ name: 'room.settings' });
-const { api } = require('../../../constants/constants');
-const config = require('../../../config');
-const { getRoomEmoji } = require('../../../utils/roomUtils');
-const { getUserById } = require('../../../utils/userUtils');
+import fs from 'fs';
+import Joi from 'joi';
+import jwt from 'jsonwebtoken';
+import axios from 'axios';
+import FormData from 'form-data';
+import { isBefore } from 'date-fns';
+import logFactory from '../../../utils/logger.js';
+import { api } from '../../../constants/constants.js';
+import config from '../../../config/index.js';
+import { getRoomEmoji } from '../../../utils/roomUtils.js';
+import { getUserById } from '../../../utils/userUtils.js';
+import { Room } from '../../../models/index.js';
 
-const Room = keystone.list('Room');
+const log = logFactory({ name: 'room.settings' });
 
 function checkUserIsMod(userId, room) {
   const { moderators } = room.settings;
@@ -28,20 +29,18 @@ function checkUserIsMod(userId, room) {
 
 function roomIsGold(roomOwner) {
   const { isGold, supportExpires } = roomOwner.attrs;
-  const supportExpired = !supportExpires || moment(supportExpires).isBefore(moment());
+  const supportExpired = !supportExpires || isBefore(new Date(supportExpires), new Date());
 
   return isGold || !supportExpired;
 }
 
-module.exports = function roomSettings(req, res) {
-  const view = new keystone.View(req, res);
+export default async function roomSettings(req, res) {
   const { locals } = res;
   const { roomName } = req.params;
   const {
     success,
     error,
   } = req.query;
-  let token;
 
   // locals.section is used to set the currently selected
   // item in the header navigation.
@@ -55,129 +54,140 @@ module.exports = function roomSettings(req, res) {
   locals.error = error;
   locals.success = success;
 
-  view.on('init', async (next) => {
-    if (locals.user) {
-      token = jwt.sign(String(req.user._id), config.auth.jwtSecret);
+  let token;
+  // Init phase
+  if (locals.user) {
+    token = jwt.sign(String(req.user._id), config.auth.jwtSecret);
+  }
+
+  try {
+    locals.room = await Room.findOne({ name: roomName });
+
+    if (!locals.room || !locals.room.attrs.owner) {
+      return res.redirect('/');
     }
 
+    locals.roomOwner = await getUserById(locals.room.attrs.owner);
+    locals.roomGold = roomIsGold(locals.roomOwner);
+    locals.userIsMod = checkUserIsMod(String(locals.user._id), locals.room);
+    locals.emoji = await getRoomEmoji(roomName);
+  } catch (err) {
+    log.fatal({ err, roomName }, 'failed to fetch room');
+    return res.status(500).end();
+  }
 
-    try {
-      locals.room = await Room.model.findOne({ name: roomName });
-
-      if (!locals.room.attrs.owner) {
-        return res.redirect('/');
-      }
-
-      locals.roomOwner = await getUserById(locals.room.attrs.owner);
-      locals.roomGold = roomIsGold(locals.roomOwner);
-      locals.userIsMod = checkUserIsMod(String(locals.user._id), locals.room);
-      locals.emoji = await getRoomEmoji(roomName);
-    } catch (err) {
-      log.fatal({ err, roomName }, 'failed to fetch room');
-      return res.status(500).end();
-    }
-
-    return next();
-  });
-
-  view.on('post', { action: 'uploadEmoji' }, async () => {
-    const { files } = req;
-    const schema = Joi.object().keys({
+  // POST: uploadEmoji
+  if (req.method === 'POST' && req.body.action === 'uploadEmoji') {
+    const schema = Joi.object({
       alias: Joi.string().alphanum().max(12),
     });
 
-    try {
-      const { alias } = await Joi.validate({ alias: req.body.alias }, schema);
-      const formData = {
-        image: {
-          value: fs.createReadStream(files.image.path),
-          options: {
-            filename: files.image.originalname,
-            contentType: files.image.mimetype,
-          },
-        },
-        alias,
-        userId: String(locals.user._id),
-      };
+    const { error: validationError, value } = schema.validate({ alias: req.body.alias });
 
-      return request({
+    if (validationError) {
+      locals.error = 'Required field missing';
+      return res.redirect(`?error=${locals.error}`);
+    }
+
+    // Handle both multer array style and legacy keyed style
+    let imageFile;
+    if (Array.isArray(req.files)) {
+      imageFile = req.files.find(f => f.fieldname === 'image');
+    } else if (req.files) {
+      imageFile = req.files.image;
+    }
+
+    if (!imageFile) {
+      locals.error = 'Image not found';
+      return res.redirect(`?error=${locals.error}`);
+    }
+
+    try {
+      const formData = new FormData();
+
+      if (imageFile.buffer) {
+        formData.append('image', imageFile.buffer, {
+          filename: imageFile.originalname,
+          contentType: imageFile.mimetype,
+        });
+      } else {
+        formData.append('image', fs.createReadStream(imageFile.path), {
+          filename: imageFile.originalname || imageFile.name,
+          contentType: imageFile.mimetype,
+        });
+      }
+
+      formData.append('alias', value.alias);
+      formData.append('userId', String(locals.user._id));
+
+      const response = await axios({
         url: `${api}/api/rooms/${locals.room.name}/uploadEmoji`,
         method: 'POST',
-        formData,
+        data: formData,
+        headers: {
+          ...formData.getHeaders(),
+          authorization: token,
+        },
+        validateStatus: () => true,
+      });
+
+      if (response.status >= 400) {
+        if (response.data && response.data.message) {
+          locals.error = response.data.message;
+          return res.redirect(`?error=${locals.error}`);
+        }
+
+        log.warn({ body: response.data, code: response.status }, 'failed upload emoji');
+        locals.error = 'Failed to upload image';
+        return res.redirect(`?error=${locals.error}`);
+      }
+
+      locals.success = 'Emoji uploaded';
+      return res.redirect(`?success=${locals.success}`);
+    } catch (err) {
+      log.fatal({ err }, 'error happened');
+      locals.error = 'Failed to upload image';
+      return res.redirect(`?error=${locals.error}`);
+    }
+  }
+
+  // POST: removeEmoji
+  if (req.method === 'POST' && req.body.action === 'removeEmoji') {
+    const { emojiId } = req.body;
+
+    try {
+      const response = await axios({
+        url: `${api}/api/rooms/emoji/${emojiId}`,
+        method: 'DELETE',
+        data: {
+          userId: locals.user._id,
+          emojiId,
+        },
         headers: {
           authorization: token,
         },
-        json: true,
-      }, (err, response, body) => {
-        if (err) {
-          log.fatal({ err }, 'error happened');
-          locals.error = 'Failed to upload image';
-          return res.status(500).send();
-        }
-
-        if (response.statusCode >= 400) {
-          if (body && body.message) {
-            locals.error = body.message;
-            return res.redirect(`?error=${locals.error}`);
-          }
-
-          log.warn({ body, code: response.statusCode }, 'failed upload emoji');
-          locals.error = 'Failed to upload image';
-          return res.redirect(`?error=${locals.error}`);
-        }
-
-        locals.success = 'Emoji uploaded';
-
-        return res.redirect(`?success=${locals.success}`);
+        validateStatus: () => true,
       });
-    } catch (err) {
-      if (err.name === 'ValidationError') {
-        locals.error = 'Required field missing';
-      } else {
-        locals.error = 'Failed to upload image';
-      }
 
-      return res.redirect(`?error=${locals.error}`);
-    }
-  });
-
-
-  view.on('post', { action: 'removeEmoji' }, async () => {
-    const { emojiId } = req.body;
-    return request({
-      url: `${api}/api/rooms/emoji/${emojiId}`,
-      method: 'DELETE',
-      body: {
-        userId: locals.user._id,
-        emojiId,
-      },
-      headers: {
-        authorization: token,
-      },
-      json: true,
-    }, (err, response, body) => {
-      if (err) {
-        log.fatal({ err }, 'error happened');
-        locals.error = 'Failed to remove image';
-        return res.status(500).send();
-      }
-
-      if (response.statusCode >= 400) {
-        if (body && body.message) {
-          locals.error = body.message;
+      if (response.status >= 400) {
+        if (response.data && response.data.message) {
+          locals.error = response.data.message;
           return res.redirect(`?error=${locals.error}`);
         }
 
-        log.warn({ body, code: response.statusCode }, 'failed remove emoji');
+        log.warn({ body: response.data, code: response.status }, 'failed remove emoji');
         locals.error = 'Failed to remove emoji';
         return res.redirect(`?error=${locals.error}`);
       }
 
       locals.success = 'Emoji removed';
-
       return res.redirect(`?success=${locals.success}`);
-    });
-  });
+    } catch (err) {
+      log.fatal({ err }, 'error happened');
+      locals.error = 'Failed to remove image';
+      return res.status(500).send();
+    }
+  }
 
-  view.render('room/settings');
-};
+  return res.render('room/settings');
+}

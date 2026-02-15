@@ -1,10 +1,10 @@
-const keystone = require('keystone');
-const Pagination = require('pagination-object');
-const log = require('../../utils/logger')({ name: 'views.directory' });
-const { getRoomList, getRoomCount } = require('../../utils/roomUtils');
+import Pagination from 'pagination-object';
+import logFactory from '../../utils/logger.js';
+import { getRoomList, getRoomCount } from '../../utils/roomUtils.js';
 
-module.exports = function directory(req, res) {
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'views.directory' });
+
+export default async function directory(req, res) {
   const { locals } = res;
   const resultsPerPage = 9;
 
@@ -19,12 +19,13 @@ module.exports = function directory(req, res) {
   locals.roomCount = 0;
   locals.pagination = null;
 
-  view.on('init', (next) => {
-    const start = ((locals.page - 1) * resultsPerPage);
+  // Init phase - getRoomList uses callback style
+  const start = ((locals.page - 1) * resultsPerPage);
 
-    return getRoomList(start, resultsPerPage, (err, data) => {
+  await new Promise((resolve, reject) => {
+    getRoomList(start, resultsPerPage, (err, data) => {
       if (err) {
-        return next(err);
+        return reject(err);
       }
 
       const { rooms, count } = data;
@@ -39,15 +40,17 @@ module.exports = function directory(req, res) {
       }
 
       locals.rooms = rooms;
-      return next();
+      return resolve();
     });
+  }).catch(() => {
+    // error already handled in getRoomList
   });
 
-  view.on('get', { action: 'room.get' }, (next) => {
-    res.redirect(`/${req.query.roomname}`);
-    next();
-  });
+  // GET action handling
+  if (req.method === 'GET' && req.query.action === 'room.get') {
+    return res.redirect(`/${req.query.roomname}`);
+  }
 
   // Render the view
-  view.render('directory');
-};
+  return res.render('directory');
+}

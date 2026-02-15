@@ -1,16 +1,14 @@
-const keystone = require('keystone');
-const url = require('url');
-const jwt = require('jsonwebtoken');
-const Pagination = require('pagination-object');
-const log = require('../../../utils/logger')({ name: 'routes.adminRoomCloseList' });
-const config = require('../../../config');
-const {
+import jwt from 'jsonwebtoken';
+import Pagination from 'pagination-object';
+import logFactory from '../../../utils/logger.js';
+import config from '../../../config/index.js';
+import {
   getModActivity,
-} = require('../../../utils/adminUtils');
+} from '../../../utils/adminUtils.js';
 
-module.exports = function adminSiteMods(req, res) {
-  let token;
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'routes.adminRoomCloseList' });
+
+export default async function adminModActivity(req, res) {
   const { locals } = res;
   const {
     success,
@@ -26,27 +24,24 @@ module.exports = function adminSiteMods(req, res) {
   locals.success = success || null;
   locals.pageNumber = page || 1;
 
-  view.on('init', async (next) => {
-    token = await jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
+  // Init phase
+  const token = jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
 
-    try {
-      locals.activity = await getModActivity(token, locals.pageNumber);
-    } catch (err) {
-      log.fatal({ err }, 'failed to fetch site mods');
-      return res.status(500).send();
-    }
+  try {
+    locals.activity = await getModActivity(token, locals.pageNumber);
+  } catch (err) {
+    log.fatal({ err }, 'failed to fetch site mods');
+    return res.status(500).send();
+  }
 
-    if (locals.activity.count > 0) {
-      locals.pagination = new Pagination({
-        currentPage: Number(locals.pageNumber),
-        totalItems: locals.activity.count,
-        itemsPerPage: config.admin.userList.itemsPerPage,
-        rangeLength: 9,
-      });
-    }
+  if (locals.activity.count > 0) {
+    locals.pagination = new Pagination({
+      currentPage: Number(locals.pageNumber),
+      totalItems: locals.activity.count,
+      itemsPerPage: config.admin.userList.itemsPerPage,
+      rangeLength: 9,
+    });
+  }
 
-    return next();
-  });
-
-  view.render('admin/modActivity');
-};
+  return res.render('admin/modActivity');
+}

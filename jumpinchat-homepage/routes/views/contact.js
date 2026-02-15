@@ -1,12 +1,11 @@
-const keystone = require('keystone');
-const request = require('request');
-const log = require('../../utils/logger')({ name: 'routes.contact' });
-const Joi = require('joi');
-const { errors } = require('../../constants/constants');
-const { api } = require('../../constants/constants');
+import axios from 'axios';
+import Joi from 'joi';
+import logFactory from '../../utils/logger.js';
+import { errors, api } from '../../constants/constants.js';
 
-module.exports = function contact(req, res) {
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'routes.contact' });
+
+export default async function contact(req, res) {
   const { locals } = res;
 
   // locals.section is used to set the currently selected
@@ -16,8 +15,8 @@ module.exports = function contact(req, res) {
   locals.error = null;
   locals.success = null;
 
-  view.on('post', { action: 'send' }, (next) => {
-    const schema = Joi.object().keys({
+  if (req.method === 'POST' && req.body.action === 'send') {
+    const schema = Joi.object({
       email: Joi.string().email().required(),
       option: Joi.string().required(),
       name: Joi.string().allow(''),
@@ -25,47 +24,42 @@ module.exports = function contact(req, res) {
       phone6tY4bPYk: Joi.any().valid('').strip(),
     });
 
-    Joi.validate({
+    const { error, value: validatedForm } = schema.validate({
       email: req.body.email,
       option: req.body.option,
       name: req.body.name,
       message: req.body.message,
       phone6tY4bPYk: req.body.phone6tY4bPYk,
-    }, schema, { abortEarly: false }, (err, validatedForm) => {
-      if (err) {
-        log.warn({ err: err.name }, 'invalid contact form information');
-        locals.error = errors.ERR_VALIDATION;
-        return next();
-      }
+    }, { abortEarly: false });
 
+    if (error) {
+      log.warn({ err: error.name }, 'invalid contact form information');
+      locals.error = errors.ERR_VALIDATION;
+    } else {
+      try {
+        const response = await axios({
+          method: 'POST',
+          url: `${api}/api/user/contact`,
+          data: validatedForm,
+          validateStatus: () => true,
+        });
 
-      return request({
-        method: 'POST',
-        url: `${api}/api/user/contact`,
-        body: validatedForm,
-        json: true,
-      }, (err, response, body) => {
-        if (err) {
-          log.error({ err }, 'error happened');
-          return res.status(500).send();
-        }
-
-        if (response.statusCode >= 400) {
-          if (body && body.message) {
-            locals.error = body.message;
-            return next();
+        if (response.status >= 400) {
+          if (response.data && response.data.message) {
+            locals.error = response.data.message;
+          } else {
+            locals.error = 'Failed to send message, sorry!';
           }
-
-          locals.error = 'Failed to send message, sorry!';
-          return next();
+        } else {
+          locals.success = 'Message sent!';
         }
-
-        locals.success = 'Message sent!';
-        return next();
-      });
-    });
-  });
+      } catch (err) {
+        log.error({ err }, 'error happened');
+        return res.status(500).send();
+      }
+    }
+  }
 
   // Render the view
-  view.render('contact');
-};
+  return res.render('contact');
+}

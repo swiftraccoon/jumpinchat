@@ -1,23 +1,21 @@
-const url = require('url');
-const keystone = require('keystone');
-const jwt = require('jsonwebtoken');
-const Joi = require('joi');
-const log = require('../../../utils/logger')({ name: 'routes.sitemod.reportDetails' });
-const config = require('../../../config');
-const { getReportById, setReportResolved } = require('../../../utils/reportUtils');
-const { getUserById } = require('../../../utils/userUtils');
-const { sendBan, getRoomById } = require('../../../utils/roomUtils');
-const { banReasons, reportOutcomes, errors } = require('../../../constants/constants');
+import url from 'url';
+import jwt from 'jsonwebtoken';
+import Joi from 'joi';
+import logFactory from '../../../utils/logger.js';
+import config from '../../../config/index.js';
+import { getReportById, setReportResolved } from '../../../utils/reportUtils.js';
+import { getUserById } from '../../../utils/userUtils.js';
+import { sendBan, getRoomById } from '../../../utils/roomUtils.js';
+import { banReasons, reportOutcomes, errors } from '../../../constants/constants.js';
 
-module.exports = function sitemodReportDetails(req, res) {
-  let token;
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'routes.sitemod.reportDetails' });
+
+export default async function sitemodReportDetails(req, res) {
   const { locals } = res;
   const {
     success,
     error,
   } = req.query;
-
 
   const { reportId } = req.params;
   locals.error = error || null;
@@ -29,17 +27,22 @@ module.exports = function sitemodReportDetails(req, res) {
   locals.banReasons = banReasons;
   locals.reportOutcomes = reportOutcomes;
 
-  view.on('init', async (next) => {
-    token = await jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
-    return getReportById(token, reportId, async (err, report) => {
+  // Init phase
+  const token = jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
+
+  let initResult;
+  await new Promise((resolve) => {
+    getReportById(token, reportId, async (err, report) => {
       if (err) {
         log.fatal({ err }, 'error getting report');
-        return res.status(500).send({ error: 'error getting report' });
+        initResult = 'error';
+        return resolve();
       }
 
       if (!report) {
         log.error('report not found');
-        return res.status(404).send({ error: 'report not found' });
+        initResult = 'notfound';
+        return resolve();
       }
 
       locals.report = report;
@@ -47,15 +50,16 @@ module.exports = function sitemodReportDetails(req, res) {
       try {
         const room = await getRoomById(report.room.roomId);
         locals.report.room.isAgeRestricted = room.attrs.ageRestricted;
-      } catch (err) {
-        log.fatal({ err }, 'failed to get report room details');
+      } catch (roomErr) {
+        log.fatal({ err: roomErr }, 'failed to get report room details');
       }
+
       if (report.reporter.userId) {
         try {
           const { username } = await getUserById(report.reporter.userId);
           locals.reporterUsername = username;
-        } catch (err) {
-          log.fatal({ err }, 'failed to fetch user');
+        } catch (userErr) {
+          log.fatal({ err: userErr }, 'failed to fetch user');
         }
       }
 
@@ -63,18 +67,22 @@ module.exports = function sitemodReportDetails(req, res) {
         try {
           const { username } = await getUserById(report.target.userId);
           locals.targetUsername = username;
-        } catch (err) {
-          log.fatal({ err }, 'failed to fetch user');
+        } catch (userErr) {
+          log.fatal({ err: userErr }, 'failed to fetch user');
         }
       }
 
-      return next();
+      return resolve();
     });
   });
 
-  view.on('post', { action: 'siteban' }, async (next) => {
+  if (initResult === 'error') return res.status(500).send({ error: 'error getting report' });
+  if (initResult === 'notfound') return res.status(404).send({ error: 'report not found' });
+
+  // POST: siteban
+  if (req.method === 'POST' && req.body.action === 'siteban') {
     locals.error = null;
-    const schema = Joi.object().keys({
+    const schema = Joi.object({
       reason: Joi.string().required(),
       duration: Joi.number().required(),
       type: Joi.string().required(),
@@ -86,59 +94,15 @@ module.exports = function sitemodReportDetails(req, res) {
       type: req.body.type,
     };
 
-    try {
-      const {
-        reason,
-        duration,
-        type,
-      } = await Joi.validate(requestBody, schema);
+    const { error: validationError, value: validated } = schema.validate(requestBody);
 
-      const expire = new Date(Date.now() + (1000 * 60 * 60 * Number(duration)));
-
-      const { target } = locals.report;
-      const user = {
-        user_id: target.userId,
-        session_id: target.sessionId,
-        ip: target.ip,
-        socket_id: target.socketId,
-      };
-
-      const banType = {
-        restrictBroadcast: type === 'broadcast',
-        restrictJoin: type === 'join',
-      };
-
-      try {
-        locals.success = await sendBan(token, reason, banType, user, expire, reportId);
-        return res.redirect(url.format({
-          path: './',
-          query: {
-            success: locals.success,
-          },
-        }));
-      } catch (err) {
-        log.error({ err }, 'error sending ban request');
-        locals.error = err;
-        return res.redirect(url.format({
-          path: './',
-          query: {
-            error: locals.error,
-          },
-        }));
-      }
-    } catch (err) {
-      log.error({ err }, 'validation error');
-      if (err.name === 'ValidationError') {
+    if (validationError) {
+      log.error({ err: validationError }, 'validation error');
+      if (validationError.name === 'ValidationError') {
         locals.error = 'Invalid request, reason probably missing';
-        return res.redirect(url.format({
-          path: './',
-          query: {
-            error: locals.error,
-          },
-        }));
+      } else {
+        locals.error = 'Verification error';
       }
-
-      locals.error = 'Verification error';
       return res.redirect(url.format({
         path: './',
         query: {
@@ -146,9 +110,50 @@ module.exports = function sitemodReportDetails(req, res) {
         },
       }));
     }
-  });
 
-  view.on('post', { action: 'resolve' }, async () => {
+    const {
+      reason,
+      duration,
+      type,
+    } = validated;
+
+    const expire = new Date(Date.now() + (1000 * 60 * 60 * Number(duration)));
+
+    const { target } = locals.report;
+    const banUser = {
+      user_id: target.userId,
+      session_id: target.sessionId,
+      ip: target.ip,
+      socket_id: target.socketId,
+    };
+
+    const banType = {
+      restrictBroadcast: type === 'broadcast',
+      restrictJoin: type === 'join',
+    };
+
+    try {
+      locals.success = await sendBan(token, reason, banType, banUser, expire, reportId);
+      return res.redirect(url.format({
+        path: './',
+        query: {
+          success: locals.success,
+        },
+      }));
+    } catch (err) {
+      log.error({ err }, 'error sending ban request');
+      locals.error = err;
+      return res.redirect(url.format({
+        path: './',
+        query: {
+          error: locals.error,
+        },
+      }));
+    }
+  }
+
+  // POST: resolve
+  if (req.method === 'POST' && req.body.action === 'resolve') {
     try {
       await setReportResolved(token, reportId);
       return res.redirect(url.format({
@@ -166,7 +171,7 @@ module.exports = function sitemodReportDetails(req, res) {
         },
       }));
     }
-  });
+  }
 
-  view.render('sitemod/reportDetails');
-};
+  return res.render('sitemod/reportDetails');
+}

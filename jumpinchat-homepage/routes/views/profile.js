@@ -2,17 +2,17 @@
  * Created by Zaccary on 19/03/2017.
  */
 
-const keystone = require('keystone');
-const moment = require('moment');
-const marked = require('marked');
-const log = require('../../utils/logger')({ name: 'login view' });
-const { errors, calMonths } = require('../../constants/constants');
-const { ordinal } = require('../../utils/numbers');
+import { marked } from 'marked';
+import logFactory from '../../utils/logger.js';
+import { errors, calMonths } from '../../constants/constants.js';
+import { ordinal } from '../../utils/numbers.js';
+import { User } from '../../models/index.js';
+
+const log = logFactory({ name: 'login view' });
 
 marked.setOptions({
   sanitize: true,
 });
-const User = keystone.list('User');
 
 const formatUserInfo = user => Object.assign({}, user, {
   attrs: Object.assign({}, user.attrs, {
@@ -34,8 +34,7 @@ const formatMarkdownBio = (user) => {
   return '';
 };
 
-module.exports = function profile(req, res) {
-  const view = new keystone.View(req, res);
+export default async function profile(req, res) {
   const { locals } = res;
 
   // locals.section is used to set the currently selected
@@ -45,44 +44,39 @@ module.exports = function profile(req, res) {
   locals.section = locals.username ? `Profile for ${locals.username}` : 'Your profile';
   locals.errors = null;
 
-  view.on('init', (next) => {
-    // IF no username AND not logged in THEN
-    //   redirect
-    if (!locals.username && !locals.user) {
-      return res.redirect('/');
-    }
+  // Init phase
+  // IF no username AND not logged in THEN redirect
+  if (!locals.username && !locals.user) {
+    return res.redirect('/');
+  }
 
-    const username = locals.username || locals.user.username;
-    return User.model
+  const username = locals.username || locals.user.username;
+
+  try {
+    const user = await User
       .findOne({ username })
       .populate('trophies.trophyId')
-      .lean()
-      .exec((err, user) => {
-        if (err) {
-          log.fatal({ err }, 'error fetching user');
-          return res.status(500).send();
-        }
+      .lean();
 
-        if (!user) {
-          return res.notfound();
-        }
+    if (!user) {
+      return res.notfound();
+    }
 
-        // re-map the trophy objects contained
-        // in the array to fix the nesting produced
-        // by populating them via `trophyId`
-        locals.trophies = user.trophies
-          .sort(t => t.awarded)
-          .map(t => Object.assign({
-            awarded: t.awarded,
-          }, t.trophyId));
+    // re-map the trophy objects contained
+    // in the array to fix the nesting produced
+    // by populating them via `trophyId`
+    locals.trophies = user.trophies
+      .sort(t => t.awarded)
+      .map(t => Object.assign({
+        awarded: t.awarded,
+      }, t.trophyId));
 
-        locals.profileUser = formatUserInfo(user);
+    locals.profileUser = formatUserInfo(user);
+    locals.profileBio = formatMarkdownBio(locals.profileUser);
+  } catch (err) {
+    log.fatal({ err }, 'error fetching user');
+    return res.status(500).send();
+  }
 
-        locals.profileBio = formatMarkdownBio(locals.profileUser);
-
-        return next();
-      });
-  });
-
-  view.render('profile');
-};
+  return res.render('profile');
+}

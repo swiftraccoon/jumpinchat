@@ -1,19 +1,18 @@
-const keystone = require('keystone');
-const jwt = require('jsonwebtoken');
-const Joi = require('joi');
-const log = require('../../utils/logger')({ name: 'routes.adminRoomUserDetails' });
-const config = require('../../config');
-const {
+import jwt from 'jsonwebtoken';
+import Joi from 'joi';
+import logFactory from '../../utils/logger.js';
+import config from '../../config/index.js';
+import {
   getRoomByName,
   sendBan,
-} = require('../../utils/roomUtils');
-const {
+} from '../../utils/roomUtils.js';
+import {
   banReasons,
-} = require('../../constants/constants');
+} from '../../constants/constants.js';
 
-module.exports = function adminRoomUserDetails(req, res) {
-  let token;
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'routes.adminRoomUserDetails' });
+
+export default async function adminRoomUserDetails(req, res) {
   const { locals } = res;
 
   const {
@@ -33,40 +32,32 @@ module.exports = function adminRoomUserDetails(req, res) {
   locals.error = error || null;
   locals.success = success || null;
 
-  view.on('init', async (next) => {
-    token = await jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
-    return getRoomByName(roomName, (err, room) => {
-      if (err) {
-        log.fatal({ err }, 'error getting room');
-        return res.status(500).send({ error: 'error getting room' });
-      }
+  // Init phase
+  const token = jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
 
-      if (!room) {
-        log.error('room not found');
-        return res.status(404).send({ error: 'room not found' });
-      }
+  const room = await getRoomByName(roomName);
+  if (!room) {
+    log.error('room not found');
+    return res.status(404).send({ error: 'room not found' });
+  }
 
-      locals.room = room;
-      const roomUser = room.users.find(u => String(u._id) === userListId);
-      locals.roomUser = roomUser;
+  locals.room = room;
+  const roomUser = room.users.find(u => String(u._id) === userListId);
+  locals.roomUser = roomUser;
 
+  if (!locals.roomUser) {
+    log.warn('user not found');
+    return res.status(404).send({ error: 'user not found' });
+  }
 
-      if (!locals.roomUser) {
-        log.warn('user not found');
-        return res.status(404).send({ error: 'user not found' });
-      }
+  locals.isMod = !!room.settings.moderators
+    .find(m => m.user_id === roomUser.user_id || m.session_token === roomUser.session_id);
 
-      locals.isMod = !!room.settings.moderators
-        .find(m => m.user_id === roomUser.user_id || m.session_token === roomUser.session_id);
-
-      return next();
-    });
-  });
-
-  view.on('post', { action: 'siteban' }, async (next) => {
+  // POST: siteban
+  if (req.method === 'POST' && req.body.action === 'siteban') {
     log.debug({ body: req.body });
     locals.error = null;
-    const schema = Joi.object().keys({
+    const schema = Joi.object({
       reason: Joi.string().required(),
       duration: Joi.number().required(),
       restrictBroadcast: Joi.boolean().truthy('on'),
@@ -80,41 +71,38 @@ module.exports = function adminRoomUserDetails(req, res) {
       restrictJoin: req.body.restrictJoin === 'on',
     };
 
-    try {
-      const {
-        reason,
-        duration,
-        restrictBroadcast,
-        restrictJoin,
-      } = await Joi.validate(requestBody, schema);
+    const { error: validationError, value: validated } = schema.validate(requestBody);
 
-      if (!restrictBroadcast && !restrictJoin) {
-        locals.error = 'Select at least one ban type';
-        return next();
-      }
-
-      const expire = new Date(Date.now() + (1000 * 60 * 60 * Number(duration)));
-      const type = { restrictJoin, restrictBroadcast };
-
-      try {
-        locals.success = await sendBan(token, reason, type, locals.roomUser, expire);
-        return next();
-      } catch (err) {
-        log.error({ err }, 'error sending ban request');
-        locals.error = err;
-        return next();
-      }
-    } catch (err) {
-      log.error({ err }, 'validation error');
-      if (err.name === 'ValidationError') {
-        locals.error = 'Invalid request, reason probably missing';
-      } else {
-        locals.error = 'Verification error';
-      }
-
-      return next();
+    if (validationError) {
+      log.error({ err: validationError }, 'validation error');
+      locals.error = 'Invalid request, reason probably missing';
+      return res.render('adminRoomUserDetails');
     }
-  });
 
-  view.render('adminRoomUserDetails');
-};
+    const {
+      reason,
+      duration,
+      restrictBroadcast,
+      restrictJoin,
+    } = validated;
+
+    if (!restrictBroadcast && !restrictJoin) {
+      locals.error = 'Select at least one ban type';
+      return res.render('adminRoomUserDetails');
+    }
+
+    const expire = new Date(Date.now() + (1000 * 60 * 60 * Number(duration)));
+    const type = { restrictJoin, restrictBroadcast };
+
+    try {
+      locals.success = await sendBan(token, reason, type, locals.roomUser, expire);
+    } catch (err) {
+      log.error({ err }, 'error sending ban request');
+      locals.error = err;
+    }
+
+    return res.render('adminRoomUserDetails');
+  }
+
+  return res.render('adminRoomUserDetails');
+}

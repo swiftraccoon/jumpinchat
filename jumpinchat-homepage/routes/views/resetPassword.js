@@ -1,11 +1,11 @@
-const keystone = require('keystone');
-const request = require('request');
-const Joi = require('joi');
-const log = require('../../utils/logger')({ name: 'routes.resetPassword' });
-const { errors, api } = require('../../constants/constants');
+import axios from 'axios';
+import Joi from 'joi';
+import logFactory from '../../utils/logger.js';
+import { errors, api } from '../../constants/constants.js';
 
-module.exports = function resetPassword(req, res) {
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'routes.resetPassword' });
+
+export default async function resetPassword(req, res) {
   const { locals } = res;
 
   // locals.section is used to set the currently selected
@@ -17,86 +17,78 @@ module.exports = function resetPassword(req, res) {
   locals.verified = false;
   locals.userId = null;
 
-  view.on('init', (next) => {
-    request({
+  // Init phase - verify the reset token
+  try {
+    const verifyResponse = await axios({
       method: 'GET',
       url: `${api}/api/user/password/reset/${req.params.token}`,
-      json: true,
-    }, (err, response, body) => {
-      if (err) {
-        log.error({ err }, 'error happened');
-        return res.status(500).send();
-      }
-
-      if (response.statusCode >= 400) {
-        if (body && body.message) {
-          locals.errors = body.message;
-          return next();
-        }
-
-        locals.errors = 'Unable to verify reset token :(';
-        return next();
-      }
-
-      locals.verified = true;
-      locals.userId = response.body.userId;
-      return next();
+      validateStatus: () => true,
     });
-  });
 
-  view.on('post', { action: 'resetPassword' }, (next) => {
-    const schema = Joi.object().keys({
+    if (verifyResponse.status >= 400) {
+      if (verifyResponse.data && verifyResponse.data.message) {
+        locals.errors = verifyResponse.data.message;
+      } else {
+        locals.errors = 'Unable to verify reset token :(';
+      }
+    } else {
+      locals.verified = true;
+      locals.userId = verifyResponse.data.userId;
+    }
+  } catch (err) {
+    log.error({ err }, 'error happened');
+    return res.status(500).send();
+  }
+
+  // POST handling
+  if (req.method === 'POST' && req.body.action === 'resetPassword') {
+    const schema = Joi.object({
       password: Joi.string().required(),
       passwordRepeat: Joi.string().required(),
     });
 
     const { password, passwordRepeat } = req.body;
 
-    const body = {
+    const { error, value: validated } = schema.validate({
       password,
       passwordRepeat,
-    };
+    }, { abortEarly: false });
 
-    Joi.validate(body, schema, { abortEarly: false }, (err, validated) => {
-      if (err) {
-        locals.errors = errors.ERR_VALIDATION;
-        return next();
-      }
+    if (error) {
+      locals.errors = errors.ERR_VALIDATION;
+      return res.render('resetPassword');
+    }
 
-      if (validated.password !== validated.passwordRepeat) {
-        locals.errors = 'Passwords do not match';
-        return next();
-      }
+    if (validated.password !== validated.passwordRepeat) {
+      locals.errors = 'Passwords do not match';
+      return res.render('resetPassword');
+    }
 
-      return request({
+    try {
+      const response = await axios({
         method: 'POST',
         url: `${api}/api/user/password/reset`,
-        body: { password: validated.password, userId: locals.userId },
-        json: true,
-      }, (err, response, body) => {
-        if (err) {
-          log.error('error happened', err);
-          return res.status(500).send();
-        }
-
-        log.debug('response', response.statusCode);
-
-        if (response.statusCode >= 400) {
-          if (body && body.message) {
-            locals.errors = body.message;
-            return next();
-          }
-
-          locals.errors = 'Failed to reset password';
-          return next();
-        }
-
-        locals.success = 'Your password has been reset';
-        return next();
+        data: { password: validated.password, userId: locals.userId },
+        validateStatus: () => true,
       });
-    });
-  });
+
+      log.debug('response', response.status);
+
+      if (response.status >= 400) {
+        if (response.data && response.data.message) {
+          locals.errors = response.data.message;
+        } else {
+          locals.errors = 'Failed to reset password';
+        }
+      } else {
+        locals.success = 'Your password has been reset';
+      }
+    } catch (err) {
+      log.error('error happened', err);
+      return res.status(500).send();
+    }
+  }
 
   // Render the view
-  view.render('resetPassword');
-};
+  return res.render('resetPassword');
+}

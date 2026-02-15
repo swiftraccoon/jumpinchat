@@ -1,17 +1,15 @@
-const keystone = require('keystone');
-const jwt = require('jsonwebtoken');
-const Joi = require('joi');
-const log = require('../../../utils/logger')({ name: 'routes.messageReportDetails' });
-const config = require('../../../config');
-const { getMessageReportById } = require('../../../utils/reportUtils');
-const { sendBan } = require('../../../utils/roomUtils');
-const { banReasons } = require('../../../constants/constants');
+import jwt from 'jsonwebtoken';
+import Joi from 'joi';
+import logFactory from '../../../utils/logger.js';
+import config from '../../../config/index.js';
+import { getMessageReportById } from '../../../utils/reportUtils.js';
+import { sendBan } from '../../../utils/roomUtils.js';
+import { banReasons } from '../../../constants/constants.js';
 
-module.exports = function messageReportDetails(req, res) {
-  let token;
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'routes.messageReportDetails' });
+
+export default async function messageReportDetails(req, res) {
   const { locals } = res;
-
 
   const { reportId } = req.params;
   locals.section = `Admin | Message Report ${reportId}`;
@@ -20,28 +18,35 @@ module.exports = function messageReportDetails(req, res) {
   locals.report = {};
   locals.banReasons = banReasons;
 
-  view.on('init', async (next) => {
-    token = await jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
-    return getMessageReportById(token, reportId, (err, report) => {
+  // Init phase
+  const token = jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
+
+  await new Promise((resolve) => {
+    getMessageReportById(token, reportId, (err, report) => {
       if (err) {
         log.fatal({ err }, 'error getting report');
-        return res.status(500).send({ error: 'error getting report' });
+        return resolve('error');
       }
 
       if (!report) {
         log.error('report not found');
-        return res.status(404).send({ error: 'report not found' });
+        return resolve('notfound');
       }
 
       locals.report = report;
-      return next();
+      return resolve();
     });
+  }).then((result) => {
+    if (result === 'error') return res.status(500).send({ error: 'error getting report' });
+    if (result === 'notfound') return res.status(404).send({ error: 'report not found' });
+    return null;
   });
 
-  view.on('post', { action: 'siteban' }, async (next) => {
+  // POST: siteban
+  if (req.method === 'POST' && req.body.action === 'siteban') {
     log.debug({ body: req.body });
     locals.error = null;
-    const schema = Joi.object().keys({
+    const schema = Joi.object({
       reason: Joi.string().required(),
       restrictBroadcast: Joi.boolean().truthy('on'),
       restrictJoin: Joi.boolean().truthy('on'),
@@ -55,49 +60,51 @@ module.exports = function messageReportDetails(req, res) {
 
     log.debug({ requestBody });
 
-    try {
-      const {
-        reason,
-        restrictBroadcast,
-        restrictJoin,
-      } = await Joi.validate(requestBody, schema);
+    const { error, value: validated } = schema.validate(requestBody);
 
-      log.debug({
-        reason,
-        restrictBroadcast,
-        restrictJoin,
-      }, 'validated');
-      if (!restrictBroadcast && !restrictJoin) {
-        locals.error = 'Select at least one ban type';
-        return next();
-      }
-
-      const { sender } = locals.report.message;
-      const user = {
-        user_id: sender,
-        restrictBroadcast,
-        restrictJoin,
-      };
-
-      try {
-        locals.success = await sendBan(token, reason, { restrictJoin, restrictBroadcast }, user);
-        return next();
-      } catch (err) {
-        log.error({ err }, 'error sending ban request');
-        locals.error = err;
-        return next();
-      }
-    } catch (err) {
-      log.error({ err }, 'validation error');
-      if (err.name === 'ValidationError') {
+    if (error) {
+      log.error({ err: error }, 'validation error');
+      if (error.name === 'ValidationError') {
         locals.error = 'Invalid request, reason probably missing';
       } else {
         locals.error = 'Verification error';
       }
-
-      return next();
+      return res.render('admin/messageReportDetails');
     }
-  });
 
-  view.render('admin/messageReportDetails');
-};
+    const {
+      reason,
+      restrictBroadcast,
+      restrictJoin,
+    } = validated;
+
+    log.debug({
+      reason,
+      restrictBroadcast,
+      restrictJoin,
+    }, 'validated');
+
+    if (!restrictBroadcast && !restrictJoin) {
+      locals.error = 'Select at least one ban type';
+      return res.render('admin/messageReportDetails');
+    }
+
+    const { sender } = locals.report.message;
+    const banUser = {
+      user_id: sender,
+      restrictBroadcast,
+      restrictJoin,
+    };
+
+    try {
+      locals.success = await sendBan(token, reason, { restrictJoin, restrictBroadcast }, banUser);
+    } catch (err) {
+      log.error({ err }, 'error sending ban request');
+      locals.error = err;
+    }
+
+    return res.render('admin/messageReportDetails');
+  }
+
+  return res.render('admin/messageReportDetails');
+}

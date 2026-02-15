@@ -1,17 +1,16 @@
-const keystone = require('keystone');
-const url = require('url');
-const jwt = require('jsonwebtoken');
-const log = require('../../../utils/logger')({ name: 'routes.admin.siteMods' });
-const config = require('../../../config');
-const {
+import url from 'url';
+import jwt from 'jsonwebtoken';
+import logFactory from '../../../utils/logger.js';
+import config from '../../../config/index.js';
+import {
   getSiteMods,
   addSiteMod,
   removeSiteMod,
-} = require('../../../utils/adminUtils');
+} from '../../../utils/adminUtils.js';
 
-module.exports = function adminSiteMods(req, res) {
-  let token;
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'routes.admin.siteMods' });
+
+export default async function adminSiteMods(req, res) {
   const { locals } = res;
   const {
     success,
@@ -25,20 +24,18 @@ module.exports = function adminSiteMods(req, res) {
   locals.error = error || null;
   locals.success = success || null;
 
-  view.on('init', async (next) => {
-    token = await jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
+  // Init phase
+  const token = jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
 
-    try {
-      locals.siteMods = await getSiteMods(token);
-    } catch (err) {
-      log.fatal({ err }, 'failed to fetch site mods');
-      return res.status(500).send();
-    }
+  try {
+    locals.siteMods = await getSiteMods(token);
+  } catch (err) {
+    log.fatal({ err }, 'failed to fetch site mods');
+    return res.status(500).send();
+  }
 
-    return next();
-  });
-
-  view.on('post', { action: 'add-mod' }, async () => {
+  // POST: add-mod
+  if (req.method === 'POST' && req.body.action === 'add-mod') {
     const { username } = req.body;
     try {
       await addSiteMod(token, username);
@@ -59,9 +56,10 @@ module.exports = function adminSiteMods(req, res) {
         },
       }));
     }
-  });
+  }
 
-  view.on('post', { action: 'remove-mod' }, async () => {
+  // POST: remove-mod
+  if (req.method === 'POST' && req.body.action === 'remove-mod') {
     const { modId } = req.body;
     log.debug({ modId }, 'remove-mod');
     try {
@@ -83,7 +81,7 @@ module.exports = function adminSiteMods(req, res) {
         },
       }));
     }
-  });
+  }
 
-  view.render('admin/siteMods');
-};
+  return res.render('admin/siteMods');
+}

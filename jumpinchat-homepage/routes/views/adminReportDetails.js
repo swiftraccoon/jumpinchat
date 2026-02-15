@@ -1,28 +1,26 @@
-const url = require('url');
-const keystone = require('keystone');
-const jwt = require('jsonwebtoken');
-const Joi = require('joi');
-const log = require('../../utils/logger')({ name: 'routes.adminReportDetails' });
-const config = require('../../config');
-const { getReportById, setReportResolved } = require('../../utils/reportUtils');
-const {
+import url from 'url';
+import jwt from 'jsonwebtoken';
+import Joi from 'joi';
+import logFactory from '../../utils/logger.js';
+import config from '../../config/index.js';
+import { getReportById, setReportResolved } from '../../utils/reportUtils.js';
+import {
   sendBan,
-} = require('../../utils/roomUtils');
-const {
+} from '../../utils/roomUtils.js';
+import {
   banReasons,
   reportOutcomes,
   errors,
-} = require('../../constants/constants');
+} from '../../constants/constants.js';
 
-module.exports = function adminReportDetails(req, res) {
-  let token;
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'routes.adminReportDetails' });
+
+export default async function adminReportDetails(req, res) {
   const { locals } = res;
   const {
     success,
     error,
   } = req.query;
-
 
   const { reportId } = req.params;
   locals.error = error || null;
@@ -34,28 +32,35 @@ module.exports = function adminReportDetails(req, res) {
   locals.banReasons = banReasons;
   locals.reportOutcomes = reportOutcomes;
 
-  view.on('init', async (next) => {
-    token = await jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
-    return getReportById(token, reportId, (err, report) => {
+  // Init phase
+  const token = jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
+
+  await new Promise((resolve) => {
+    getReportById(token, reportId, (err, report) => {
       if (err) {
         log.fatal({ err }, 'error getting report');
-        return res.status(500).send({ error: 'error getting report' });
+        return resolve('error');
       }
 
       if (!report) {
         log.error('report not found');
-        return res.status(404).send({ error: 'report not found' });
+        return resolve('notfound');
       }
 
       locals.report = report;
-      return next();
+      return resolve();
     });
+  }).then((result) => {
+    if (result === 'error') return res.status(500).send({ error: 'error getting report' });
+    if (result === 'notfound') return res.status(404).send({ error: 'report not found' });
+    return null;
   });
 
-  view.on('post', { action: 'siteban' }, async (next) => {
+  // POST: siteban
+  if (req.method === 'POST' && req.body.action === 'siteban') {
     log.debug({ body: req.body });
     locals.error = null;
-    const schema = Joi.object().keys({
+    const schema = Joi.object({
       reason: Joi.string().required(),
       duration: Joi.number().required(),
       restrictBroadcast: Joi.boolean().truthy('on'),
@@ -69,53 +74,55 @@ module.exports = function adminReportDetails(req, res) {
       restrictJoin: req.body.restrictJoin === 'on',
     };
 
-    try {
-      const {
-        reason,
-        duration,
-        restrictBroadcast,
-        restrictJoin,
-      } = await Joi.validate(requestBody, schema);
+    const { error: validationError, value: validated } = schema.validate(requestBody);
 
-      if (!restrictBroadcast && !restrictJoin) {
-        locals.error = 'Select at least one ban type';
-        return next();
-      }
-
-      const expire = new Date(Date.now() + (1000 * 60 * 60 * Number(duration)));
-
-      const { target } = locals.report;
-      const user = {
-        user_id: target.userId,
-        session_id: target.sessionId,
-        ip: target.ip,
-        restrictBroadcast,
-        restrictJoin,
-        socket_id: target.socketId,
-      };
-
-      const type = { restrictJoin, restrictBroadcast };
-      try {
-        locals.success = await sendBan(token, reason, type, user, expire, reportId);
-        return next();
-      } catch (err) {
-        log.error({ err }, 'error sending ban request');
-        locals.error = err;
-        return next();
-      }
-    } catch (err) {
-      log.error({ err }, 'validation error');
-      if (err.name === 'ValidationError') {
+    if (validationError) {
+      log.error({ err: validationError }, 'validation error');
+      if (validationError.name === 'ValidationError') {
         locals.error = 'Invalid request, reason probably missing';
       } else {
         locals.error = 'Verification error';
       }
-
-      return next();
+      return res.render('adminReportDetails');
     }
-  });
 
-  view.on('post', { action: 'resolve' }, async () => {
+    const {
+      reason,
+      duration,
+      restrictBroadcast,
+      restrictJoin,
+    } = validated;
+
+    if (!restrictBroadcast && !restrictJoin) {
+      locals.error = 'Select at least one ban type';
+      return res.render('adminReportDetails');
+    }
+
+    const expire = new Date(Date.now() + (1000 * 60 * 60 * Number(duration)));
+
+    const { target } = locals.report;
+    const banUser = {
+      user_id: target.userId,
+      session_id: target.sessionId,
+      ip: target.ip,
+      restrictBroadcast,
+      restrictJoin,
+      socket_id: target.socketId,
+    };
+
+    const type = { restrictJoin, restrictBroadcast };
+    try {
+      locals.success = await sendBan(token, reason, type, banUser, expire, reportId);
+    } catch (err) {
+      log.error({ err }, 'error sending ban request');
+      locals.error = err;
+    }
+
+    return res.render('adminReportDetails');
+  }
+
+  // POST: resolve
+  if (req.method === 'POST' && req.body.action === 'resolve') {
     try {
       await setReportResolved(token, reportId);
       return res.redirect(url.format({
@@ -133,7 +140,7 @@ module.exports = function adminReportDetails(req, res) {
         },
       }));
     }
-  });
+  }
 
-  view.render('adminReportDetails');
-};
+  return res.render('adminReportDetails');
+}

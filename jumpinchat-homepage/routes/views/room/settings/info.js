@@ -1,17 +1,17 @@
-const keystone = require('keystone');
-const moment = require('moment');
-const Joi = require('joi');
-const url = require('url');
-const log = require('../../../../utils/logger')({ name: 'room.settings' });
-const { getUserById } = require('../../../../utils/userUtils');
-const {
+import url from 'url';
+import Joi from 'joi';
+import { isAfter, format } from 'date-fns';
+import logFactory from '../../../../utils/logger.js';
+import { getUserById } from '../../../../utils/userUtils.js';
+import {
   getRoomByName,
   checkUserIsMod,
-} = require('../../../../utils/roomUtils');
-const { errors } = require('../../../../constants/constants');
+} from '../../../../utils/roomUtils.js';
+import { errors } from '../../../../constants/constants.js';
 
-module.exports = function roomSettings(req, res) {
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'room.settings' });
+
+export default async function roomSettings(req, res) {
   const { locals } = res;
   const { roomName } = req.params;
   const {
@@ -32,48 +32,56 @@ module.exports = function roomSettings(req, res) {
   locals.error = error;
   locals.success = success;
 
-  view.on('init', async (next) => {
-    try {
-      locals.room = await getRoomByName(roomName);
+  // Init phase
+  try {
+    locals.room = await getRoomByName(roomName);
 
-      if (!locals.room || !locals.room.attrs.owner) {
-        return res.redirect('/');
-      }
-
-
-      if (locals.user) {
-        locals.userIsMod = checkUserIsMod(String(locals.user._id), locals.room);
-      }
-      locals.roomOwner = await getUserById(locals.room.attrs.owner);
-
-      const { supportExpires } = locals.roomOwner.attrs;
-      const supportValid = moment(supportExpires).isAfter(moment()) || false;
-
-      locals.supportValid = supportValid;
-      if (supportValid) {
-        locals.supportExpires = moment(supportExpires).format();
-      }
-    } catch (err) {
-      log.fatal({ err, roomName }, 'failed to fetch room');
-      return res.status(500).end();
+    if (!locals.room || !locals.room.attrs.owner) {
+      return res.redirect('/');
     }
 
-    return next();
-  });
+    if (locals.user) {
+      locals.userIsMod = checkUserIsMod(String(locals.user._id), locals.room);
+    }
+    locals.roomOwner = await getUserById(locals.room.attrs.owner);
 
-  view.on('post', { action: 'topic' }, async () => {
+    const { supportExpires } = locals.roomOwner.attrs;
+    const supportValid = (supportExpires && isAfter(new Date(supportExpires), new Date())) || false;
+
+    locals.supportValid = supportValid;
+    if (supportValid) {
+      locals.supportExpires = format(new Date(supportExpires), "yyyy-MM-dd'T'HH:mm:ssxxx");
+    }
+  } catch (err) {
+    log.fatal({ err, roomName }, 'failed to fetch room');
+    return res.status(500).end();
+  }
+
+  // POST: topic
+  if (req.method === 'POST' && req.body.action === 'topic') {
     if (!locals.userIsMod) {
       return res.status(401).send();
     }
 
-    const schema = Joi.object().keys({
+    const schema = Joi.object({
       topic: Joi.string().max(140).allow(''),
     });
 
+    const { error: validationError, value } = schema.validate({ topic: req.body.topic });
+
+    if (validationError) {
+      locals.error = errors.ERR_VALIDATION;
+      return res.redirect(url.format({
+        path: './',
+        query: {
+          error: locals.error,
+        },
+      }));
+    }
+
     try {
-      const { topic } = await Joi.validate({ topic: req.body.topic }, schema);
       locals.room.settings.topic = {
-        text: topic,
+        text: value.topic,
         updatedAt: new Date(),
         updatedBy: locals.user._id,
       };
@@ -87,12 +95,7 @@ module.exports = function roomSettings(req, res) {
         },
       }));
     } catch (err) {
-      if (err.name === 'ValidationError') {
-        locals.error = errors.ERR_VALIDATION;
-      } else {
-        locals.error = errors.ERR_SRV;
-      }
-
+      locals.error = errors.ERR_SRV;
       return res.redirect(url.format({
         path: './',
         query: {
@@ -100,7 +103,7 @@ module.exports = function roomSettings(req, res) {
         },
       }));
     }
-  });
+  }
 
-  view.render('room/settings/info');
-};
+  return res.render('room/settings/info');
+}

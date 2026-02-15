@@ -1,21 +1,19 @@
-const keystone = require('keystone');
-const request = require('request');
-const jwt = require('jsonwebtoken');
-const Joi = require('joi');
-const log = require('../../utils/logger')({ name: 'routes.admin' });
-const config = require('../../config');
-const { getRoomByName } = require('../../utils/roomUtils');
-const {
+import jwt from 'jsonwebtoken';
+import Joi from 'joi';
+import axios from 'axios';
+import logFactory from '../../utils/logger.js';
+import config from '../../config/index.js';
+import { getRoomByName } from '../../utils/roomUtils.js';
+import {
   api,
   errors,
   closeReasons,
-} = require('../../constants/constants');
+} from '../../constants/constants.js';
 
-module.exports = function adminRoomDetails(req, res) {
-  let token;
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'routes.admin' });
+
+export default async function adminRoomDetails(req, res) {
   const { locals } = res;
-
 
   const roomName = req.params.room;
   locals.section = `Admin | Room ${roomName}`;
@@ -24,109 +22,95 @@ module.exports = function adminRoomDetails(req, res) {
   locals.room = {};
   locals.closeReasons = closeReasons;
 
-  view.on('init', async (next) => {
-    token = await jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
-    return getRoomByName(roomName, (err, room) => {
-      if (err) {
-        log.fatal({ err }, 'error getting room');
-        return res.status(500).send({ error: 'error getting room' });
-      }
+  // Init phase
+  const token = jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
 
-      if (!room) {
-        log.error('room not found');
-        return res.status(404).send({ error: 'room not found' });
-      }
+  const room = await getRoomByName(roomName);
+  if (!room) {
+    log.error('room not found');
+    return res.status(404).send({ error: 'room not found' });
+  }
+  locals.room = room;
 
-      locals.room = room;
-      return next();
-    });
-  });
-
-  view.on('post', { action: 'room' }, (next) => {
-    const schema = Joi.object().keys({
+  // POST: room
+  if (req.method === 'POST' && req.body.action === 'room') {
+    const schema = Joi.object({
       active: Joi.boolean().required(),
       public: Joi.boolean().required(),
     });
 
-    const body = {
+    const { error, value: validated } = schema.validate({
       active: req.body.active,
       public: req.body.public,
-    };
+    }, { abortEarly: false });
 
-    Joi.validate(body, schema, { abortEarly: false }, (err, validated) => {
-      if (err) {
-        log.warn({ err }, 'invalid message');
-        locals.error = errors.ERR_VALIDATION;
-        return next();
-      }
+    if (error) {
+      log.warn({ err: error }, 'invalid message');
+      locals.error = errors.ERR_VALIDATION;
+      return res.render('adminRoomDetails');
+    }
 
-      locals.room.attrs.active = validated.active;
-      locals.room.settings.public = validated.public;
+    locals.room.attrs.active = validated.active;
+    locals.room.settings.public = validated.public;
 
-      locals.room.save((err, savedRoom) => {
-        if (err) {
-          log.fatal({ err }, 'failed to save room');
-          locals.error = 'Failed to save room';
-          return next();
-        }
+    try {
+      const savedRoom = await locals.room.save();
+      locals.room = savedRoom;
+      locals.success = 'Room saved';
+    } catch (err) {
+      log.fatal({ err }, 'failed to save room');
+      locals.error = 'Failed to save room';
+    }
 
-        locals.room = savedRoom;
-        locals.success = 'Room saved';
-        return next();
-      });
-    });
-  });
+    return res.render('adminRoomDetails');
+  }
 
-  view.on('post', { action: 'close' }, (next) => {
-    const schema = Joi.object().keys({
+  // POST: close
+  if (req.method === 'POST' && req.body.action === 'close') {
+    const schema = Joi.object({
       reason: Joi.string().required(),
     });
 
-    const body = {
-      reason: req.body.reason,
-    };
+    const { error, value } = schema.validate({ reason: req.body.reason }, { abortEarly: false });
 
-    Joi.validate(body, schema, { abortEarly: false }, (err, { reason }) => {
-      if (err) {
-        log.warn({ err }, 'invalid reason');
-        locals.error = 'invalid reason';
-        return next();
-      }
+    if (error) {
+      log.warn({ err: error }, 'invalid reason');
+      locals.error = 'invalid reason';
+      return res.render('adminRoomDetails');
+    }
 
-      return request({
+    try {
+      const response = await axios({
         method: 'POST',
         url: `${api}/api/admin/rooms/${locals.room.name}/close`,
         headers: {
           Authorization: token,
         },
-        body,
-        json: true,
-      }, (err, response, responseBody) => {
-        if (err) {
-          log.error({ err }, 'error happened');
-          locals.error = 'error happened';
-          return next();
-        }
-
-        if (response.statusCode >= 400) {
-          if (responseBody && responseBody.message) {
-            locals.error = responseBody.message;
-            return next();
-          }
-
-          log.error({ statusCode: response.statusCode }, 'error getting room list');
-          locals.error = `error happened: ${response.statusCode}`;
-          return next();
-        }
-
-        locals.success = 'Room closed';
-        return next();
+        data: { reason: value.reason },
+        validateStatus: () => true,
       });
-    });
-  });
 
-  view.on('post', { action: 'server-message' }, (next) => {
-    const schema = Joi.object().keys({
+      if (response.status >= 400) {
+        if (response.data && response.data.message) {
+          locals.error = response.data.message;
+        } else {
+          log.error({ statusCode: response.status }, 'error getting room list');
+          locals.error = `error happened: ${response.status}`;
+        }
+      } else {
+        locals.success = 'Room closed';
+      }
+    } catch (err) {
+      log.error({ err }, 'error happened');
+      locals.error = 'error happened';
+    }
+
+    return res.render('adminRoomDetails');
+  }
+
+  // POST: server-message
+  if (req.method === 'POST' && req.body.action === 'server-message') {
+    const schema = Joi.object({
       message: Joi.string().required(),
       type: Joi.string().required(),
     });
@@ -136,46 +120,44 @@ module.exports = function adminRoomDetails(req, res) {
       type: req.body['message-type'],
     };
 
-    Joi.validate(body, schema, { abortEarly: false }, (err, validatedLogin) => {
-      if (err) {
-        log.warn({ err }, 'invalid message');
-        locals.error = 'invalid message';
-        return next();
-      }
+    const { error, value: validated } = schema.validate(body, { abortEarly: false });
 
-      return request({
+    if (error) {
+      log.warn({ err: error }, 'invalid message');
+      locals.error = 'invalid message';
+      return res.render('adminRoomDetails');
+    }
+
+    try {
+      const response = await axios({
         method: 'POST',
         url: `${api}/api/admin/notify`,
         headers: {
           Authorization: token,
         },
-        body: Object.assign(body, {
+        data: Object.assign(body, {
           room: locals.room.name,
         }),
-        json: true,
-      }, (err, response, responseBody) => {
-        if (err) {
-          log.error({ err }, 'error happened');
-          locals.error = 'error happened';
-          return next();
-        }
-
-        if (response.statusCode >= 400) {
-          if (responseBody && responseBody.message) {
-            locals.error = responseBody.message;
-            return next();
-          }
-
-          log.error({ statusCode: response.statusCode }, 'error getting room list');
-          locals.error = 'error happened';
-          return next();
-        }
-
-        locals.success = 'Message sent successfully';
-        return next(null, body);
+        validateStatus: () => true,
       });
-    });
-  });
 
-  view.render('adminRoomDetails');
-};
+      if (response.status >= 400) {
+        if (response.data && response.data.message) {
+          locals.error = response.data.message;
+        } else {
+          log.error({ statusCode: response.status }, 'error getting room list');
+          locals.error = 'error happened';
+        }
+      } else {
+        locals.success = 'Message sent successfully';
+      }
+    } catch (err) {
+      log.error({ err }, 'error happened');
+      locals.error = 'error happened';
+    }
+
+    return res.render('adminRoomDetails');
+  }
+
+  return res.render('adminRoomDetails');
+}

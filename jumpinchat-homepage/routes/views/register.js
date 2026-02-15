@@ -2,17 +2,17 @@
  * Created by Zaccary on 19/03/2017.
  */
 
-const Joi = require('joi');
-const log = require('../../utils/logger')({ name: 'user.create' });
-const keystone = require('keystone');
-const request = require('request');
-const url = require('url');
-const { errors, api } = require('../../constants/constants');
-const { getRemoteIpFromReq } = require('../../utils/userUtils');
-const config = require('../../config');
+import url from 'url';
+import axios from 'axios';
+import Joi from 'joi';
+import logFactory from '../../utils/logger.js';
+import { errors, api } from '../../constants/constants.js';
+import { getRemoteIpFromReq } from '../../utils/userUtils.js';
+import config from '../../config/index.js';
 
-module.exports = function register(req, res) {
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'user.create' });
+
+export default async function register(req, res) {
   const { locals } = res;
   const { error } = req.query;
 
@@ -23,21 +23,20 @@ module.exports = function register(req, res) {
   locals.user = req.user;
   locals.error = error || null;
 
-  view.on('init', (next) => {
-    if (locals.user && req.signedCookies['jic.ident']) {
-      return res.redirect('/');
-    }
+  // Init phase
+  if (locals.user && req.signedCookies['jic.ident']) {
+    return res.redirect('/');
+  }
 
-    log.debug({ errors: locals.error }, 'errors');
-    return next();
-  });
+  log.debug({ errors: locals.error }, 'errors');
 
-  view.on('post', { action: 'register' }, () => {
-    const schema = Joi.object().keys({
+  // POST handling
+  if (req.method === 'POST' && req.body.action === 'register') {
+    const schema = Joi.object({
       username: Joi.string().alphanum().max(32).required(),
       email: Joi.string().email().required(),
       password: Joi.string().min(10).required(),
-      settings: Joi.object().keys({
+      settings: Joi.object({
         receiveUpdates: Joi.boolean().required(),
       }).required(),
       phone6tY4bPYk: Joi.any().valid('').strip(),
@@ -53,12 +52,50 @@ module.exports = function register(req, res) {
       phone6tY4bPYk: req.body.phone6tY4bPYk,
     };
 
-    Joi.validate(user, schema, { abortEarly: false }, (err, validatedUser) => {
-      if (err) {
-        if (err.name === 'ValidationError') {
-          locals.error = err.details.map(e => e.message).join('\n');
+    const { error: validationError, value: validatedUser } = schema.validate(user, { abortEarly: false });
+
+    if (validationError) {
+      if (validationError.name === 'ValidationError') {
+        locals.error = validationError.details.map(e => e.message).join('\n');
+      } else {
+        locals.error = errors.ERR_SRV;
+      }
+
+      return res.redirect(url.format({
+        path: './',
+        query: {
+          error: locals.error,
+        },
+      }));
+    }
+
+    const username = validatedUser.username.toLowerCase();
+    const ip = getRemoteIpFromReq(req);
+    const { fingerprint } = req.session;
+
+    log.debug({ username, ip }, 'register user');
+
+    try {
+      const response = await axios({
+        method: 'POST',
+        url: `${api}/api/user/register`,
+        data: {
+          username,
+          password: validatedUser.password,
+          email: validatedUser.email,
+          settings: validatedUser.settings,
+          ip,
+          fingerprint,
+        },
+        validateStatus: () => true,
+      });
+
+      if (response.status >= 400) {
+        if (response.data.message) {
+          log.error({ body: response.data }, 'registration error');
+          locals.error = errors[response.data.message] || response.data.message;
         } else {
-          locals.error = errors.ERR_SRV;
+          locals.error = 'Registration failed';
         }
 
         return res.redirect(url.format({
@@ -69,92 +106,47 @@ module.exports = function register(req, res) {
         }));
       }
 
-      const username = validatedUser.username.toLowerCase();
-      const ip = getRemoteIpFromReq(req);
-      const { fingerprint } = req.session;
+      const { user: receivedUser } = response.data.data;
 
-      log.debug({ username, ip }, 'register user');
-
-      request({
-        method: 'POST',
-        url: `${api}/api/user/register`,
-        json: true,
-        body: {
-          username,
-          password: validatedUser.password,
-          email: validatedUser.email,
-          settings: validatedUser.settings,
-          ip,
-          fingerprint,
-        },
-      }, (err, response, body) => {
-        if (err) {
-          log.error({ err }, 'error happened');
-          return res.status(500).send();
-        }
-
-        if (response.statusCode >= 400) {
-          if (body.message) {
-            log.error({ body }, 'registration error');
-            locals.error = errors[body.message] || body.message;
-            return res.redirect(url.format({
-              path: './',
-              query: {
-                error: locals.error,
-              },
-            }));
-          }
-
-          locals.error = 'Registration failed';
-          return res.redirect(url.format({
-            path: './',
-            query: {
-              error: locals.error,
-            },
-          }));
-        }
-
-        const { user: receivedUser } = body.data;
-
-        request({
+      // Send verification email (fire and forget)
+      try {
+        const verifyResponse = await axios({
+          method: 'POST',
           url: `${api}/api/user/verify/email`,
-          method: 'post',
-          body: { user: receivedUser },
-          json: true,
-        }, (err, response, body) => {
-          if (err) {
-            log.fatal({ err }, 'verification request failed');
-            return;
+          data: { user: receivedUser },
+          validateStatus: () => true,
+        });
+
+        if (verifyResponse.status >= 400) {
+          if (verifyResponse.data) {
+            log.error({
+              response: verifyResponse.status,
+              message: verifyResponse.data.message,
+            }, 'failed to send email confirmation email');
+          } else {
+            log.error({
+              response: verifyResponse.status,
+            }, 'failed to send email confirmation email');
           }
-
-          if (response.statusCode >= 400) {
-            if (body) {
-              log.error({
-                response: response.statusCode,
-                message: body.message,
-              }, 'failed to send email confirmation email');
-            } else {
-              log.error({
-                response: response.statusCode,
-              }, 'failed to send email confirmation email');
-            }
-
-            return;
-          }
-
+        } else {
           log.debug('verification email sent');
-        });
+        }
+      } catch (verifyErr) {
+        log.fatal({ err: verifyErr }, 'verification request failed');
+      }
 
-        res.cookie('jic.ident', receivedUser._id, {
-          maxAge: config.auth.cookieTimeout,
-          signed: true,
-          httpOnly: true,
-        });
-
-        res.redirect(`/${user.username}`);
+      res.cookie('jic.ident', receivedUser._id, {
+        maxAge: config.auth.cookieTimeout,
+        signed: true,
+        httpOnly: true,
       });
-    });
-  });
 
-  view.render('register');
-};
+      return res.redirect(`/${user.username}`);
+    } catch (err) {
+      log.error({ err }, 'error happened');
+      return res.status(500).send();
+    }
+  }
+
+  return res.render('register');
+}

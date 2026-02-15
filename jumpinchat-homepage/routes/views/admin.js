@@ -1,22 +1,21 @@
-const keystone = require('keystone');
-const jwt = require('jsonwebtoken');
-const Joi = require('joi');
-const request = require('request');
-const moment = require('moment');
-const Pagination = require('pagination-object');
-const log = require('../../utils/logger')({ name: 'routes.admin' });
-const config = require('../../config');
-const { adminGetRoomList } = require('../../utils/roomUtils');
-const adminUtils = require('../../utils/adminUtils');
-const {
+import jwt from 'jsonwebtoken';
+import Joi from 'joi';
+import axios from 'axios';
+import Pagination from 'pagination-object';
+import { isBefore, formatRelative } from 'date-fns';
+import logFactory from '../../utils/logger.js';
+import config from '../../config/index.js';
+import { adminGetRoomList } from '../../utils/roomUtils.js';
+import {
   adminGetUsers,
   adminGetUserCount,
   searchUserByUsername,
-} = require('../../utils/userUtils');
+} from '../../utils/userUtils.js';
+import { getReports } from '../../utils/reportUtils.js';
+import { getRequests } from '../../utils/ageVerifyUtils.js';
+import { api, errors } from '../../constants/constants.js';
 
-const { getReports } = require('../../utils/reportUtils');
-const { getRequests } = require('../../utils/ageVerifyUtils');
-const { api, errors } = require('../../constants/constants');
+const log = logFactory({ name: 'routes.admin' });
 
 const pageNames = {
   PAGE_DASHBOARD: 'dashboard',
@@ -26,18 +25,15 @@ const pageNames = {
   PAGE_AGE_VERIFY: 'ageverify',
 };
 
-module.exports = function admin(req, res) {
-  const view = new keystone.View(req, res);
+export default async function admin(req, res) {
   const { locals } = res;
 
-  let token;
   locals.page = req.params.page;
   locals.section = `Admin | ${locals.page}`;
   locals.user = req.user;
   locals.users = [];
   locals.rooms = [];
   locals.requests = [];
-
   locals.stats = {};
   locals.pageNumber = req.query.page || 1;
 
@@ -49,63 +45,64 @@ module.exports = function admin(req, res) {
     pageNames.PAGE_AGE_VERIFY,
   ];
 
-  view.on('init', async (next) => {
-    if (!locals.user) {
-      log.warn('no user');
-      return res.redirect('/');
-    }
+  // Init phase
+  if (!locals.user) {
+    log.warn('no user');
+    return res.redirect('/');
+  }
 
-    if (locals.user.attrs.userLevel < 30) {
-      log.warn({
-        userId: locals.user._id,
-        userLevel: locals.user.attrs.userLevel,
-      }, 'user is not an admin');
+  if (locals.user.attrs.userLevel < 30) {
+    log.warn({
+      userId: locals.user._id,
+      userLevel: locals.user.attrs.userLevel,
+    }, 'user is not an admin');
+    return res.redirect('/');
+  }
 
-      return res.redirect('/');
-    }
+  let token;
+  try {
+    token = jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
+  } catch (err) {
+    log.fatal({ err }, 'failed to create token');
+    return res.status(500).send(err);
+  }
 
-    try {
-      token = await jwt.sign({ userId: String(locals.user._id) }, config.auth.jwtSecret, { expiresIn: '1h' });
-    } catch (err) {
-      log.fatal({ err }, 'failed to create token');
-      return res.status(500).send(err);
-    }
-
-    switch (locals.page) {
-      case pageNames.PAGE_DASHBOARD: {
-        return adminGetRoomList(token, 1, (err, body) => {
+  switch (locals.page) {
+    case pageNames.PAGE_DASHBOARD: {
+      await new Promise((resolve) => {
+        adminGetRoomList(token, 1, (err, body) => {
           if (err) {
             log.error({ err }, 'failed to get room list');
-            return next(err);
+            return resolve();
           }
 
           const { rooms, count: roomCount } = body;
-
           log.debug({ token }, 'dashboard local token');
           locals.token = token;
           locals.rooms = rooms;
           locals.roomCount = roomCount;
 
-          return adminGetUserCount((err, userCount) => {
-            if (err) {
-              log.error({ err }, 'error getting user count');
-              return next(err);
+          adminGetUserCount((countErr, userCount) => {
+            if (countErr) {
+              log.error({ err: countErr }, 'error getting user count');
+            } else {
+              locals.users = userCount;
             }
-
-            locals.users = userCount;
-            return next();
+            return resolve();
           });
         });
-      }
-      case pageNames.PAGE_ROOMLIST: {
-        return adminGetRoomList(token, locals.pageNumber, (err, roomList) => {
+      });
+      break;
+    }
+    case pageNames.PAGE_ROOMLIST: {
+      await new Promise((resolve) => {
+        adminGetRoomList(token, locals.pageNumber, (err, roomList) => {
           if (err) {
             log.error({ err }, 'failed to get room list');
-            return next(err);
+            return resolve();
           }
 
           const { rooms, count } = roomList;
-
 
           if (count > 0) {
             locals.pagination = new Pagination({
@@ -117,17 +114,20 @@ module.exports = function admin(req, res) {
           }
 
           locals.rooms = rooms;
-          return next();
+          return resolve();
         });
-      }
-      case pageNames.PAGE_USERLIST: {
-        const { search } = req.query;
+      });
+      break;
+    }
+    case pageNames.PAGE_USERLIST: {
+      const { search } = req.query;
 
-        if (search) {
-          return searchUserByUsername(search, true, (err, users) => {
+      if (search) {
+        await new Promise((resolve) => {
+          searchUserByUsername(search, true, (err, users) => {
             if (err) {
               log.fatal({ err });
-              return next(err);
+              return resolve();
             }
 
             locals.pagination = new Pagination({
@@ -140,49 +140,58 @@ module.exports = function admin(req, res) {
             locals.users = users
               .map(u => Object.assign({}, u, {
                 attrs: Object.assign({}, u.attrs, {
-                  join_date: moment(u.attrs.join_date).calendar(),
+                  join_date: formatRelative(new Date(u.attrs.join_date), new Date()),
                 }),
               }));
-            return next();
+            return resolve();
           });
-        }
-        return adminGetUsers(token, locals.pageNumber, (err, { users, count }) => {
-          if (err) {
-            log.error({ err });
-            return next(err);
-          }
+        });
+      } else {
+        await new Promise((resolve) => {
+          adminGetUsers(token, locals.pageNumber, (err, result) => {
+            if (err) {
+              log.error({ err });
+              return resolve();
+            }
 
-          locals.pagination = new Pagination({
-            currentPage: Number(locals.pageNumber),
-            totalItems: count,
-            itemsPerPage: config.admin.userList.itemsPerPage,
-            rangeLength: 9,
+            const { users, count } = result;
+
+            locals.pagination = new Pagination({
+              currentPage: Number(locals.pageNumber),
+              totalItems: count,
+              itemsPerPage: config.admin.userList.itemsPerPage,
+              rangeLength: 9,
+            });
+
+            locals.users = users
+              .sort((a, b) => {
+                const aDate = new Date(a.attrs.join_date);
+                const bDate = new Date(b.attrs.join_date);
+                if (isBefore(aDate, bDate)) return 1;
+                if (isBefore(bDate, aDate)) return -1;
+                return 0;
+              })
+              .map(u => Object.assign({}, u, {
+                attrs: Object.assign({}, u.attrs, {
+                  join_date: formatRelative(new Date(u.attrs.join_date), new Date()),
+                }),
+              }))
+              .filter(u => u.username);
+
+            return resolve();
           });
-
-          locals.users = users
-            .sort((a, b) => {
-              const aDate = a.attrs.join_date;
-              const bDate = b.attrs.join_date;
-              if (moment(aDate).isBefore(bDate)) return 1;
-              if (moment(bDate).isBefore(aDate)) return -1;
-
-              return 0;
-            })
-            .map(u => Object.assign({}, u, {
-              attrs: Object.assign({}, u.attrs, {
-                join_date: moment(u.attrs.join_date).calendar(),
-              }),
-            }))
-            .filter(u => u.username);
-
-          return next();
         });
       }
-      case pageNames.PAGE_REPORTS: {
-        return getReports(token, locals.pageNumber, (err, { reports, count }) => {
+      break;
+    }
+    case pageNames.PAGE_REPORTS: {
+      await new Promise((resolve) => {
+        getReports(token, locals.pageNumber, (err, result) => {
           if (err) {
-            return next(err);
+            return resolve();
           }
+
+          const { reports, count } = result;
 
           if (count > 0) {
             locals.pagination = new Pagination({
@@ -193,26 +202,28 @@ module.exports = function admin(req, res) {
             });
           }
 
-
           locals.reports = reports
             .sort((a, b) => {
-              const aDate = moment(a.createdAt);
-              const bDate = moment(b.createdAt);
-              if (aDate.isBefore(bDate)) return 1;
-              if (bDate.isBefore(aDate)) return -1;
-
+              const aDate = new Date(a.createdAt);
+              const bDate = new Date(b.createdAt);
+              if (isBefore(aDate, bDate)) return 1;
+              if (isBefore(bDate, aDate)) return -1;
               return 0;
             })
             .map(r => Object.assign({}, r, {
-              createdAt: moment(r.createdAt).calendar(),
+              createdAt: formatRelative(new Date(r.createdAt), new Date()),
             }));
-          return next();
+
+          return resolve();
         });
-      }
-      case pageNames.PAGE_AGE_VERIFY: {
-        return getRequests(token, (err, requests) => {
+      });
+      break;
+    }
+    case pageNames.PAGE_AGE_VERIFY: {
+      await new Promise((resolve) => {
+        getRequests(token, (err, requests) => {
           if (err) {
-            return next(err);
+            return resolve();
           }
 
           locals.statusColors = {
@@ -223,17 +234,18 @@ module.exports = function admin(req, res) {
           };
 
           locals.requests = requests.reverse();
-          return next();
+          return resolve();
         });
-      }
-
-      default:
-        return res.redirect(`/admin/${pageNames.PAGE_DASHBOARD}`);
+      });
+      break;
     }
-  });
+    default:
+      return res.redirect(`/admin/${pageNames.PAGE_DASHBOARD}`);
+  }
 
-  view.on('post', { action: 'server-message' }, (next) => {
-    const schema = Joi.object().keys({
+  // POST: server-message
+  if (req.method === 'POST' && req.body.action === 'server-message') {
+    const schema = Joi.object({
       message: Joi.string().required(),
       type: Joi.string().required(),
     });
@@ -243,47 +255,46 @@ module.exports = function admin(req, res) {
       type: req.body['message-type'],
     };
 
-    Joi.validate(body, schema, { abortEarly: false }, (err, validatedLogin) => {
-      if (err) {
-        log.warn({ err }, 'invalid message');
-        locals.errors = errors.ERR_VALIDATION;
-        return next();
-      }
+    const { error, value: validated } = schema.validate(body, { abortEarly: false });
 
-      return request({
+    if (error) {
+      log.warn({ err: error }, 'invalid message');
+      locals.errors = errors.ERR_VALIDATION;
+      return res.render('admin');
+    }
+
+    try {
+      const response = await axios({
         method: 'POST',
         url: `${api}/api/admin/notify`,
         headers: {
           Authorization: token,
         },
-        body,
-        json: true,
-      }, (err, response, responseBody) => {
-        if (err) {
-          log.error({ err }, 'error happened');
-          locals.error = 'error happened';
-          return next();
-        }
-
-        if (response.statusCode >= 400) {
-          if (responseBody && responseBody.message) {
-            locals.error = responseBody.message;
-            return next();
-          }
-
-          log.error({ statusCode: response.statusCode }, 'error getting room list');
-          locals.error = 'error happened';
-          return next();
-        }
-
-        locals.success = 'Message sent successfully';
-        return next(null, body);
+        data: body,
+        validateStatus: () => true,
       });
-    });
-  });
 
-  view.on('post', { action: 'user-emails' }, (next) => {
-    const schema = Joi.object().keys({
+      if (response.status >= 400) {
+        if (response.data && response.data.message) {
+          locals.error = response.data.message;
+        } else {
+          log.error({ statusCode: response.status }, 'error getting room list');
+          locals.error = 'error happened';
+        }
+      } else {
+        locals.success = 'Message sent successfully';
+      }
+    } catch (err) {
+      log.error({ err }, 'error happened');
+      locals.error = 'error happened';
+    }
+
+    return res.render('admin');
+  }
+
+  // POST: user-emails
+  if (req.method === 'POST' && req.body.action === 'user-emails') {
+    const schema = Joi.object({
       emailMessage: Joi.string().required(),
       emailSubject: Joi.string().required(),
     });
@@ -293,52 +304,52 @@ module.exports = function admin(req, res) {
       emailSubject: req.body.emailSubject,
     };
 
-    Joi.validate(body, schema, { abortEarly: false }, (err, validated) => {
-      if (err) {
-        log.warn({ err }, 'invalid message');
-        locals.errors = errors.ERR_VALIDATION;
-        return next();
-      }
+    const { error, value: validated } = schema.validate(body, { abortEarly: false });
 
-      return request({
+    if (error) {
+      log.warn({ err: error }, 'invalid message');
+      locals.errors = errors.ERR_VALIDATION;
+      return res.render('admin');
+    }
+
+    try {
+      const response = await axios({
         method: 'POST',
         url: `${api}/api/admin/email/send`,
         headers: {
           Authorization: token,
         },
-        body: {
+        data: {
           message: validated.emailMessage,
           subject: validated.emailSubject,
         },
-        json: true,
-      }, (err, response, responseBody) => {
-        if (err) {
-          log.error({ err }, 'error happened');
+        validateStatus: () => true,
+      });
+
+      if (response.status >= 400) {
+        if (response.data && response.data.message) {
+          locals.error = response.data.message;
+        } else {
+          log.error({ statusCode: response.status }, 'error sending email');
           locals.error = 'error happened';
-          return next();
         }
-
-        if (response.statusCode >= 400) {
-          if (responseBody && responseBody.message) {
-            locals.error = responseBody.message;
-            return next();
-          }
-
-          log.error({ statusCode: response.statusCode }, 'error sending email');
-          locals.error = 'error happened';
-          return next();
-        }
-
+      } else {
         locals.success = 'Message sent successfully';
         return res.redirect('/admin/dashboard');
-      });
-    });
-  });
+      }
+    } catch (err) {
+      log.error({ err }, 'error happened');
+      locals.error = 'error happened';
+    }
 
-  view.on('post', { action: 'search-users' }, (next) => {
+    return res.render('admin');
+  }
+
+  // POST: search-users
+  if (req.method === 'POST' && req.body.action === 'search-users') {
     const { search } = req.body;
     return res.redirect(`/admin/users?search=${search}`);
-  });
+  }
 
-  view.render('admin');
-};
+  return res.render('admin');
+}

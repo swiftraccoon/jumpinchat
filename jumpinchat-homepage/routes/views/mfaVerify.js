@@ -1,48 +1,41 @@
-const keystone = require('keystone');
-const url = require('url');
-const Joi = require('joi');
-const jwt = require('jsonwebtoken');
-const config = require('../../config');
-const { api } = require('../../constants/constants');
-const request = require('../../utils/request');
-const log = require('../../utils/logger')({ name: 'login.mfa' });
+import url from 'url';
+import Joi from 'joi';
+import jwt from 'jsonwebtoken';
+import config from '../../config/index.js';
+import { api } from '../../constants/constants.js';
+import request from '../../utils/request.js';
+import logFactory from '../../utils/logger.js';
 
-module.exports = function login(req, res) {
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'login.mfa' });
+
+export default async function mfaVerify(req, res) {
   const { locals } = res;
   const { user } = req.session;
-  let token;
 
   locals.section = 'Validate login';
   locals.description = 'Validate login';
   locals.error = req.query.error || null;
 
-  view.on('init', (next) => {
-    log.debug({
-      user: locals.user ? locals.user.username : null,
-      session: req.session,
-    });
-    if (!user) {
-      return res.redirect('/login');
-    }
-
-
-    token = jwt.sign(String(user), config.auth.jwtSecret);
-
-
-    return next();
+  // Init phase
+  log.debug({
+    user: locals.user ? locals.user.username : null,
+    session: req.session,
   });
+  if (!user) {
+    return res.redirect('/login');
+  }
 
-  view.on('post', { action: 'verify' }, async () => {
-    const schema = Joi.object().keys({
+  const token = jwt.sign(String(user), config.auth.jwtSecret);
+
+  // POST handling
+  if (req.method === 'POST' && req.body.action === 'verify') {
+    const schema = Joi.object({
       token: Joi.string().min(6).max(6).required(),
     });
 
-    try {
-      await Joi.validate({
-        token: req.body.token,
-      }, schema);
-    } catch (err) {
+    const { error } = schema.validate({ token: req.body.token });
+
+    if (error) {
       locals.error = 'invalid token';
       return res.redirect(url.format({
         path: './',
@@ -51,7 +44,6 @@ module.exports = function login(req, res) {
         },
       }));
     }
-
 
     try {
       await request({
@@ -87,7 +79,7 @@ module.exports = function login(req, res) {
     });
 
     return res.redirect('/');
-  });
+  }
 
-  view.render('mfaVerify');
-};
+  return res.render('mfaVerify');
+}

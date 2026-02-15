@@ -1,11 +1,11 @@
-const keystone = require('keystone');
-const request = require('request');
-const Joi = require('joi');
-const log = require('../../utils/logger')({ name: 'routes.resetPasswordRequest' });
-const { errors, api } = require('../../constants/constants');
+import axios from 'axios';
+import Joi from 'joi';
+import logFactory from '../../utils/logger.js';
+import { errors, api } from '../../constants/constants.js';
 
-module.exports = function resetPasswordRequest(req, res) {
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'routes.resetPasswordRequest' });
+
+export default async function resetPasswordRequest(req, res) {
   const { locals } = res;
 
   // locals.section is used to set the currently selected
@@ -15,58 +15,51 @@ module.exports = function resetPasswordRequest(req, res) {
   locals.errors = null;
   locals.success = null;
 
-  view.on('init', (next) => {
-    if (locals.user) {
-      return res.redirect('/settings/account');
-    }
+  // Init phase
+  if (locals.user) {
+    return res.redirect('/settings/account');
+  }
 
-    return next();
-  });
-
-  view.on('post', { action: 'requestResetPassword' }, (next) => {
-    const schema = Joi.object().keys({
+  // POST handling
+  if (req.method === 'POST' && req.body.action === 'requestResetPassword') {
+    const schema = Joi.object({
       username: Joi.string().alphanum().required(),
     });
 
-    const user = {
+    const { error, value: validated } = schema.validate({
       username: req.body.username,
-    };
+    }, { abortEarly: false });
 
-    Joi.validate(user, schema, { abortEarly: false }, (err, validated) => {
-      if (err) {
-        locals.errors = errors.ERR_VALIDATION;
-        return next();
-      }
+    if (error) {
+      locals.errors = errors.ERR_VALIDATION;
+      return res.render('resetPasswordRequest');
+    }
 
-      const { username } = validated;
+    const { username } = validated;
 
-      return request({
+    try {
+      const response = await axios({
         method: 'POST',
         url: `${api}/api/user/password/request`,
-        body: { username },
-        json: true,
-      }, (err, response, body) => {
-        if (err) {
-          log.fatal({ err }, 'error calling password reset endpoint');
-          return res.status(500).send();
-        }
-
-        if (response.statusCode >= 400) {
-          if (body && body.message) {
-            locals.errors = body.message;
-            return next();
-          }
-
-          locals.errors = 'Failed to send password reset email';
-          return next();
-        }
-
-        locals.success = 'A password reset code has been sent to your email address';
-        return next();
+        data: { username },
+        validateStatus: () => true,
       });
-    });
-  });
+
+      if (response.status >= 400) {
+        if (response.data && response.data.message) {
+          locals.errors = response.data.message;
+        } else {
+          locals.errors = 'Failed to send password reset email';
+        }
+      } else {
+        locals.success = 'A password reset code has been sent to your email address';
+      }
+    } catch (err) {
+      log.fatal({ err }, 'error calling password reset endpoint');
+      return res.status(500).send();
+    }
+  }
 
   // Render the view
-  view.render('resetPasswordRequest');
-};
+  return res.render('resetPasswordRequest');
+}

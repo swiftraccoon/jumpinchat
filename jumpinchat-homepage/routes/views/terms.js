@@ -1,7 +1,4 @@
-const keystone = require('keystone');
-
-module.exports = function index(req, res) {
-  const view = new keystone.View(req, res);
+export default async function terms(req, res) {
   const { locals } = res;
 
   // locals.section is used to set the currently selected
@@ -10,5 +7,5 @@ module.exports = function index(req, res) {
   locals.user = req.user;
 
   // Render the view
-  view.render('terms');
-};
+  return res.render('terms');
+}

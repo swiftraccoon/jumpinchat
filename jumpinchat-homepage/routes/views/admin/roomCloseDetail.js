@@ -1,16 +1,9 @@
-const keystone = require('keystone');
-const log = require('../../../utils/logger')({ name: 'routes.roomCloseDetail' });
-const config = require('../../../config');
+import logFactory from '../../../utils/logger.js';
+import { RoomClosures } from '../../../models/index.js';
 
-const RoomClose = keystone.list('RoomClose');
-const {
-  api,
-  errors,
-  banReasons,
-} = require('../../../constants/constants');
+const log = logFactory({ name: 'routes.roomCloseDetail' });
 
-module.exports = function adminRoomCloseList(req, res) {
-  const view = new keystone.View(req, res);
+export default async function adminRoomCloseDetail(req, res) {
   const { locals } = res;
   const { closeId } = req.params;
 
@@ -19,13 +12,9 @@ module.exports = function adminRoomCloseList(req, res) {
   locals.user = req.user;
   locals.banlist = [];
 
-  view.on('init', async (next) => {
-    const close = await RoomClose.model.findOne({ _id: closeId });
+  // Init phase
+  const close = await RoomClosures.findOne({ _id: closeId });
+  locals.close = close;
 
-    locals.close = close;
-
-    return next();
-  });
-
-  view.render('admin/roomCloseDetail');
-};
+  return res.render('admin/roomCloseDetail');
+}

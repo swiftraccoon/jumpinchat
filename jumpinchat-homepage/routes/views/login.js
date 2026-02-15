@@ -2,15 +2,15 @@
  * Created by Zaccary on 19/03/2017.
  */
 
-const keystone = require('keystone');
-const Joi = require('joi');
-const request = require('request');
-const log = require('../../utils/logger')({ name: 'login view' });
-const { errors, api } = require('../../constants/constants');
-const config = require('../../config');
+import axios from 'axios';
+import Joi from 'joi';
+import logFactory from '../../utils/logger.js';
+import { errors, api } from '../../constants/constants.js';
+import config from '../../config/index.js';
 
-module.exports = function login(req, res) {
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'login view' });
+
+export default async function login(req, res) {
   const { locals } = res;
 
   // locals.section is used to set the currently selected
@@ -20,71 +20,68 @@ module.exports = function login(req, res) {
   locals.user = req.user;
   locals.errors = null;
 
-  view.on('init', (next) => {
-    if (locals.user) {
-      return res.redirect('/');
-    }
+  // Init phase
+  if (locals.user) {
+    return res.redirect('/');
+  }
 
-    return next();
-  });
-
-  view.on('post', { action: 'login' }, (next) => {
-    const schema = Joi.object().keys({
+  // POST handling
+  if (req.method === 'POST' && req.body.action === 'login') {
+    const schema = Joi.object({
       username: Joi.string().required(),
       password: Joi.string().required(),
     });
 
-    Joi.validate({
+    const { error, value: validatedLogin } = schema.validate({
       username: req.body.username,
       password: req.body.password,
-    }, schema, { abortEarly: false }, (err, validatedLogin) => {
-      if (err) {
-        log.warn('invalid login details');
-        locals.errors = errors.ERR_VALIDATION;
-        return next();
-      }
+    }, { abortEarly: false });
 
-      return request({
+    if (error) {
+      log.warn('invalid login details');
+      locals.errors = errors.ERR_VALIDATION;
+      return res.render('login');
+    }
+
+    try {
+      const response = await axios({
         method: 'POST',
         url: `${api}/api/user/login`,
-        json: true,
-        body: {
+        data: {
           username: validatedLogin.username.toLowerCase(),
           password: validatedLogin.password,
         },
-      }, (err, response, body) => {
-        if (err) {
-          log.error({ err }, 'error happened');
-          return res.status(500).send();
-        }
-
-        if (response.statusCode >= 400) {
-          if (body.message) {
-            locals.errors = errors[body.message];
-            return next();
-          }
-
-          locals.errors = 'Login failed';
-          return next();
-        }
-
-        const { user } = body.data;
-
-        if (user.auth.totpSecret) {
-          req.session.user = String(user._id);
-          return res.redirect('/login/totp');
-        }
-
-        res.cookie('jic.ident', user._id, {
-          maxAge: config.auth.cookieTimeout,
-          signed: true,
-          httpOnly: true,
-        });
-
-        return res.redirect('/');
+        validateStatus: () => true,
       });
-    });
-  });
 
-  view.render('login');
-};
+      if (response.status >= 400) {
+        if (response.data.message) {
+          locals.errors = errors[response.data.message];
+        } else {
+          locals.errors = 'Login failed';
+        }
+        return res.render('login');
+      }
+
+      const { user } = response.data.data;
+
+      if (user.auth.totpSecret) {
+        req.session.user = String(user._id);
+        return res.redirect('/login/totp');
+      }
+
+      res.cookie('jic.ident', user._id, {
+        maxAge: config.auth.cookieTimeout,
+        signed: true,
+        httpOnly: true,
+      });
+
+      return res.redirect('/');
+    } catch (err) {
+      log.error({ err }, 'error happened');
+      return res.status(500).send();
+    }
+  }
+
+  return res.render('login');
+}

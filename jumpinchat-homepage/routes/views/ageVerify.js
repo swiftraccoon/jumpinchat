@@ -1,15 +1,15 @@
-const fs = require('fs');
-const keystone = require('keystone');
-const request = require('request');
-const jwt = require('jsonwebtoken');
-const log = require('../../utils/logger')({ name: 'views.ageVerify' });
-const config = require('../../config');
-const { api } = require('../../constants/constants');
+import fs from 'fs';
+import jwt from 'jsonwebtoken';
+import axios from 'axios';
+import FormData from 'form-data';
+import logFactory from '../../utils/logger.js';
+import config from '../../config/index.js';
+import { api } from '../../constants/constants.js';
 
-module.exports = function ageVerify(req, res) {
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'views.ageVerify' });
+
+export default async function ageVerify(req, res) {
   const { locals } = res;
-  let token;
 
   // locals.section is used to set the currently selected
   // item in the header navigation.
@@ -19,97 +19,118 @@ module.exports = function ageVerify(req, res) {
   locals.error = null;
   locals.success = null;
 
-  view.on('init', (next) => {
-    if (!locals.user) {
-      return res.redirect('/');
-    }
+  // Init phase
+  if (!locals.user) {
+    return res.redirect('/');
+  }
 
-    if (locals.user.attrs.ageVerified) {
-      return res.redirect('/');
-    }
+  if (locals.user.attrs.ageVerified) {
+    return res.redirect('/');
+  }
 
-    token = jwt.sign(String(req.user._id), config.auth.jwtSecret);
+  const token = jwt.sign(String(req.user._id), config.auth.jwtSecret);
 
-    return next();
-  });
-
-  view.on('post', { action: 'upload' }, (next) => {
+  // POST handling
+  if (req.method === 'POST' && req.body.action === 'upload') {
     if (!locals.user.auth.email_is_verified) {
       locals.error = 'Email not verified';
-      return next();
+      return res.render('ageVerify');
     }
 
-    const url = `${api}/api/user/${locals.user._id}/age-verify/upload`;
-    const { id, selfie } = req.files;
+    const uploadUrl = `${api}/api/user/${locals.user._id}/age-verify/upload`;
 
-    if (!id || !selfie) {
+    // Handle both multer array style and legacy keyed style
+    let idFile;
+    let selfieFile;
+    if (Array.isArray(req.files)) {
+      idFile = req.files.find(f => f.fieldname === 'id');
+      selfieFile = req.files.find(f => f.fieldname === 'selfie');
+    } else if (req.files) {
+      idFile = req.files.id;
+      selfieFile = req.files.selfie;
+    }
+
+    if (!idFile || !selfieFile) {
       locals.error = 'Please choose files to upload';
-      return next();
+      return res.render('ageVerify');
     }
 
-    const formData = {
-      id: {
-        value: fs.createReadStream(id.path),
-        options: {
-          filename: id.name,
-          filepath: id.path,
-          contentType: id.mimetype,
-          knownLength: id.size,
+    const formData = new FormData();
+    const tempPaths = [];
+
+    if (idFile.buffer) {
+      formData.append('id', idFile.buffer, {
+        filename: idFile.originalname,
+        contentType: idFile.mimetype,
+      });
+    } else {
+      formData.append('id', fs.createReadStream(idFile.path), {
+        filename: idFile.name,
+        contentType: idFile.mimetype,
+      });
+      tempPaths.push(idFile.path);
+    }
+
+    if (selfieFile.buffer) {
+      formData.append('selfie', selfieFile.buffer, {
+        filename: selfieFile.originalname,
+        contentType: selfieFile.mimetype,
+      });
+    } else {
+      formData.append('selfie', fs.createReadStream(selfieFile.path), {
+        filename: selfieFile.name,
+        contentType: selfieFile.mimetype,
+      });
+      tempPaths.push(selfieFile.path);
+    }
+
+    log.debug({ formData: Object.keys(formData) });
+
+    try {
+      const response = await axios({
+        url: uploadUrl,
+        method: 'POST',
+        headers: {
+          ...formData.getHeaders(),
+          Authorization: token,
         },
-      },
+        data: formData,
+        validateStatus: () => true,
+      });
 
-      selfie: {
-        value: fs.createReadStream(selfie.path),
-        options: {
-          filename: selfie.name,
-          filepath: selfie.path,
-          contentType: selfie.mimetype,
-          knownLength: selfie.size,
-        },
-      },
-    };
-
-    log.debug({ formData });
-
-    return request({
-      url,
-      method: 'post',
-      headers: {
-        Authorization: token,
-      },
-      formData,
-      json: true,
-    }, (err, response, body) => {
-      Object.values(formData).forEach(({ options: { filepath } }) => {
+      // Clean up temp files
+      for (const filepath of tempPaths) {
         fs.unlink(filepath, (err) => {
           if (err) {
             log.fatal({ err, filepath }, 'failed to remove temp file');
             return;
           }
-
           log.debug({ filepath }, 'removed temp file');
         });
-      });
-      if (err) {
-        log.error({ err }, 'error uploading files');
-        return res.status(500).send();
       }
 
-      if (response.statusCode >= 400) {
-        log.warn({ body, status: response.statusCode }, 'failed to upload verification images');
-        if (body && body.message) {
-          locals.error = body.message;
-          return next();
+      if (response.status >= 400) {
+        log.warn({ body: response.data, status: response.status }, 'failed to upload verification images');
+        if (response.data && response.data.message) {
+          locals.error = response.data.message;
+          return res.render('ageVerify');
         }
 
         locals.error = 'Failed to upload';
-        return next();
+        return res.render('ageVerify');
       }
 
       locals.success = 'Uploaded successfully';
       return res.redirect('/ageverify/success');
-    });
-  });
+    } catch (err) {
+      // Clean up temp files on error
+      for (const filepath of tempPaths) {
+        fs.unlink(filepath, () => {});
+      }
+      log.error({ err }, 'error uploading files');
+      return res.status(500).send();
+    }
+  }
 
-  view.render('ageVerify');
-};
+  return res.render('ageVerify');
+}

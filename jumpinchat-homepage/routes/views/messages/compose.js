@@ -1,22 +1,22 @@
-const url = require('url');
-const keystone = require('keystone');
-const request = require('request');
-const jwt = require('jsonwebtoken');
-const Joi = require('joi');
-const marked = require('marked');
-const log = require('../../../utils/logger')({ name: 'messages.compose' });
-const config = require('../../../config');
-const { getUserByUsername } = require('../../../utils/userUtils');
-const { getConversation, markMessagesRead } = require('../../../utils/messageUtils');
-const {
+import url from 'url';
+import jwt from 'jsonwebtoken';
+import axios from 'axios';
+import Joi from 'joi';
+import { marked } from 'marked';
+import logFactory from '../../../utils/logger.js';
+import config from '../../../config/index.js';
+import { getUserByUsername } from '../../../utils/userUtils.js';
+import { getConversation, markMessagesRead } from '../../../utils/messageUtils.js';
+import {
   errors,
   successMessages,
   api,
   messageReportReasons,
-} = require('../../../constants/constants');
+} from '../../../constants/constants.js';
 
-module.exports = function messageInbox(req, res) {
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'messages.compose' });
+
+export default async function messageCompose(req, res) {
   const { locals } = res;
   const { recipient } = req.params;
   const {
@@ -25,7 +25,6 @@ module.exports = function messageInbox(req, res) {
     page = 1,
     report,
   } = req.query;
-  let token;
 
   // locals.section is used to set the currently selected
   // item in the header navigation.
@@ -39,122 +38,52 @@ module.exports = function messageInbox(req, res) {
   locals.messageReportReasons = messageReportReasons;
   locals.report = report;
 
-  view.on('init', async (next) => {
-    if (!locals.user) {
-      return res.redirect('/');
+  // Init phase
+  if (!locals.user) {
+    return res.redirect('/');
+  }
+
+  const token = jwt.sign(String(req.user._id), config.auth.jwtSecret);
+
+  const cache = locals.success ? 0 : 1;
+
+  try {
+    const user = await getUserByUsername(recipient);
+    if (!user) {
+      log.warn('no user found');
+      return res.redirect('/messages');
     }
 
-    token = jwt.sign(String(req.user._id), config.auth.jwtSecret);
+    const conversation = await getConversation(String(req.user._id), user.id, token, page, cache);
+    await markMessagesRead(String(req.user._id), user.id, token);
 
-    const cache = locals.success ? 0 : 1;
+    locals.recipient = user;
+    locals.conversation = {
+      ...conversation,
+      messages: conversation.messages.map(m => ({
+        ...m,
+        message: m.message && marked(m.message),
+      })),
+    };
 
-    try {
-      const user = await getUserByUsername(recipient);
-      if (!user) {
-        log.warn('no user found');
-        return res.redirect('/messages');
-      }
+    locals.userIgnored = locals.user.settings.ignoreList
+      .some(u => String(u.userId) === String(locals.recipient._id));
+  } catch (err) {
+    log.fatal({ err }, 'failed to get recipient user');
+    return res.status(500).end();
+  }
 
-      const conversation = await getConversation(String(req.user._id), user.id, token, page, cache);
-      await markMessagesRead(String(req.user._id), user.id, token);
-
-
-      locals.recipient = user;
-      locals.conversation = {
-        ...conversation,
-        messages: conversation.messages.map(m => ({
-          ...m,
-          message: m.message && marked(m.message),
-        })),
-      };
-
-      locals.userIgnored = locals.user.settings.ignoreList
-        .some(u => String(u.userId) === String(locals.recipient._id));
-
-      return next();
-    } catch (err) {
-      log.fatal({ err }, 'failed to get recipient user');
-      return res.status(500).end();
-    }
-  });
-
-  view.on('post', { action: 'send' }, async (next) => {
-    const schema = Joi.object().keys({
+  // POST: send
+  if (req.method === 'POST' && req.body.action === 'send') {
+    const schema = Joi.object({
       message: Joi.string().required(),
     });
 
-    try {
-      const {
-        message,
-      } = await Joi.validate({
-        message: req.body.message,
-      }, schema);
+    const { error: validationError, value } = schema.validate({
+      message: req.body.message,
+    });
 
-      return request({
-        url: `${api}/api/message/${locals.recipient._id}`,
-        method: 'post',
-        headers: {
-          Authorization: token,
-        },
-        body: {
-          message,
-        },
-        json: true,
-      }, (err, response, body) => {
-        if (err) {
-          log.error({ err }, 'error retrieving conversations');
-          locals.error = errors.ERR_SRV;
-          return res.redirect(url.format({
-            path: './',
-            query: {
-              error: locals.error,
-            },
-          }));
-        }
-
-        if (response.statusCode >= 400) {
-          log.error({ body });
-          if (body.message) {
-            locals.error = body.message;
-            return res.redirect(url.format({
-              path: './',
-              query: {
-                error: locals.error,
-              },
-            }));
-          }
-
-          locals.error = errors.ERR_SRV;
-          return res.redirect(url.format({
-            path: './',
-            query: {
-              error: locals.error,
-            },
-          }));
-        }
-
-        const newMessage = {
-          ...body,
-          message: body.message ? marked(body.message) : '',
-        };
-        locals.conversation = {
-          ...locals.conversation,
-          messages: [
-            newMessage,
-            ...locals.conversation.messages,
-          ],
-        };
-
-        locals.success = 'Message sent';
-
-        return res.redirect(url.format({
-          path: './',
-          query: {
-            success: locals.success,
-          },
-        }));
-      });
-    } catch (err) {
+    if (validationError) {
       locals.error = errors.ERR_VALIDATION;
       return res.redirect(url.format({
         path: './',
@@ -163,9 +92,57 @@ module.exports = function messageInbox(req, res) {
         },
       }));
     }
-  });
 
-  view.on('post', { action: 'ignore' }, async (next) => {
+    try {
+      const response = await axios({
+        url: `${api}/api/message/${locals.recipient._id}`,
+        method: 'POST',
+        headers: {
+          Authorization: token,
+        },
+        data: {
+          message: value.message,
+        },
+        validateStatus: () => true,
+      });
+
+      if (response.status >= 400) {
+        log.error({ body: response.data });
+        if (response.data && response.data.message) {
+          locals.error = response.data.message;
+        } else {
+          locals.error = errors.ERR_SRV;
+        }
+        return res.redirect(url.format({
+          path: './',
+          query: {
+            error: locals.error,
+          },
+        }));
+      }
+
+      locals.success = 'Message sent';
+
+      return res.redirect(url.format({
+        path: './',
+        query: {
+          success: locals.success,
+        },
+      }));
+    } catch (err) {
+      log.error({ err }, 'error retrieving conversations');
+      locals.error = errors.ERR_SRV;
+      return res.redirect(url.format({
+        path: './',
+        query: {
+          error: locals.error,
+        },
+      }));
+    }
+  }
+
+  // POST: ignore
+  if (req.method === 'POST' && req.body.action === 'ignore') {
     if (locals.userIgnored) {
       locals.user.settings.ignoreList = locals.user.settings.ignoreList
         .filter(u => String(u.userId) !== String(locals.recipient._id));
@@ -180,12 +157,8 @@ module.exports = function messageInbox(req, res) {
       ];
     }
 
-    locals.user.save((err, savedUser) => {
-      if (err) {
-        log.fatal({ err }, 'error saving room');
-        return res.status(500).send();
-      }
-
+    try {
+      const savedUser = await locals.user.save();
       locals.user = savedUser;
       locals.success = 'User settings saved';
       return res.redirect(url.format({
@@ -194,79 +167,25 @@ module.exports = function messageInbox(req, res) {
           success: locals.success,
         },
       }));
-    });
-  });
+    } catch (err) {
+      log.fatal({ err }, 'error saving room');
+      return res.status(500).send();
+    }
+  }
 
-  view.on('post', { action: 'report' }, async (next) => {
-    const schema = Joi.object().keys({
+  // POST: report
+  if (req.method === 'POST' && req.body.action === 'report') {
+    const schema = Joi.object({
       reason: Joi.string().required(),
       message: Joi.string().required(),
     });
 
-    try {
-      const {
-        reason,
-        message,
-      } = await Joi.validate({
-        reason: req.body.reason,
-        message: report,
-      }, schema);
+    const { error: validationError, value } = schema.validate({
+      reason: req.body.reason,
+      message: report,
+    });
 
-      return request({
-        url: `${api}/api/report/message`,
-        method: 'post',
-        headers: {
-          Authorization: token,
-        },
-        body: {
-          messageId: message,
-          reason,
-        },
-        json: true,
-      }, (err, response, body) => {
-        if (err) {
-          log.error({ err }, 'error posting report');
-          locals.error = errors.ERR_SRV;
-          return res.redirect(url.format({
-            path: './',
-            query: {
-              error: locals.error,
-            },
-          }));
-        }
-
-        if (response.statusCode >= 400) {
-          log.error({ body });
-          if (body.message) {
-            locals.error = body.message;
-            return res.redirect(url.format({
-              path: './',
-              query: {
-                error: locals.error,
-              },
-            }));
-          }
-
-          locals.error = errors.ERR_SRV;
-          return res.redirect(url.format({
-            path: './',
-            query: {
-              error: locals.error,
-            },
-          }));
-        }
-
-
-        locals.success = 'Report sent';
-
-        return res.redirect(url.format({
-          path: './',
-          query: {
-            success: locals.success,
-          },
-        }));
-      });
-    } catch (err) {
+    if (validationError) {
       locals.error = errors.ERR_VALIDATION;
       return res.redirect(url.format({
         path: './',
@@ -275,41 +194,28 @@ module.exports = function messageInbox(req, res) {
         },
       }));
     }
-  });
 
-  view.on('post', { action: 'archive' }, async (next) => {
-    return request({
-      url: `${api}/api/message/archive/${locals.user._id}/${locals.conversation.participant._id}`,
-      method: 'put',
-      headers: {
-        Authorization: token,
-      },
-      json: true,
-    }, (err, response, body) => {
-      if (err) {
-        log.error({ err }, 'error archiving conversation');
-        locals.error = errors.ERR_SRV;
-        return res.redirect(url.format({
-          path: './',
-          query: {
-            error: locals.error,
-          },
-        }));
-      }
+    try {
+      const response = await axios({
+        url: `${api}/api/report/message`,
+        method: 'POST',
+        headers: {
+          Authorization: token,
+        },
+        data: {
+          messageId: value.message,
+          reason: value.reason,
+        },
+        validateStatus: () => true,
+      });
 
-      if (response.statusCode >= 400) {
-        log.error({ body }, 'error archiving conversation');
-        if (body && body.message) {
-          locals.error = body.message;
-          return res.redirect(url.format({
-            path: './',
-            query: {
-              error: locals.error,
-            },
-          }));
+      if (response.status >= 400) {
+        log.error({ body: response.data });
+        if (response.data && response.data.message) {
+          locals.error = response.data.message;
+        } else {
+          locals.error = errors.ERR_SRV;
         }
-
-        locals.error = errors.ERR_SRV;
         return res.redirect(url.format({
           path: './',
           query: {
@@ -318,13 +224,67 @@ module.exports = function messageInbox(req, res) {
         }));
       }
 
+      locals.success = 'Report sent';
+      return res.redirect(url.format({
+        path: './',
+        query: {
+          success: locals.success,
+        },
+      }));
+    } catch (err) {
+      log.error({ err }, 'error posting report');
+      locals.error = errors.ERR_SRV;
+      return res.redirect(url.format({
+        path: './',
+        query: {
+          error: locals.error,
+        },
+      }));
+    }
+  }
+
+  // POST: archive
+  if (req.method === 'POST' && req.body.action === 'archive') {
+    try {
+      const response = await axios({
+        url: `${api}/api/message/archive/${locals.user._id}/${locals.conversation.participant._id}`,
+        method: 'PUT',
+        headers: {
+          Authorization: token,
+        },
+        validateStatus: () => true,
+      });
+
+      if (response.status >= 400) {
+        log.error({ body: response.data }, 'error archiving conversation');
+        if (response.data && response.data.message) {
+          locals.error = response.data.message;
+        } else {
+          locals.error = errors.ERR_SRV;
+        }
+        return res.redirect(url.format({
+          path: './',
+          query: {
+            error: locals.error,
+          },
+        }));
+      }
 
       log.info('conversation archived');
       locals.success = 'Conversation archived';
 
       return res.redirect(`/messages?success=${locals.success}`);
-    });
-  });
+    } catch (err) {
+      log.error({ err }, 'error archiving conversation');
+      locals.error = errors.ERR_SRV;
+      return res.redirect(url.format({
+        path: './',
+        query: {
+          error: locals.error,
+        },
+      }));
+    }
+  }
 
-  view.render('messages/compose');
-};
+  return res.render('messages/compose');
+}

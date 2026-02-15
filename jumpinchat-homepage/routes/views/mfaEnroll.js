@@ -1,17 +1,16 @@
-const keystone = require('keystone');
-const url = require('url');
-const Joi = require('joi');
-const jwt = require('jsonwebtoken');
-const config = require('../../config');
-const { api } = require('../../constants/constants');
-const log = require('../../utils/logger')({ name: 'settings.account.mfa' });
-const request = require('../../utils/request');
+import url from 'url';
+import Joi from 'joi';
+import jwt from 'jsonwebtoken';
+import config from '../../config/index.js';
+import { api } from '../../constants/constants.js';
+import logFactory from '../../utils/logger.js';
+import request from '../../utils/request.js';
 
-module.exports = function mfaEnroll(req, res) {
-  const view = new keystone.View(req, res);
+const log = logFactory({ name: 'settings.account.mfa' });
+
+export default async function mfaEnroll(req, res) {
   const { locals } = res;
   const { error } = req.query;
-  let token;
 
   locals.section = 'Enroll MFA';
   locals.description = 'Secure your account by enrolling in MFA';
@@ -19,17 +18,14 @@ module.exports = function mfaEnroll(req, res) {
   locals.mfaQr = null;
   locals.error = error || null;
 
-  view.on('init', async (next) => {
-    if (!locals.user) {
-      return res.redirect('/');
-    }
+  // Init phase
+  if (!locals.user) {
+    return res.redirect('/');
+  }
 
-    token = jwt.sign(String(req.user._id), config.auth.jwtSecret);
+  const token = jwt.sign(String(req.user._id), config.auth.jwtSecret);
 
-    if (locals.mfaQr) {
-      return next();
-    }
-
+  if (!locals.mfaQr) {
     try {
       const response = await request({
         method: 'GET',
@@ -48,21 +44,18 @@ module.exports = function mfaEnroll(req, res) {
         locals.error = err;
       }
     }
+  }
 
-    return next();
-  });
-
-  view.on('post', { action: 'verify' }, async () => {
+  // POST handling
+  if (req.method === 'POST' && req.body.action === 'verify') {
     locals.error = null;
-    const schema = Joi.object().keys({
+    const schema = Joi.object({
       token: Joi.string().min(6).max(6).required(),
     });
 
-    try {
-      await Joi.validate({
-        token: req.body.token,
-      }, schema);
-    } catch (err) {
+    const { error: validationError } = schema.validate({ token: req.body.token });
+
+    if (validationError) {
       locals.error = 'invalid token';
       return res.redirect(url.format({
         path: './',
@@ -101,7 +94,7 @@ module.exports = function mfaEnroll(req, res) {
     req.session.hasGeneratedBackupCodes = false;
 
     return res.redirect('/settings/account/mfa/backup');
-  });
+  }
 
-  view.render('mfaEnroll');
-};
+  return res.render('mfaEnroll');
+}
