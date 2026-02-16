@@ -5,8 +5,6 @@ import $ from 'jquery';
 
 const profileButton = $('#profile-drop-trigger');
 const profileDropdown = $('#profile-drop-container');
-const newButton = $('#new');
-
 if (profileButton.length) {
   const profileTether = new Tether({
     element: profileDropdown,
@@ -28,23 +26,13 @@ if (profileButton.length) {
     ],
   });
 
-  (() => {
-    $(window).on('click', () => {
-      profileDropdown.hide();
-    });
+  $(window).on('click', () => {
+    profileDropdown.hide();
+  });
 
-    profileButton.on('click', (e) => {
-      e.stopPropagation();
-      profileDropdown.toggle();
-      profileTether.enable();
-    });
-
-    newButton.on('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (Headway.widgetIsReady) {
-        Headway.show();
-      }
-    });
-  })();
+  profileButton.on('click', (e) => {
+    e.stopPropagation();
+    profileDropdown.toggle();
+    profileTether.enable();
+  });
 }

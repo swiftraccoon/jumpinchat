@@ -1,0 +1,19 @@
+extends ../layouts/default
+
+block content
+  .site-wrapper
+    include ../includes/header
+    section.full-width
+      .wrapper
+        header
+          h2.page-header Blog
+
+        if posts.length
+          each post in posts
+            article.blog__post
+              h3.blog__postTitle
+                a.blog__postLink(href="/blog/" + post.slug)= post.title
+              time.blog__postDate(datetime=post.date)= new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+              p.blog__postSummary= post.summary
+        else
+          p No blog posts yet.

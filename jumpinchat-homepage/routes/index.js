@@ -33,6 +33,8 @@ import adminBanListView from './views/adminBanList.js';
 import adminBanDetailsView from './views/adminBanDetails.js';
 import termsView from './views/terms.js';
 import privacyView from './views/privacy.js';
+import blogView from './views/blog.js';
+import statusView from './views/status.js';
 
 // Nested view handlers
 import accountSettingsView from './views/settings/account.js';
@@ -85,6 +87,8 @@ export default function routes(app) {
   app.all('/messages', inboxView);
   app.all('/messages/:recipient', composeView);
 
+  app.get('/blog', blogView);
+  app.get('/blog/:slug', blogView);
 
   app.all('/admin/communication', noFollow, validateUserIsAdmin, communicationView);
   app.all('/admin/rooms/:room', noFollow, validateUserIsAdmin, adminRoomDetailsView);
@@ -118,6 +122,7 @@ export default function routes(app) {
 
   app.get('/terms', termsView);
   app.get('/privacy', privacyView);
+  app.get('/status', statusView);
   app.post('/session/register', (req, res) => {
     req.session.fingerprint = req.body.fp;
     return res.status(200).send();

@@ -74,15 +74,7 @@ html(lang="en")
         ga('set', 'anonymizeIp', true);
         ga('send', 'pageview');
 
-    script.
-      HW_config = {
-        selector: '#new',
-        account: 'xao8eJ'
-      };
-    script(src=asset('/js/bundle.js'), nomodule="nomodule")
-    script(src=asset('/js/bundle.mjs'), type="module")
-
-    script(src='https://cdn.headwayapp.co/widget.js', async=true)
+    script(src=asset('/js/app.js'), type="module")
     script(src='https://js.stripe.com/v3/')
 
     //- Include template-specific javascript files by extending the js block
