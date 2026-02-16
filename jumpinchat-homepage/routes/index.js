@@ -66,12 +66,15 @@ export default function routes(app) {
   app.all('/settings/account/mfa/backup', mfaEnrollBackupCodesView);
   app.all('/settings/account', accountSettingsView);
   app.delete('/settings/ignore', checkUserSession, removeIgnore);
-  app.all('/settings/{/:page}', settingsView);
-  app.all('/profile/{/:username}', profileView);
+  app.all('/settings', (req, res) => res.redirect('/settings/profile'));
+  app.all('/settings/:page', settingsView);
+  app.all('/profile', profileView);
+  app.all('/profile/:username', profileView);
   app.get('/verify-email/:token', verifyEmailView);
   app.all('/password-reset/request', resetPasswordRequestView);
   app.all('/password-reset/reset/:token', resetPasswordView);
-  app.all('/help/{/:page}', helpView);
+  app.all('/help', (req, res) => res.redirect(301, '/help/cams'));
+  app.all('/help/:page', helpView);
   app.all('/contact', contactView);
   app.all('/ageverify', ageVerifyView);
   app.get('/ageverify/success', ageVerificationSuccessView);
