@@ -97,7 +97,8 @@ export default function routes(app) {
   app.all('/admin/roomclosures/:closeId', noFollow, validateUserIsAdmin, roomCloseDetailView);
   app.all('/admin/sitemods', noFollow, validateUserIsAdmin, siteModsView);
   app.all('/admin/sitemods/activity', noFollow, validateUserIsAdmin, modActivityView);
-  app.all('/admin/{/:page}', noFollow, validateUserIsAdmin, adminView);
+  app.all('/admin', noFollow, validateUserIsAdmin, (req, res) => res.redirect('/admin/dashboard'));
+  app.all('/admin/:page', noFollow, validateUserIsAdmin, adminView);
 
   app.all('/sitemod', noFollow, validateUserIsSiteMod,
     (req, res) => res.redirect('/sitemod/conduct'));
