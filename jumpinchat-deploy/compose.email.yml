@@ -1,0 +1,24 @@
+# Email tier: SMTP email microservice
+# Can run standalone on a dedicated server
+
+services:
+  email:
+    build: ../jumpinchat-email
+    image: echo.research.clinic/jic-email
+    expose:
+      - "3001"
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - SMTP_HOST=$SMTP_HOST
+      - SMTP_PORT=$SMTP_PORT
+      - SMTP_SECURE=$SMTP_SECURE
+      - SMTP_USER=$SMTP_USER
+      - SMTP_PASS=$SMTP_PASS
+      - SMTP_FROM=$SMTP_FROM
+      - SHARED_SECRET=$SHARED_SECRET
+    logging:
+      options:
+        max-size: '1m'
+    restart: always

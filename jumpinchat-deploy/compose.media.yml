@@ -1,0 +1,58 @@
+# Media tier: Janus WebRTC Gateway instances
+# Can run standalone on a dedicated media server
+
+services:
+  janus:
+    build:
+      context: ./janus
+    image: echo.research.clinic/janus
+    expose:
+      - "8088"
+      - "8889"
+      - "8188"
+      - "8989"
+      - "7888"
+    ports:
+      - "20000-20100:20000-20100/udp"
+    volumes:
+      - ./fullchain.pem:/opt/janus/certs/fullchain.pem:z
+      - ./privkey.pem:/opt/janus/certs/privkey.pem:z
+    environment:
+      - DEBUG_COLORS=false
+      - SERVER_NAME=janus
+      - ENABLE_EVENTS=true
+      - ENABLE_RABBIT_EVENTS=false
+      - JANUS_TOKEN_SECRET=$JANUS_TOKEN_SECRET
+      - NAT_1_1_IP=192.168.88.197
+    logging:
+      options:
+        max-size: '1m'
+    restart: always
+
+  janus2:
+    image: echo.research.clinic/janus
+    expose:
+      - "8088"
+      - "8889"
+      - "8188"
+      - "8989"
+      - "7888"
+    ports:
+      - "20101-20200:20101-20200/udp"
+    environment:
+      - DEBUG_COLORS=false
+      - SERVER_NAME=janus2
+      - ENABLE_EVENTS=true
+      - ENABLE_RABBIT_EVENTS=false
+      - JANUS_TOKEN_SECRET=$JANUS_TOKEN_SECRET
+      - NAT_1_1_IP=192.168.88.197
+      - RTP_PORT_MIN=20101
+      - RTP_PORT_MAX=20200
+    logging:
+      options:
+        max-size: '1m'
+    volumes:
+      - ./core:/opt/janus/bin/core:z
+      - ./fullchain.pem:/opt/janus/certs/fullchain.pem:z
+      - ./privkey.pem:/opt/janus/certs/privkey.pem:z
+    restart: always
