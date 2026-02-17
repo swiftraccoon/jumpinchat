@@ -35,6 +35,15 @@ const all = {
     'orangealt',
   ],
 
+  storage: {
+    backend: process.env.STORAGE_BACKEND || 'local',
+    s3Endpoint: process.env.S3_ENDPOINT || 'http://minio:9000',
+    s3AccessKey: process.env.S3_ACCESS_KEY || '',
+    s3SecretKey: process.env.S3_SECRET_KEY || '',
+    s3Bucket: process.env.S3_BUCKET || 'uploads',
+    s3Region: process.env.S3_REGION || 'us-east-1',
+  },
+
   uploads: {
     userProfileAvatar: {
       width: 256,

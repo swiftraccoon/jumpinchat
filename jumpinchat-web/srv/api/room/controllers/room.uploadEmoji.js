@@ -7,10 +7,10 @@ import roomEmojiModel from '../roomEmoji.model.js';
 import config from '../../../config/env/index.js';
 import errors from '../../../config/constants/errors.js';
 const log = logFactory({ name: 'uploadEmoji' });
+import { upload } from '../../../lib/storage.js';
 import {
   convertImages,
   mergeBuffers,
-  s3Upload,
   isValidImage,
   getExtFromMime,
   validateMagicBytes,
@@ -129,30 +129,30 @@ export default function uploadEmoji(req, res) {
           const newFileName = uuid.v4();
           const filePath = `room-emoji/${newFileName}.${getExtFromMime(mimeType)}`;
 
-          log.debug('uploading image to s3');
+          log.debug('uploading image');
 
-          s3Upload(convertedImage, filePath, async (err, data) => {
-            if (err) {
-              log.fatal({ err }, 'upload to s3 failed');
-              return res.status(500).send();
-            }
+          try {
+            await upload(filePath, convertedImage, mimeType);
+          } catch (uploadErr) {
+            log.fatal({ err: uploadErr }, 'upload failed');
+            return res.status(500).send();
+          }
 
-            log.info(`upload done: ${filePath}`);
-            try {
-              const emojiData = {
-                userId,
-                imageUri: filePath,
-                alias,
-                roomId: room._id,
-              };
-              const emoji = await createEmojiItem(emojiData);
-              log.info({ emoji }, 'emoji uploaded');
-              return res.status(201).send(emoji);
-            } catch (err) {
-              log.fatal({ err }, 'failed to create emoji document');
-              return res.status(500).send(errors.ERR_SRV);
-            }
-          });
+          log.info(`upload done: ${filePath}`);
+          try {
+            const emojiData = {
+              userId,
+              imageUri: filePath,
+              alias,
+              roomId: room._id,
+            };
+            const emoji = await createEmojiItem(emojiData);
+            log.info({ emoji }, 'emoji uploaded');
+            return res.status(201).send(emoji);
+          } catch (err) {
+            log.fatal({ err }, 'failed to create emoji document');
+            return res.status(500).send(errors.ERR_SRV);
+          }
         } catch (err) {
           log.fatal({ err }, 'error fetching room');
           return res.status(500).send(errors.ERR_SRV);

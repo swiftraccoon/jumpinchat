@@ -4,10 +4,10 @@ import { getRoomByName } from '../room.utils.js';
 import config from '../../../config/env/index.js';
 import errors from '../../../config/constants/errors.js';
 const log = logFactory({ name: 'uploadDisplayPic' });
+import { upload } from '../../../lib/storage.js';
 import {
   convertImages,
   mergeBuffers,
-  s3Upload,
   isValidImage,
   getExtFromMime,
   validateMagicBytes,
@@ -70,13 +70,13 @@ export default function uploadDisplayPic(req, res) {
         height: config.uploads.roomCover.height,
       };
 
-      convertImages(fileBuffer, dimensions, (err, convertedImage) => {
+      convertImages(fileBuffer, dimensions, async (err, convertedImage) => {
         if (err) {
           log.fatal({ err }, 'failed to convert images');
           return res.status(500).send(errors.ERR_SRV);
         }
 
-        getRoomByName(req.params.room, (err, room) => {
+        getRoomByName(req.params.room, async (err, room) => {
           if (err) {
             log.fatal({ err }, 'error fetching user');
             return res.status(500).send(errors.ERR_SRV);
@@ -100,23 +100,23 @@ export default function uploadDisplayPic(req, res) {
 
           const filePath = `room-display/display-${room.name}.${getExtFromMime(mimeType)}`;
 
-          s3Upload(convertedImage, filePath, (err, data) => {
-            if (err) {
-              log.fatal('upload to s3 failed', { err });
-              return res.status(500).send(errors.ERR_SRV);
-            }
+          try {
+            await upload(filePath, convertedImage, mimeType);
+          } catch (uploadErr) {
+            log.fatal('upload failed', { err: uploadErr });
+            return res.status(500).send(errors.ERR_SRV);
+          }
 
-            log.info(`Uploaded display image: ${filePath}`);
+          log.info(`Uploaded display image: ${filePath}`);
 
-            room.settings.display = filePath;
+          room.settings.display = filePath;
 
-            room.save()
-              .then(() => res.status(200).send({ url: filePath }))
-              .catch((saveErr) => {
-                log.fatal({ err: saveErr }, 'saving user failed');
-                res.status(500).send();
-              });
-          });
+          room.save()
+            .then(() => res.status(200).send({ url: filePath }))
+            .catch((saveErr) => {
+              log.fatal({ err: saveErr }, 'saving user failed');
+              res.status(500).send();
+            });
         });
       });
     });
