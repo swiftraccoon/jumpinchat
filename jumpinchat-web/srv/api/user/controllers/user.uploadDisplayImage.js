@@ -4,10 +4,10 @@ import { getUserById } from '../user.utils.js';
 import config from '../../../config/env/index.js';
 import errors from '../../../config/constants/errors.js';
 const log = logFactory({ name: 'uploadDisplayImage' });
+import { upload } from '../../../lib/storage.js';
 import {
   convertImages,
   mergeBuffers,
-  s3Upload,
   isValidImage,
   getExtFromMime,
   validateMagicBytes,
@@ -74,12 +74,12 @@ export default function uploadDisplayImage(req, res) {
         height: config.uploads.userProfileAvatar.height,
       };
 
-      convertImages(fileBuffer, dimensions, (err, convertedImage) => {
+      convertImages(fileBuffer, dimensions, async (err, convertedImage) => {
         if (err) {
           return res.status(500).send();
         }
 
-        getUserById(req.params.userId, (err, user) => {
+        getUserById(req.params.userId, async (err, user) => {
           if (err) {
             log.fatal('error fetching user', { err });
             return res.status(500).send();
@@ -87,25 +87,25 @@ export default function uploadDisplayImage(req, res) {
 
           const filePath = `user-avatar/avatar-${user.username}.${getExtFromMime(mimeType)}`;
 
-          log.debug('uploading image to s3');
+          log.debug('uploading image');
 
-          s3Upload(convertedImage, filePath, (err, data) => {
-            if (err) {
-              log.fatal('upload to s3 failed', { err });
-              return res.status(500).send();
-            }
+          try {
+            await upload(filePath, convertedImage, mimeType);
+          } catch (uploadErr) {
+            log.fatal('upload failed', { err: uploadErr });
+            return res.status(500).send();
+          }
 
-            log.info(`upload done: ${filePath}`);
+          log.info(`upload done: ${filePath}`);
 
-            user.profile.pic = filePath;
+          user.profile.pic = filePath;
 
-            user.save()
-              .then(() => res.status(200).send({ url: filePath }))
-              .catch((saveErr) => {
-                log.fatal('saving user failed', { err: saveErr });
-                res.status(500).send();
-              });
-          });
+          user.save()
+            .then(() => res.status(200).send({ url: filePath }))
+            .catch((saveErr) => {
+              log.fatal('saving user failed', { err: saveErr });
+              res.status(500).send();
+            });
         });
       });
     });

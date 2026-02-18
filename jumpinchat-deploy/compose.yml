@@ -1,0 +1,11 @@
+# All-in-one compose file for single-server deployment
+# Includes all service groups via compose include
+#
+# Usage: podman-compose -f compose.yml up -d
+# With MinIO: podman-compose -f compose.yml -f compose.storage.yml up -d
+
+include:
+  - compose.app.yml
+  - compose.media.yml
+  - compose.data.yml
+  - compose.email.yml

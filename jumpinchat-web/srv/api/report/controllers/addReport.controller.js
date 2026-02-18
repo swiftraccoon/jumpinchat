@@ -7,7 +7,9 @@ import logFactory from '../../../utils/logger.util.js';
 import SlackBot from '../../../utils/slack.util.js';
 import config from '../../../config/env/index.js';
 const log = logFactory({ name: 'addReport' });
-import { getRemoteIpFromReq, uploadDataUriToS3 } from '../../../utils/utils.js';
+import { getRemoteIpFromReq, validateMagicBytes } from '../../../utils/utils.js';
+import { uploadPrivate } from '../../../lib/storage.js';
+import { generateSignedFileUrl } from '../../../utils/fileToken.util.js';
 
 const slackBot = new SlackBot(
   config.slack.hookUrl,
@@ -102,101 +104,114 @@ export default function addReport(req, res) {
 
         const screenshotFileName = `${Date.now()}.${targetUser._id}.jpg`;
 
-        uploadDataUriToS3(screenshotFileName, screenshotUri, async (err, url) => {
-          if (err) {
-            log.fatal({ err }, 'error uploading report screenshot');
+        let screenshotUrl = null;
+        if (screenshotUri) {
+          const mimeMatch = screenshotUri.match(/^data:(image\/\w+);base64,/);
+          const mimeType = mimeMatch ? mimeMatch[1] : null;
+          const buf = Buffer.from(screenshotUri.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+
+          if (!mimeType || !validateMagicBytes(buf, mimeType)) {
+            log.error({ mimeType }, 'invalid image data URI');
+            return res.status(400).send(errors.ERR_SRV);
+          }
+
+          try {
+            const dest = await uploadPrivate(buf, 'report-screenshots', screenshotFileName);
+            screenshotUrl = generateSignedFileUrl(dest, config.report.logTimeout);
+          } catch (uploadErr) {
+            log.fatal({ err: uploadErr }, 'error uploading report screenshot');
             return res.status(500).send(errors.ERR_SRV);
           }
 
-          log.debug({ url }, 'uploaded screenshot successfully');
+          log.debug({ url: screenshotUrl }, 'uploaded screenshot successfully');
+        }
 
-          const report = {
-            reason,
-            description,
-            room: {
-              name: roomObj.name,
-              roomId: roomObj._id,
+        const report = {
+          reason,
+          description,
+          room: {
+            name: roomObj.name,
+            roomId: roomObj._id,
+          },
+          target: {
+            ip: targetUser.ip,
+            handle: targetUser.handle,
+            userListId: targetId,
+            userId: targetUser.user_id,
+            sessionId: targetUser.session_id,
+            socketId: targetUser.socket_id,
+            fingerprint: targetUserFingerprint,
+          },
+          reporter: {
+            ip,
+            handle: reportingUser.handle,
+            userListId: reporterId,
+            userId: reportingUser.user_id,
+            sessionId: reportingUser.session_id,
+            socketId: targetUser.socket_id,
+          },
+          log: {
+            body: {
+              screenshot: screenshotUrl,
+              chat: messages,
+              privateMessages,
             },
-            target: {
-              ip: targetUser.ip,
-              handle: targetUser.handle,
-              userListId: targetId,
-              userId: targetUser.user_id,
-              sessionId: targetUser.session_id,
-              socketId: targetUser.socket_id,
-              fingerprint: targetUserFingerprint,
-            },
-            reporter: {
-              ip,
-              handle: reportingUser.handle,
-              userListId: reporterId,
-              userId: reportingUser.user_id,
-              sessionId: reportingUser.session_id,
-              socketId: targetUser.socket_id,
-            },
-            log: {
-              body: {
-                screenshot: url,
-                chat: messages,
-                privateMessages,
+          },
+        };
+
+        let createdReport;
+        try {
+          createdReport = await reportModel.create(report);
+        } catch (createErr) {
+          log.fatal({ err: createErr }, 'failed to save report');
+          return res.status(500).send(errors.ERR_SRV);
+        }
+
+        const text = 'User report';
+        const attachments = [
+          {
+            fallback: text,
+            title: text,
+            title_link: `https://jumpin.chat/admin/reports/${createdReport._id}`,
+            fields: [
+              {
+                title: 'Reason',
+                value: report.reason,
+                short: true,
               },
-            },
-          };
+              {
+                title: 'Room',
+                value: `<https://jumpin.chat/admin/rooms/${report.room.name}|${report.room.name}>`,
+                short: true,
+              },
+              {
+                title: 'Reporter',
+                value: report.reporter.handle,
+                short: true,
+              },
+              {
+                title: 'Target',
+                value: report.target.handle,
+                short: true,
+              },
+            ],
+            ts: Date.now() / 1000,
+          },
+        ];
 
-          let createdReport;
-          try {
-            createdReport = await reportModel.create(report);
-          } catch (createErr) {
-            log.fatal({ err: createErr }, 'failed to save report');
-            return res.status(500).send(errors.ERR_SRV);
-          }
+        try {
+          await slackBot.message(attachments);
+        } catch (slackErr) {
+          log.error({ err: slackErr }, 'failed to send slack message');
+        }
 
-          const text = 'User report';
-          const attachments = [
-            {
-              fallback: text,
-              title: text,
-              title_link: `https://jumpin.chat/admin/reports/${createdReport._id}`,
-              fields: [
-                {
-                  title: 'Reason',
-                  value: report.reason,
-                  short: true,
-                },
-                {
-                  title: 'Room',
-                  value: `<https://jumpin.chat/admin/rooms/${report.room.name}|${report.room.name}>`,
-                  short: true,
-                },
-                {
-                  title: 'Reporter',
-                  value: report.reporter.handle,
-                  short: true,
-                },
-                {
-                  title: 'Target',
-                  value: report.target.handle,
-                  short: true,
-                },
-              ],
-              ts: Date.now() / 1000,
-            },
-          ];
+        try {
+          await reportUtils.sendReportMessages(createdReport, roomObj.name);
+        } catch (reportErr) {
+          log.fatal({ err: reportErr }, 'failed to send report messages');
+        }
 
-          try {
-            await slackBot.message(attachments);
-          } catch (slackErr) {
-            log.error({ err: slackErr }, 'failed to send slack message');
-          }
-
-          try {
-            await reportUtils.sendReportMessages(createdReport, roomObj.name);
-          } catch (reportErr) {
-            log.fatal({ err: reportErr }, 'failed to send report messages');
-          }
-
-          return res.status(201).send();
-        });
+        return res.status(201).send();
       });
     });
 };

@@ -100,9 +100,11 @@ If using Docker (root), skip this step.
 ### 6. Build and start
 
 ```bash
-podman-compose build
-podman-compose up -d
+podman-compose -f docker-compose.yml build
+podman-compose -f docker-compose.yml up -d
 ```
+
+For multi-server deployments, see `jumpinchat-deploy/README.md`.
 
 First build takes a while (Janus compiles from source). Subsequent builds
 use cache and are much faster.
@@ -141,22 +143,22 @@ Create a room by visiting `https://local.jumpin.chat:8443/yourroom`.
 Rebuild after code changes:
 
 ```bash
-podman-compose build
-podman-compose down && podman-compose up -d
+podman-compose -f docker-compose.yml build
+podman-compose -f docker-compose.yml down && podman-compose -f docker-compose.yml up -d
 ```
 
 View logs:
 
 ```bash
-podman-compose logs -f web        # app server
-podman-compose logs -f janus      # WebRTC media server
-podman-compose logs -f nginx      # reverse proxy
+podman-compose -f docker-compose.yml logs -f web        # app server
+podman-compose -f docker-compose.yml logs -f janus      # WebRTC media server
+podman-compose -f docker-compose.yml logs -f nginx      # reverse proxy
 ```
 
 Run tests:
 
 ```bash
-cd ../jumpinchat-web && NODE_ENV=test npm test     # server tests (379 specs)
+cd ../jumpinchat-web && NODE_ENV=test npm test     # server tests (388 specs)
 cd ../jumpinchat-homepage && NODE_ENV=test npm test # homepage tests
 ```
 
@@ -183,8 +185,11 @@ provider works (Mailgun, SendGrid, Gmail app password, self-hosted).
 ## File Uploads
 
 User-uploaded files (avatars, room images, emoji) are stored on the local
-filesystem in a `uploads` Docker volume, served by nginx at `/uploads/`.
-No cloud storage needed.
+filesystem in an `uploads` Docker volume, served by nginx at `/uploads/`.
+
+Optionally, set `STORAGE_BACKEND=s3` in `.env` to use MinIO (or any
+S3-compatible service) instead. See `jumpinchat-deploy/README.md` for
+MinIO setup instructions.
 
 ## TURN Server
 

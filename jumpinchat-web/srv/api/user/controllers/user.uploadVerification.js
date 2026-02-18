@@ -11,7 +11,9 @@ const log = logFactory({ name: 'uploadDisplayImage' });
 import { getRequestsByUser, findRecentDeniedRequests } from '../../ageVerification/ageVerification.utils.js';
 import { noSubmitReasons } from '../../ageVerification/ageVerification.const.js';
 import { Jimp } from 'jimp';
-import { mergeBuffers, s3UploadVerification, isValidImage, getExtFromMime, validateMagicBytes } from '../../../utils/utils.js';
+import { uploadPrivate } from '../../../lib/storage.js';
+import { generateSignedFileUrl } from '../../../utils/fileToken.util.js';
+import { mergeBuffers, isValidImage, getExtFromMime, validateMagicBytes } from '../../../utils/utils.js';
 import { ageVerifyTemplate } from '../../../config/constants/emailTemplates.js';
 
 async function checkCanSubmitRequest(userId) {
@@ -209,13 +211,10 @@ export default async function uploadVerificationImages(req, res) {
       let uploadedImages;
       try {
         uploadedImages = await Promise.all(
-          processedImages.map(({ imageData, fileName }) =>
-            new Promise((resolve, reject) => {
-              s3UploadVerification(imageData, fileName, (err, result) => {
-                if (err) return reject(err);
-                return resolve(result);
-              });
-            })),
+          processedImages.map(async ({ imageData, fileName }) => {
+            const dest = await uploadPrivate(imageData, 'age-verification', fileName);
+            return generateSignedFileUrl(dest, config.ageVerification.timeout);
+          }),
         );
       } catch (err) {
         log.fatal({ err }, 'error uploading images');

@@ -1,0 +1,36 @@
+# Data tier: MongoDB replica set + Redis
+# Can run standalone on a dedicated data server
+
+services:
+  mongodb:
+    image: docker.io/library/mongo:4.4
+    command: "--replSet rs0"
+    expose:
+      - "27017"
+    volumes:
+      - ./data/db:/data/db:Z
+    logging:
+      options:
+        max-size: '1m'
+    restart: always
+
+  mongodbslave:
+    image: docker.io/library/mongo:4.4
+    command: "--replSet rs0"
+    expose:
+      - "27017"
+    logging:
+      options:
+        max-size: '1m'
+    restart: always
+    volumes:
+      - ./data/db2:/data/db:Z
+
+  redis:
+    image: docker.io/library/redis
+    expose:
+      - "6379"
+    logging:
+      options:
+        max-size: '1m'
+    restart: always

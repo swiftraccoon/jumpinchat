@@ -1,0 +1,22 @@
+# Storage tier: MinIO S3-compatible object storage
+# Can run standalone on a dedicated storage server
+
+services:
+  minio:
+    image: docker.io/minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
+    expose:
+      - "9000"
+      - "9001"
+    volumes:
+      - minio-data:/data:Z
+    logging:
+      options:
+        max-size: '1m'
+    restart: always
+
+volumes:
+  minio-data:

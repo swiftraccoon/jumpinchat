@@ -1,4 +1,3 @@
-
 import jwt from 'jsonwebtoken';
 import { Jimp, HorizontalAlign, VerticalAlign } from 'jimp';
 import * as uuid from 'uuid';
@@ -9,9 +8,20 @@ import errors from '../config/constants/errors.js';
 import userUtils from '../api/user/user.utils.js';
 import roomUtils from '../api/room/room.utils.js';
 import redisUtils from './redis.util.js';
-import { localUpload, localRemove, localUploadPrivate, validateMagicBytes } from './localStorage.util.js';
-import { generateSignedFileUrl } from './fileToken.util.js';
 import rateLimit from './rateLimit.js';
+
+const MAGIC_BYTES = {
+  'image/jpeg': [Buffer.from([0xFF, 0xD8, 0xFF])],
+  'image/png': [Buffer.from([0x89, 0x50, 0x4E, 0x47])],
+  'image/gif': [Buffer.from('GIF87a'), Buffer.from('GIF89a')],
+};
+
+export function validateMagicBytes(buffer, mimeType) {
+  const sigs = MAGIC_BYTES[mimeType];
+  if (!sigs) return false;
+  return sigs.some((s) => buffer.subarray(0, s.length).equals(s));
+}
+
 const log = logFactory({ name: 'utils' });
 
 export function validateSession(req, res, next) {
@@ -223,12 +233,6 @@ export function mergeBuffers(dataArr) {
   return Buffer.concat(dataArr.map(d => d.data), dataLength);
 };
 
-export function s3Upload(body, filePath, cb) {
-  localUpload(body, filePath)
-    .then(() => cb(null))
-    .catch(err => cb(err));
-};
-
 export function isValidImage(mimeType) {
   const isPng = mimeType === 'image/png';
   const isJpeg = mimeType === 'image/jpeg';
@@ -377,47 +381,6 @@ export function getSocketRooms(io, socketId, cb) {
   });
 };
 
-export async function uploadDataUriToS3(filePath, uri, cb) {
-  if (!uri) {
-    log.debug('no URI to upload');
-    return cb();
-  }
-
-  const mimeMatch = uri.match(/^data:(image\/\w+);base64,/);
-  const mimeType = mimeMatch ? mimeMatch[1] : null;
-  const buf = Buffer.from(uri.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-
-  if (!mimeType || !validateMagicBytes(buf, mimeType)) {
-    log.error({ mimeType }, 'invalid image data URI — magic bytes mismatch');
-    return cb(new Error('Invalid image data'));
-  }
-
-  try {
-    const dest = await localUploadPrivate(buf, 'report-screenshots', filePath);
-    const url = generateSignedFileUrl(dest, config.report.logTimeout);
-    return cb(null, url);
-  } catch (err) {
-    return cb(err);
-  }
-};
-
-export async function s3UploadVerification(body, filePath, cb) {
-  try {
-    const dest = await localUploadPrivate(body, 'age-verification', filePath);
-    const url = generateSignedFileUrl(dest, config.ageVerification.timeout);
-    return cb(null, url);
-  } catch (err) {
-    return cb(err);
-  }
-};
-
-export function s3RemoveObject(object, cb) {
-  localRemove(object)
-    .then(() => cb(null))
-    .catch(err => cb(err));
-};
-
-
 export function createError(name, message) {
   const err = new Error();
   err.message = message;
@@ -453,6 +416,4 @@ export function getIpFromSocket(socket) {
   return socket.handshake.address;
 };
 
-export { validateMagicBytes };
-
-export default { validateSession, validateAccount, verifyInternalSecret, messageFactory, rateLimit, updateLastSeen, convertImages, mergeBuffers, s3Upload, isValidImage, getExtFromMime, getRemoteIpFromReq, createNotification, getCookie, verifyAdmin, verifySiteMod, getSocketRooms, uploadDataUriToS3, s3UploadVerification, s3RemoveObject, createError, getHostDomain, destroySocketConnection, getIpFromSocket, validateMagicBytes };
+export default { validateSession, validateAccount, verifyInternalSecret, messageFactory, rateLimit, updateLastSeen, convertImages, mergeBuffers, isValidImage, getExtFromMime, getRemoteIpFromReq, createNotification, getCookie, verifyAdmin, verifySiteMod, getSocketRooms, createError, getHostDomain, destroySocketConnection, getIpFromSocket, validateMagicBytes };

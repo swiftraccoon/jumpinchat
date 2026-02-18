@@ -15,6 +15,9 @@ const KNOWN_DEFAULTS = new Set([
   'dev-jwt-secret-change-me',
   'dev-cookie-secret-change-me',
   'dev-file-token-secret-change-me',
+  'change-me-to-a-random-secret',
+  'topsecretkey2222',
+  'excellentsharedsecret',
   'gO0g$I3qkEWr0X&C92*P/=aiL8NAV-',
 ]);
 
