@@ -1,4 +1,3 @@
-
 import jwt from 'jsonwebtoken';
 import { Jimp, HorizontalAlign, VerticalAlign } from 'jimp';
 import * as uuid from 'uuid';
@@ -9,8 +8,20 @@ import errors from '../config/constants/errors.js';
 import userUtils from '../api/user/user.utils.js';
 import roomUtils from '../api/room/room.utils.js';
 import redisUtils from './redis.util.js';
-import { validateMagicBytes } from './localStorage.util.js';
 import rateLimit from './rateLimit.js';
+
+const MAGIC_BYTES = {
+  'image/jpeg': [Buffer.from([0xFF, 0xD8, 0xFF])],
+  'image/png': [Buffer.from([0x89, 0x50, 0x4E, 0x47])],
+  'image/gif': [Buffer.from('GIF87a'), Buffer.from('GIF89a')],
+};
+
+export function validateMagicBytes(buffer, mimeType) {
+  const sigs = MAGIC_BYTES[mimeType];
+  if (!sigs) return false;
+  return sigs.some((s) => buffer.subarray(0, s.length).equals(s));
+}
+
 const log = logFactory({ name: 'utils' });
 
 export function validateSession(req, res, next) {
@@ -404,7 +415,5 @@ export function getIpFromSocket(socket) {
 
   return socket.handshake.address;
 };
-
-export { validateMagicBytes };
 
 export default { validateSession, validateAccount, verifyInternalSecret, messageFactory, rateLimit, updateLastSeen, convertImages, mergeBuffers, isValidImage, getExtFromMime, getRemoteIpFromReq, createNotification, getCookie, verifyAdmin, verifySiteMod, getSocketRooms, createError, getHostDomain, destroySocketConnection, getIpFromSocket, validateMagicBytes };

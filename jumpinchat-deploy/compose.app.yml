@@ -95,8 +95,8 @@ services:
       - SHARED_SECRET=$SHARED_SECRET
       - STRIPE_KEY_PUBLIC=$STRIPE_KEY_PUBLIC
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb,mongodbslave/tc?replicaSet=rs0}
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     restart: always
     depends_on:
       - web

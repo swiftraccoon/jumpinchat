@@ -2,10 +2,10 @@
 # Includes all service groups via compose include
 #
 # Usage: podman-compose -f compose.yml up -d
+# With MinIO: podman-compose -f compose.yml -f compose.storage.yml up -d
 
 include:
   - compose.app.yml
   - compose.media.yml
   - compose.data.yml
-  - compose.storage.yml
   - compose.email.yml

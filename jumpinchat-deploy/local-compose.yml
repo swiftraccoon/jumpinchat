@@ -22,7 +22,7 @@ services:
     logging:
       driver: json-file
     environment:
-      - JANUS_TOKEN_SECRET=topsecretkey2222
+      - JANUS_TOKEN_SECRET=${JANUS_TOKEN_SECRET}
       - RABBIT_HOST=localhost
       - ENABLE_EVENTS=false
       - ENABLE_RABBIT_EVENTS=false

@@ -27,7 +27,7 @@ function safeResolve(base, relative) {
 function sanitizeFilePath(filePath) {
   return filePath
     .replace(/\0/g, '')
-    .replace(/[^a-zA-Z0-9\-_.\/]/g, '')
+    .replace(/[^a-zA-Z0-9\-_./]/g, '')
     .replace(/\.{2,}/g, '.')
     .replace(/^[./]+/, '');
 }
@@ -38,6 +38,7 @@ function sanitizeFilePath(filePath) {
 
 async function localUpload(key, buffer) {
   const clean = sanitizeFilePath(key);
+  if (!clean) throw new Error('Empty file key');
   const dest = safeResolve(path.join(uploadBasePath, 'public'), clean);
   await fs.mkdir(path.dirname(dest), { recursive: true });
   const tmp = `${dest}.tmp.${crypto.randomBytes(4).toString('hex')}`;
@@ -48,11 +49,13 @@ async function localUpload(key, buffer) {
 
 function localGetUrl(key) {
   const clean = sanitizeFilePath(key);
+  if (!clean) return '/uploads/';
   return `/uploads/${clean}`;
 }
 
 async function localRemove(key) {
   const clean = sanitizeFilePath(key);
+  if (!clean) throw new Error('Empty file key');
   const dest = safeResolve(path.join(uploadBasePath, 'public'), clean);
   await fs.unlink(dest).catch((e) => { if (e.code !== 'ENOENT') throw e; });
   log.debug({ key: clean }, 'file removed from local public storage');
@@ -61,7 +64,10 @@ async function localRemove(key) {
 async function localUploadPrivate(buffer, subDir, key) {
   const cleanSub = sanitizeFilePath(subDir);
   const cleanKey = sanitizeFilePath(key);
-  const dest = safeResolve(path.join(uploadBasePath, 'private', cleanSub), cleanKey);
+  if (!cleanSub || !cleanKey) throw new Error('Empty subDir or file key');
+  const privateBase = path.join(uploadBasePath, 'private');
+  safeResolve(privateBase, cleanSub);
+  const dest = safeResolve(path.join(privateBase, cleanSub), cleanKey);
   await fs.mkdir(path.dirname(dest), { recursive: true });
   const tmp = `${dest}.tmp.${crypto.randomBytes(4).toString('hex')}`;
   await fs.writeFile(tmp, buffer);
@@ -79,6 +85,9 @@ let s3Bucket = null;
 
 async function getS3Client() {
   if (s3Client) return s3Client;
+  if (!config.storage.s3AccessKey || !config.storage.s3SecretKey) {
+    throw new Error('S3 credentials missing: set S3_ACCESS_KEY and S3_SECRET_KEY');
+  }
   const { S3Client } = await import('@aws-sdk/client-s3');
   s3Bucket = config.storage?.s3Bucket || 'uploads';
   s3Client = new S3Client({
@@ -97,6 +106,7 @@ async function s3Upload(key, buffer, contentType) {
   const { PutObjectCommand } = await import('@aws-sdk/client-s3');
   const client = await getS3Client();
   const clean = sanitizeFilePath(key);
+  if (!clean) throw new Error('Empty file key');
   await client.send(new PutObjectCommand({
     Bucket: s3Bucket,
     Key: `public/${clean}`,
@@ -108,6 +118,7 @@ async function s3Upload(key, buffer, contentType) {
 
 function s3GetUrl(key) {
   const clean = sanitizeFilePath(key);
+  if (!clean) return '/uploads/';
   return `/uploads/${clean}`;
 }
 
@@ -115,6 +126,7 @@ async function s3Remove(key) {
   const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
   const client = await getS3Client();
   const clean = sanitizeFilePath(key);
+  if (!clean) throw new Error('Empty file key');
   await client.send(new DeleteObjectCommand({
     Bucket: s3Bucket,
     Key: `public/${clean}`,
@@ -127,6 +139,7 @@ async function s3UploadPrivate(buffer, subDir, key) {
   const client = await getS3Client();
   const cleanSub = sanitizeFilePath(subDir);
   const cleanKey = sanitizeFilePath(key);
+  if (!cleanSub || !cleanKey) throw new Error('Empty subDir or file key');
   const s3Key = `private/${cleanSub}/${cleanKey}`;
   await client.send(new PutObjectCommand({
     Bucket: s3Bucket,
@@ -162,6 +175,8 @@ if (!selected) {
   throw new Error(`Unknown storage backend: ${backend}`);
 }
 
-export const { upload, getUrl, remove, uploadPrivate } = selected;
+export const {
+  upload, getUrl, remove, uploadPrivate,
+} = selected;
 
 export default selected;

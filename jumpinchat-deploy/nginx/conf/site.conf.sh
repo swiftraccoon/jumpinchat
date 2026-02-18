@@ -29,13 +29,26 @@ MINIO_PORT="${MINIO_PORT:-9000}"
 if [[ "$STORAGE_BACKEND" == "s3" ]]; then
 UPLOADS_LOCATION=$(cat <<'UPLOADSEOF'
   # Proxy uploads to MinIO (S3 backend)
+  # storage.js stores objects at key public/{file} in bucket uploads
   location /uploads/ {
-    proxy_pass http://MINIO_UPSTREAM/uploads/;
     proxy_set_header Host $host;
     proxy_hide_header x-amz-request-id;
     proxy_hide_header x-amz-id-2;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Cache-Control "public, max-age=86400" always;
+
+    location ~* \.(jpg|jpeg|png|gif)$ {
+      rewrite ^/uploads/(.*)$ /uploads/public/$1 break;
+      proxy_pass http://MINIO_UPSTREAM;
+      proxy_set_header Host $host;
+      proxy_hide_header x-amz-request-id;
+      proxy_hide_header x-amz-id-2;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header Content-Security-Policy "default-src 'none'; sandbox" always;
+      add_header X-Frame-Options "DENY" always;
+      add_header Cross-Origin-Resource-Policy "same-site" always;
+      add_header Cache-Control "public, max-age=86400" always;
+    }
+
+    return 403;
   }
 UPLOADSEOF
 )

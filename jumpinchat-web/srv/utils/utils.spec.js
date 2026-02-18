@@ -47,15 +47,6 @@ describe('utils', () => {
       '../api/room/room.utils.js': {},
       './redis.util.js': { callPromise: sinon.stub() },
       './rateLimit.js': sinon.stub(),
-      './localStorage.util.js': {
-        localUpload: sinon.stub().resolves(),
-        localRemove: sinon.stub().resolves(),
-        localUploadPrivate: sinon.stub().resolves('/tmp/test-file'),
-        validateMagicBytes: sinon.stub().returns(true),
-      },
-      './fileToken.util.js': {
-        generateSignedFileUrl: sinon.stub().returns('/api/internal/file/test-token'),
-      },
     });
   });
 
@@ -102,15 +93,6 @@ describe('utils', () => {
         '../api/room/room.utils.js': {},
         './redis.util.js': { callPromise: sinon.stub() },
         './rateLimit.js': sinon.stub(),
-        './localStorage.util.js': {
-          localUpload: sinon.stub().resolves(),
-          localRemove: sinon.stub().resolves(),
-          localUploadPrivate: sinon.stub().resolves('/tmp/test-file'),
-          validateMagicBytes: sinon.stub().returns(true),
-        },
-        './fileToken.util.js': {
-          generateSignedFileUrl: sinon.stub().returns('/api/internal/file/test-token'),
-        },
       });
 
       ctrl.validateAccount(req, res, next);

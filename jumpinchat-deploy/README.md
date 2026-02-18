@@ -31,7 +31,7 @@ MongoDB, Redis, MinIO, and email use upstream images and don't have build direct
 
 | File | Services | Use Case |
 |------|----------|----------|
-| `compose.yml` | All (includes all groups) | Single-server deployment |
+| `compose.yml` | All except MinIO (includes app, media, data, email) | Single-server deployment |
 | `compose.app.yml` | web, web2, home, home2, haproxy, nginx | App tier |
 | `compose.media.yml` | janus, janus2 | Media tier |
 | `compose.data.yml` | mongodb, mongodbslave, redis | Data tier |
@@ -86,16 +86,21 @@ Per-group env templates are in `env/`:
 
 To use MinIO instead of local filesystem for uploads:
 
-1. Start MinIO: `podman-compose -f compose.storage.yml up -d`
-2. Set in `.env`:
+1. Set MinIO credentials in `.env` (required -- compose.storage.yml will refuse to start without them):
+   ```env
+   MINIO_ACCESS_KEY=your-minio-access-key
+   MINIO_SECRET_KEY=your-minio-secret-key
+   ```
+2. Start MinIO: `podman-compose -f compose.storage.yml up -d` (or add `-f compose.storage.yml` to your main compose command)
+3. Set in `.env`:
    ```env
    STORAGE_BACKEND=s3
    S3_ENDPOINT=http://minio:9000   # or http://storage-server:9000
-   S3_ACCESS_KEY=minioadmin
-   S3_SECRET_KEY=minioadmin
+   S3_ACCESS_KEY=your-minio-access-key
+   S3_SECRET_KEY=your-minio-secret-key
    S3_BUCKET=uploads
    ```
-3. Migrate existing uploads: `./scripts/migrate-uploads-to-minio.sh`
+4. Migrate existing uploads: `./scripts/migrate-uploads-to-minio.sh`
 
 ## Key Files
 
@@ -109,7 +114,6 @@ To use MinIO instead of local filesystem for uploads:
 
 ## Image Registry
 
-The compose files reference `echo.research.clinic/*` as image names. These
-are local image tags -- they don't need an actual registry. Podman/Docker
-builds and tags them locally. Change the image names if you want to push
-to your own registry.
+The compose files use local image tags (e.g., `jumpinchat/web`). These
+don't need an actual registry -- Podman/Docker builds and tags them
+locally. Change the image names if you want to push to your own registry.

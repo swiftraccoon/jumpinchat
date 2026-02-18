@@ -5,8 +5,8 @@ services:
   mongodb:
     image: docker.io/library/mongo:4.4
     command: "--replSet rs0"
-    ports:
-      - "27017:27017"
+    expose:
+      - "27017"
     volumes:
       - ./data/db:/data/db:Z
     logging:
@@ -28,8 +28,8 @@ services:
 
   redis:
     image: docker.io/library/redis
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
     logging:
       options:
         max-size: '1m'
