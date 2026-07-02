@@ -2,6 +2,10 @@
 
 EXTERNAL_IP=$(curl -s --connect-timeout 5 icanhazip.com || echo "")
 
+# Container DNS server (aardvark-dns/docker DNS), used so upstream
+# hostnames re-resolve at runtime instead of only at nginx startup
+NAMESERVER=$(awk '/^nameserver/ { print $2; exit }' /etc/resolv.conf)
+
 # Upstream host/port defaults (Docker DNS names for single-server)
 WEB_HOST="${WEB_HOST:-web}"
 WEB_PORT="${WEB_PORT:-80}"
@@ -78,21 +82,28 @@ UPLOADSEOF
 fi
 
 cat << EOF > /etc/nginx/conf.d/site.conf
+# Re-resolve upstream container hostnames at runtime (requires nginx >= 1.27.3
+# for 'resolve' in upstream server lines; 'zone' is required for 'resolve')
+resolver ${NAMESERVER} valid=10s ipv6=off;
+
 map \$http_upgrade \$connection_upgrade {
   default upgrade;
   '' close;
 }
 
 upstream websocket {
-  server ${JANUS_WS_HOST}:${JANUS_ADMIN_PORT};
+  zone websocket 64k;
+  server ${JANUS_WS_HOST}:${JANUS_ADMIN_PORT} resolve;
 }
 
 upstream janusws {
-  server ${JANUS_WS_HOST}:${JANUS_WS_PORT};
+  zone janusws 64k;
+  server ${JANUS_WS_HOST}:${JANUS_WS_PORT} resolve;
 }
 
 upstream janusws2 {
-  server ${JANUS2_WS_HOST}:${JANUS_WS_PORT};
+  zone janusws2 64k;
+  server ${JANUS2_WS_HOST}:${JANUS_WS_PORT} resolve;
 }
 
 map \$cookie_janus_id \$janusServer {
@@ -101,18 +112,26 @@ map \$cookie_janus_id \$janusServer {
 }
 
 upstream websrv {
+  zone websrv 64k;
   ip_hash;
-  server ${WEB_HOST}:${WEB_PORT} max_fails=3 fail_timeout=30s;
-  server ${WEB2_HOST}:${WEB2_PORT} max_fails=3 fail_timeout=30s;
+  server ${WEB_HOST}:${WEB_PORT} max_fails=3 fail_timeout=30s resolve;
+  server ${WEB2_HOST}:${WEB2_PORT} max_fails=3 fail_timeout=30s resolve;
 }
 
 upstream homesrv {
-  server ${HOME_HOST}:${HOME_PORT} max_fails=3 fail_timeout=30s;
-  server ${HOME2_HOST}:${HOME2_PORT} max_fails=3 fail_timeout=30s;
+  zone homesrv 64k;
+  server ${HOME_HOST}:${HOME_PORT} max_fails=3 fail_timeout=30s resolve;
+  server ${HOME2_HOST}:${HOME2_PORT} max_fails=3 fail_timeout=30s resolve;
 }
 
 upstream haproxybackend {
-  server ${HAPROXY_HOST}:${HAPROXY_PORT} max_fails=3 fail_timeout=30s;
+  zone haproxybackend 64k;
+  server ${HAPROXY_HOST}:${HAPROXY_PORT} max_fails=3 fail_timeout=30s resolve;
+}
+
+upstream janushttp {
+  zone janushttp 64k;
+  server ${JANUS_HTTP_HOST}:${JANUS_HTTP_PORT} resolve;
 }
 
 geo \$limit {
@@ -227,7 +246,7 @@ ${UPLOADS_LOCATION}
 
   location /janus/http {
     limit_req zone=sitelimit burst=300 nodelay;
-    proxy_pass http://${JANUS_HTTP_HOST}:${JANUS_HTTP_PORT}/janus;
+    proxy_pass http://janushttp/janus;
     proxy_redirect default;
     proxy_http_version 1.1;
     proxy_set_header Upgrade \$http_upgrade;

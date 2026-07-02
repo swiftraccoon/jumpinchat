@@ -34,6 +34,7 @@ export function initLocals(req, res, next) {
   res.locals.user = req.user;
   res.locals.unreadMessages = req.unreadMessages;
   res.locals.stripeKey = config.stripe.publicKey;
+  res.locals.supportEnabled = Boolean(config.stripe.publicKey);
   res.locals.asset = function asset(path) {
     if (process.env.NODE_ENV === 'production') {
       const revPath = path.replace(/^\//, '');

@@ -253,6 +253,36 @@ describe('middleware', () => {
       expect(next.calledOnce).to.equal(true);
     });
 
+    it('should set supportEnabled true when a stripe public key is configured', async () => {
+      const { initLocals } = await esmock('./middleware.js', {
+        '../utils/userUtils.js': { getUserById: sinon.stub() },
+        '../utils/messageUtils.js': { getUnreadMessages: sinon.stub() },
+        '../config/index.js': { default: { stripe: { publicKey: 'pk_test_abc' }, auth: {} } },
+        '../utils/logger.js': { default: stubLogger() },
+        'multer': { default: stubMulter() },
+      });
+
+      const res = createRes();
+      initLocals(createReq(), res, sinon.spy());
+
+      expect(res.locals.supportEnabled).to.equal(true);
+    });
+
+    it('should set supportEnabled false when no stripe public key is configured', async () => {
+      const { initLocals } = await esmock('./middleware.js', {
+        '../utils/userUtils.js': { getUserById: sinon.stub() },
+        '../utils/messageUtils.js': { getUnreadMessages: sinon.stub() },
+        '../config/index.js': { default: { stripe: { publicKey: '' }, auth: {} } },
+        '../utils/logger.js': { default: stubLogger() },
+        'multer': { default: stubMulter() },
+      });
+
+      const res = createRes();
+      initLocals(createReq(), res, sinon.spy());
+
+      expect(res.locals.supportEnabled).to.equal(false);
+    });
+
     it('should return the path unchanged from asset() in non-production', async () => {
       const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'test';

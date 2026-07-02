@@ -3,6 +3,12 @@
 
 services:
   email:
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3001/status').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     build: ../jumpinchat-email
     image: echo.research.clinic/jic-email
     expose:

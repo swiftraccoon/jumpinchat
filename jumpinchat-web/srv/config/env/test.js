@@ -4,9 +4,8 @@
 
 export default {
   appPath: 'react-client',
-  analytics: {
-    fb: '',
-    ga: '',
+  sentry: {
+    dsn: '',
   },
   mongo: {
     uri: process.env.MONGODB_URI || 'mongodb://localhost/tc',

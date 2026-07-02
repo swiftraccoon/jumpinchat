@@ -4,7 +4,25 @@ Container configs and compose files for running JumpInChat.
 
 See the [root README](../README.md) for setup instructions.
 
-## Quick Start (Single Server)
+## Quick Start (Lite — Recommended)
+
+The lite profile runs 7 containers (one instance of everything, no
+haproxy) — about half the footprint of the full stack, with no loss of
+availability on a single host.
+
+```bash
+cp env/.env.lite.example .env
+# Edit .env with your secrets
+podman-compose -f compose.lite.yml build
+podman-compose -f compose.lite.yml up -d
+../scripts/init-mongo-lite.sh   # first boot only
+../scripts/enable-boot-start.sh # once per host
+```
+
+## Full Single Server
+
+Runs all 12 containers (duplicated web/home/janus, mongo secondary,
+haproxy). Useful as a staging mirror of a multi-server layout.
 
 ```bash
 cp example.env .env
@@ -14,6 +32,20 @@ podman-compose -f compose.yml up -d
 ```
 
 Or use the legacy all-in-one file: `podman-compose -f docker-compose.yml up -d`
+
+## Start on Boot (Rootless Podman)
+
+Rootless podman has no daemon: `restart: always` alone does NOT bring
+containers back after a host reboot. Run once per host:
+
+```bash
+../scripts/enable-boot-start.sh
+```
+
+This enables session lingering for your user (so your systemd user
+instance starts at boot) and the per-user `podman-restart.service`
+(which restarts every container whose restart policy is `always`).
+Verify with `systemctl --user status podman-restart.service`.
 
 ## Services
 
@@ -31,7 +63,8 @@ MongoDB, Redis, MinIO, and email use upstream images and don't have build direct
 
 | File | Services | Use Case |
 |------|----------|----------|
-| `compose.yml` | All except MinIO (includes app, media, data, email) | Single-server deployment |
+| `compose.lite.yml` | web, home, janus, mongodb, redis, nginx, email | Recommended single-server (7 containers) |
+| `compose.yml` | All except MinIO (includes app, media, data, email) | Full single-server deployment |
 | `compose.app.yml` | web, web2, home, home2, haproxy, nginx | App tier |
 | `compose.media.yml` | janus, janus2 | Media tier |
 | `compose.data.yml` | mongodb, mongodbslave, redis | Data tier |
@@ -108,8 +141,18 @@ To use MinIO instead of local filesystem for uploads:
 - `docker-compose.yml` -- legacy monolithic compose
 - `example.env` -- environment variable template (copy to `.env`)
 - `env/` -- per-group env templates for multi-server
-- `fullchain.pem` / `privkey.pem` -- TLS certs (mounted into Janus containers)
-- `nginx/fullchain.pem` / `nginx/privkey.pem` / `nginx/dhparam.pem` -- TLS certs (copied into nginx image at build time)
+- `fullchain.pem` / `privkey.pem` -- TLS certs (mounted at runtime into Janus AND nginx containers)
+- `nginx/dhparam.pem` -- DH params (mounted at runtime into nginx)
+
+### Cert renewal
+
+Certs are volume-mounted, not baked into images. To renew:
+
+```bash
+cp /path/to/new/fullchain.pem /path/to/new/privkey.pem .
+podman exec jumpinchat-deploy_nginx_1 nginx -s reload
+podman restart jumpinchat-deploy_janus_1 jumpinchat-deploy_janus2_1
+```
 - `data/db` / `data/db2` -- MongoDB data directories (persisted across restarts)
 
 ## Image Registry

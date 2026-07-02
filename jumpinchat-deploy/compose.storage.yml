@@ -3,6 +3,12 @@
 
 services:
   minio:
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     image: docker.io/minio/minio
     command: server /data --console-address ":9001"
     environment:

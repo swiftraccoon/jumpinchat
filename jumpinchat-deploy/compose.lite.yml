@@ -1,0 +1,238 @@
+# Lite profile: single-server deployment with one instance of everything.
+# 7 containers instead of 12 — drops web2/home2/janus2/mongodbslave/haproxy.
+# nginx proxies the app upstream directly at the single web container.
+#
+# Usage:
+#   podman-compose -f compose.lite.yml build
+#   podman-compose -f compose.lite.yml up -d
+#   ../scripts/init-mongo-lite.sh   # first boot only
+#
+# Scale-up path: switch to compose.yml (full single-server) or the
+# per-group compose files (multi-server). Data volumes are compatible.
+
+services:
+  web:
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    build:
+      context: ..
+      dockerfile: jumpinchat-deploy/srv/Dockerfile
+    image: echo.research.clinic/web
+    environment:
+      - JWT_SECRET=$JWT_SECRET
+      - COOKIE_SECRET=$COOKIE_SECRET
+      - SHARED_SECRET=$SHARED_SECRET
+      - DEPLOY_LOCATION=local
+      - JANUS_HTTP_URI=/janus/http
+      - JANUS_HTTPS_URI=/janus/http
+      - JANUS_WS_URI=/janus/ws
+      - JANUS_WSS_URI=/janus/ws
+      - JANUS_CODEC=vp8
+      - JANUS_TOKEN_SECRET=$JANUS_TOKEN_SECRET
+      - JANUS_SERVER_IDS=janus
+      - JANUS_PLUGINS=janus.plugin.videoroom
+      - YT_API_KEY=$YT_API_KEY
+      - UPLOAD_BASE_PATH=/data/uploads
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-local}
+      - S3_ENDPOINT=${S3_ENDPOINT:-http://minio:9000}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-}
+      - S3_BUCKET=${S3_BUCKET:-uploads}
+      - FILE_TOKEN_SECRET=$FILE_TOKEN_SECRET
+      - TURN_URIS=${TURN_URIS:-}
+      - GCM_API_KEY=$GCM_API_KEY # key for push notifications
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - STRIPE_SK=$STRIPE_SK
+      - STRIPE_WH_KEY=$STRIPE_WH_KEY
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb/tc?replicaSet=rs0}
+      - REDIS_URI=${REDIS_URI:-redis://redis:6379}
+      - EMAIL_URL=${EMAIL_URL:-http://email:3001}
+    expose:
+      - "80"
+    volumes:
+      - uploads:/data/uploads:z
+    depends_on:
+      - redis
+      - mongodb
+      - janus
+    logging:
+      options:
+        max-size: '1m'
+    restart: always
+
+  home:
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    build:
+      context: ..
+      dockerfile: jumpinchat-deploy/home/Dockerfile
+    image: echo.research.clinic/home
+    environment:
+      - DEPLOY_LOCATION=local
+      - COOKIE_SECRET=$COOKIE_SECRET
+      - JWT_SECRET=$JWT_SECRET
+      - SHARED_SECRET=$SHARED_SECRET
+      - STRIPE_KEY_PUBLIC=$STRIPE_KEY_PUBLIC
+      # no haproxy in lite: homepage calls the web API directly
+      - API_URL=http://web
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb/tc?replicaSet=rs0}
+    expose:
+      - "3000"
+    restart: always
+    depends_on:
+      - web
+    logging:
+      options:
+        max-size: '1m'
+
+  janus:
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost:8088/janus/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    build:
+      context: ./janus
+    image: echo.research.clinic/janus
+    expose:
+      - "8088"
+      - "8889"
+      - "8188"
+      - "8989"
+      - "7888"
+    ports:
+      - "20000-20100:20000-20100/udp"
+    volumes:
+      - ./fullchain.pem:/opt/janus/certs/fullchain.pem:z
+      - ./privkey.pem:/opt/janus/certs/privkey.pem:z
+    environment:
+      - DEBUG_COLORS=false
+      - SERVER_NAME=janus
+      - ENABLE_EVENTS=true
+      - ENABLE_RABBIT_EVENTS=false
+      - JANUS_TOKEN_SECRET=$JANUS_TOKEN_SECRET
+      - NAT_1_1_IP=${JANUS_NAT_IP:-192.168.88.197}
+    logging:
+      options:
+        max-size: '1m'
+    restart: always
+
+  mongodb:
+    healthcheck:
+      test: ["CMD-SHELL", "mongo --quiet --eval \"db.adminCommand('ping').ok\" | grep -q 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    image: docker.io/library/mongo:4.4
+    command: "--replSet rs0"
+    expose:
+      - "27017"
+    volumes:
+      - ./data/db:/data/db:Z
+    logging:
+      options:
+        max-size: '1m'
+    restart: always
+
+  redis:
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    image: docker.io/library/redis
+    expose:
+      - "6379"
+    logging:
+      options:
+        max-size: '1m'
+    restart: always
+
+  nginx:
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null -H \"Host: jumpin.chat\" http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    build:
+      context: ./nginx
+      args:
+        - ENV
+    image: echo.research.clinic/nginx
+    ports:
+      - "8080:80"
+      - "8443:443"
+    environment:
+      # single-instance: collapse every upstream alias to the one container
+      - WEB_HOST=web
+      - WEB_PORT=80
+      - WEB2_HOST=web
+      - WEB2_PORT=80
+      - HOME_HOST=home
+      - HOME_PORT=3000
+      - HOME2_HOST=home
+      - HOME2_PORT=3000
+      # no haproxy in lite: /api goes straight to the web container
+      - HAPROXY_HOST=web
+      - HAPROXY_PORT=80
+      - JANUS_WS_HOST=janus
+      - JANUS2_WS_HOST=janus
+      - JANUS_WS_PORT=8989
+      - JANUS_HTTP_HOST=janus
+      - JANUS_HTTP_PORT=8088
+      - JANUS_ADMIN_PORT=8188
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-local}
+      - MINIO_HOST=${MINIO_HOST:-minio}
+      - MINIO_PORT=${MINIO_PORT:-9000}
+    volumes:
+      - uploads:/data/uploads:z,ro
+      - ./fullchain.pem:/etc/nginx/ssl/fullchain.pem:z,ro
+      - ./privkey.pem:/etc/nginx/ssl/privkey.pem:z,ro
+      - ./nginx/dhparam.pem:/etc/nginx/ssl/dhparam.pem:z,ro
+    logging:
+      options:
+        max-size: '1m'
+    depends_on:
+      - web
+      - home
+    restart: always
+
+  email:
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3001/status').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    build: ../jumpinchat-email
+    image: echo.research.clinic/jic-email
+    expose:
+      - "3001"
+    environment:
+      - PORT=3001
+      - SMTP_HOST=$SMTP_HOST
+      - SMTP_PORT=$SMTP_PORT
+      - SMTP_SECURE=$SMTP_SECURE
+      - SMTP_USER=$SMTP_USER
+      - SMTP_PASS=$SMTP_PASS
+      - SMTP_FROM=$SMTP_FROM
+      - SHARED_SECRET=$SHARED_SECRET
+    logging:
+      options:
+        max-size: '1m'
+    restart: always
+
+volumes:
+  uploads:

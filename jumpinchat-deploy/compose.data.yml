@@ -3,6 +3,12 @@
 
 services:
   mongodb:
+    healthcheck:
+      test: ["CMD-SHELL", "mongo --quiet --eval \"db.adminCommand('ping').ok\" | grep -q 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     image: docker.io/library/mongo:4.4
     command: "--replSet rs0"
     expose:
@@ -15,6 +21,12 @@ services:
     restart: always
 
   mongodbslave:
+    healthcheck:
+      test: ["CMD-SHELL", "mongo --quiet --eval \"db.adminCommand('ping').ok\" | grep -q 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     image: docker.io/library/mongo:4.4
     command: "--replSet rs0"
     expose:
@@ -27,6 +39,12 @@ services:
       - ./data/db2:/data/db:Z
 
   redis:
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     image: docker.io/library/redis
     expose:
       - "6379"

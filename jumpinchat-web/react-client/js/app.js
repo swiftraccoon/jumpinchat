@@ -13,17 +13,11 @@ if (process.env.NODE_ENV === 'production') {
   console.log = () => {};
 }
 
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === 'production' && window.SENTRY_DSN) {
   Sentry.init({
-    dsn: 'https://71122020584c44f7af718dfe6d6b877d@sentry.io/186641',
+    dsn: window.SENTRY_DSN,
     environment: process.env.NODE_ENV,
     release: window.BUILD_NUM,
-    beforeSend(event) {
-      if (event.exception) {
-        Sentry.showReportDialog({ eventId: event.event_id });
-      }
-      return event;
-    },
   });
 }
 

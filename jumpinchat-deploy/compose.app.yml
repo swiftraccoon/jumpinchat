@@ -3,6 +3,12 @@
 
 services:
   web:
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     build:
       context: ..
       dockerfile: jumpinchat-deploy/srv/Dockerfile
@@ -30,6 +36,7 @@ services:
       - FILE_TOKEN_SECRET=$FILE_TOKEN_SECRET
       - TURN_URIS=lima.research.clinic
       - GCM_API_KEY=$GCM_API_KEY # key for push notifications
+      - SENTRY_DSN=${SENTRY_DSN:-}
       - STRIPE_SK=$STRIPE_SK
       - STRIPE_WH_KEY=$STRIPE_WH_KEY
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb,mongodbslave/tc?replicaSet=rs0}
@@ -45,6 +52,12 @@ services:
     restart: always
 
   web2:
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     image: echo.research.clinic/web
     environment:
       - JWT_SECRET=$JWT_SECRET
@@ -69,6 +82,7 @@ services:
       - FILE_TOKEN_SECRET=$FILE_TOKEN_SECRET
       - TURN_URIS=lima.research.clinic
       - GCM_API_KEY=$GCM_API_KEY # key for push notifications
+      - SENTRY_DSN=${SENTRY_DSN:-}
       - STRIPE_SK=$STRIPE_SK
       - STRIPE_WH_KEY=$STRIPE_WH_KEY
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb,mongodbslave/tc?replicaSet=rs0}
@@ -84,6 +98,12 @@ services:
     restart: always
 
   home:
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     build:
       context: ..
       dockerfile: jumpinchat-deploy/home/Dockerfile
@@ -94,6 +114,7 @@ services:
       - JWT_SECRET=$JWT_SECRET
       - SHARED_SECRET=$SHARED_SECRET
       - STRIPE_KEY_PUBLIC=$STRIPE_KEY_PUBLIC
+      - API_URL=${API_URL:-http://haproxy}
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb,mongodbslave/tc?replicaSet=rs0}
     expose:
       - "3000"
@@ -106,6 +127,12 @@ services:
         max-size: '1m'
 
   home2:
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     image: echo.research.clinic/home
     environment:
       - DEPLOY_LOCATION=local
@@ -113,6 +140,7 @@ services:
       - JWT_SECRET=$JWT_SECRET
       - SHARED_SECRET=$SHARED_SECRET
       - STRIPE_KEY_PUBLIC=$STRIPE_KEY_PUBLIC
+      - API_URL=${API_URL:-http://haproxy}
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb,mongodbslave/tc?replicaSet=rs0}
     expose:
       - "3000"
@@ -138,6 +166,12 @@ services:
     restart: always
 
   nginx:
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null -H \"Host: jumpin.chat\" http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     build:
       context: ./nginx
       args:
@@ -168,6 +202,9 @@ services:
       - MINIO_PORT=${MINIO_PORT:-9000}
     volumes:
       - uploads:/data/uploads:z,ro
+      - ./fullchain.pem:/etc/nginx/ssl/fullchain.pem:z,ro
+      - ./privkey.pem:/etc/nginx/ssl/privkey.pem:z,ro
+      - ./nginx/dhparam.pem:/etc/nginx/ssl/dhparam.pem:z,ro
     logging:
       options:
         max-size: '1m'

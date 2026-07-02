@@ -12,10 +12,8 @@ RUN mkdir -p /var/log/nginx && \
       touch /var/log/nginx/access.log && \
       touch /var/log/nginx/error.log
 
-# Copy the already-generated certificates into the image
-COPY fullchain.pem /etc/nginx/ssl/fullchain.pem
-COPY privkey.pem /etc/nginx/ssl/privkey.pem
-COPY dhparam.pem /etc/nginx/ssl/dhparam.pem
+# TLS certs are mounted at runtime into /etc/nginx/ssl (see compose files),
+# so renewal is a file swap + `nginx -s reload` instead of an image rebuild.
 
 COPY ./site /var/www/site/
 

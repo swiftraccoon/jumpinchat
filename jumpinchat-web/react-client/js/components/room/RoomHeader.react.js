@@ -13,31 +13,9 @@ class RoomHeader extends PureComponent {
     super(props);
     this.handleToggleMenu = this.handleToggleMenu.bind(this);
     this.handleClickOutside = this.handleClickOutside.bind(this);
-    this.handleToggleHeadway = this.handleToggleHeadway.bind(this);
     this.state = {
       open: false,
     };
-
-    this.headwayConfig = {
-      selector: '#new',
-      account: 'xao8eJ',
-    };
-  }
-
-  componentDidMount() {
-    const { Headway } = window;
-    if (Headway) {
-      Headway.init(this.headwayConfig);
-    }
-  }
-
-  handleToggleHeadway(e) {
-    const { Headway } = window;
-    if (Headway) {
-      Headway.toggle(e);
-    } else {
-      window.open('https://headwayapp.co/jumpinchat-updates', '_blank');
-    }
   }
 
   handleToggleMenu(e) {
@@ -105,31 +83,21 @@ class RoomHeader extends PureComponent {
         </a>
 
         <div className="roomHeader__UserActions">
-          <button
-            id="new"
-            className="button button-floating button-icon button--text roomHeader__UserAction"
-            onClick={this.handleToggleHeadway}
-          >
-            <FontAwesomeIcon
-              icon={['fas', 'bullhorn']}
-            />
-            &nbsp;
-            <span className="mobileHidden">What&apos;s new</span>
-          </button>
-
-          <a
-            href="/support"
-            className="button button-floating button-icon button-red roomHeader__UserAction"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Your support keeps the site up and running!"
-          >
-            <FontAwesomeIcon
-              icon={['fas', 'heart']}
-            />
-            &nbsp;
-            <span className="mobileHidden">Support the site</span>
-          </a>
+          {window.SUPPORT_ENABLED && (
+            <a
+              href="/support"
+              className="button button-floating button-icon button-red roomHeader__UserAction"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Your support keeps the site up and running!"
+            >
+              <FontAwesomeIcon
+                icon={['fas', 'heart']}
+              />
+              &nbsp;
+              <span className="mobileHidden">Support the site</span>
+            </a>
+          )}
 
           <a
             href="/contact"

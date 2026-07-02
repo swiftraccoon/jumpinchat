@@ -14,7 +14,16 @@ block content
             if roomListError
               span.rooms__Empty Could not get room list
             else if !rooms.length
-              span.rooms__Empty No active rooms
+              .rooms__Empty
+                p No rooms are listed right now.
+                p
+                  | Rooms are private by default and only appear here once
+                  | their owner makes them public. To start your own room,
+                  | just pick a name and visit
+                  | <strong>/your-room-name</strong> &mdash; it will be
+                  | created on the spot.
+                p
+                  a.button.button--blue(href="/") Go to the homepage
             else
               each room in rooms
                 +room(room)

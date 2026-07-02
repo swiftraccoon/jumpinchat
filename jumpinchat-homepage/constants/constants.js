@@ -13,7 +13,8 @@ export const colours = [
   '#10a879',
 ];
 
-export const api = process.env.NODE_ENV === 'production' ? 'http://haproxy' : 'http://localhost:3232';
+export const api = process.env.API_URL
+  || (process.env.NODE_ENV === 'production' ? 'http://haproxy' : 'http://localhost:3232');
 
 const MSG_BAD_USER = 'Invalid username or password. Be sure to use your username, not your email address';
 

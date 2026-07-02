@@ -1,8 +1,7 @@
 export default {
   appPath: 'dist',
-  analytics: {
-    fb: process.env.DEPLOY_LOCATION === 'production' ? '000000000000000' : '',
-    ga: process.env.DEPLOY_LOCATION === 'production' ? 'UA-00000000-0' : '',
+  sentry: {
+    dsn: process.env.SENTRY_DSN || '',
   },
   mongo: {
     uri: process.env.MONGODB_URI,

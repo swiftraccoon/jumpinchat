@@ -499,7 +499,7 @@ export function newRemoteFeed(id, roomId, userId, video, audio) {
 function reconnectFailed() {
   addNotification({
     color: 'red',
-    message: 'Unable to reconect to media server',
+    message: 'Unable to reconnect to media server',
     autoClose: false,
   });
 
@@ -527,6 +527,13 @@ function reconnect() {
   }
 
   reconnectMethod = method;
+
+  if (reconnectAttempts === 0) {
+    addNotification({
+      color: 'yellow',
+      message: 'Attempting to reconnect to media server',
+    });
+  }
 
   return setTimeout(() => {
     reconnectAttempts += 1;
@@ -564,7 +571,7 @@ function renegotiate() {
 
   addNotification({
     color: 'yellow',
-    message: 'Attempting to reconect to media server',
+    message: 'Attempting to reconnect to media server',
   });
 
   return setTimeout(() => {
