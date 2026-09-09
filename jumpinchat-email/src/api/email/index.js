@@ -1,8 +1,11 @@
 const express = require('express');
 const send = require('./send');
 
-const router = express.Router();
+function createRouter(options) {
+  const router = express.Router();
+  router.post('/send', send.createSendController(options));
+  return router;
+}
 
-router.post('/send', send);
-
-module.exports = router;
+module.exports = createRouter();
+module.exports.createRouter = createRouter;

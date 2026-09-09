@@ -10,5 +10,5 @@ const all = {
 
 module.exports = {
   ...all,
-  ...require(`./${all.env}.js`) // eslint-disable-line
+  ...require(all.env === 'production' ? './production.js' : './development.js'),
 };

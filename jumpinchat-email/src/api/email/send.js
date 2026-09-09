@@ -1,7 +1,6 @@
 const nodemailer = require('nodemailer');
 const config = require('../../config/env');
 const log = require('../../utils/logger')({ name: 'api.email.send' });
-const Queue = require('../../utils/queue');
 
 // create Nodemailer SMTP transporter
 const transportOpts = {
@@ -23,55 +22,42 @@ const defaults = {
   from: config.smtp.from || 'JumpInChat <noreply@example.com>',
 };
 
-function sendMail(message) {
-  return new Promise((resolve, reject) => transporter.sendMail(message, (err, info) => {
-    if (err) {
-      log.fatal({ message, err }, 'error sending email');
-      return reject(err);
+function createSendController({ transport = transporter } = {}) {
+  return async function sendEmail(req, res) {
+    const {
+      from,
+      to,
+      subject,
+      html,
+      text,
+      replyTo,
+    } = req.body || {};
+
+    if (!from) {
+      log.debug({ from: defaults.from }, 'Missing mail source, using default');
     }
 
-    log.info({ envelope: info.envelope }, 'email sent');
-    return resolve(info);
-  }));
-}
+    if (!to) {
+      log.error('Missing mail destination');
+      return res.status(400).send('Missing mail destination');
+    }
 
-const queue = new Queue(sendMail, 100);
+    if (!subject) {
+      log.error('Missing mail subject');
+      return res.status(400).send('Missing mail subject');
+    }
 
-module.exports = function sendEmail(req, res) {
-  const {
-    from,
-    to,
-    subject,
-    html,
-    text,
-    replyTo,
-  } = req.body;
+    if (!text && !html) {
+      log.error('Missing mail body');
+      return res.status(400).send('Missing mail body');
+    }
 
-  if (!from) {
-    log.debug({ from: defaults.from }, 'Missing mail source, using default');
-  }
-
-  if (!to) {
-    log.error('Missing mail destination');
-    return res.status(400).send('Missing mail destination');
-  }
-
-  if (!subject) {
-    log.error('Missing mail subject');
-    return res.status(400).send('Missing mail subject');
-  }
-
-  if (!text && !html) {
-    log.error('Missing mail body');
-    return res.status(400).send('Missing mail body');
-  }
-
-  const mailOpts = {
-    ...defaults,
-    from: from || defaults.from,
-    to,
-    subject,
-    replyTo,
+    const mailOpts = {
+      ...defaults,
+      from: from || defaults.from,
+      to,
+      subject,
+      replyTo,
   };
 
   if (html) {
@@ -80,7 +66,15 @@ module.exports = function sendEmail(req, res) {
     mailOpts.text = text;
   }
 
-  const args = [mailOpts];
-  queue.addToQueue(args);
-  return res.status(200).send();
-};
+  try {
+    await transport.sendMail(mailOpts);
+    return res.status(200).send();
+  } catch (err) {
+    log.error({ err }, 'SMTP delivery failed');
+    return res.status(502).send('Email delivery failed');
+  }
+  };
+}
+
+module.exports = createSendController();
+module.exports.createSendController = createSendController;
