@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(dirname "$0")/../jumpinchat-web"
-
-NODE_ENV=test npx mocha --exit --recursive 'srv/**/*.spec.js' --timeout 10000 "$@"
+repo_dir="$(cd "$(dirname "$0")/.." && pwd)"
+npm --prefix "$repo_dir/jumpinchat-web" test -- "$@"
+npm --prefix "$repo_dir/jumpinchat-web" run test:client
+npm --prefix "$repo_dir/jumpinchat-homepage" test

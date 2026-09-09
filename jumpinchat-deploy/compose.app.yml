@@ -3,8 +3,9 @@
 
 services:
   web:
+    stop_grace_period: 15s
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost:80/health"]
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost:80/health/ready"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -34,7 +35,7 @@ services:
       - S3_SECRET_KEY=${S3_SECRET_KEY:-}
       - S3_BUCKET=${S3_BUCKET:-uploads}
       - FILE_TOKEN_SECRET=$FILE_TOKEN_SECRET
-      - TURN_URIS=lima.research.clinic
+      - TURN_URIS=${TURN_URIS:-}
       - GCM_API_KEY=$GCM_API_KEY # key for push notifications
       - SENTRY_DSN=${SENTRY_DSN:-}
       - STRIPE_SK=$STRIPE_SK
@@ -52,8 +53,9 @@ services:
     restart: always
 
   web2:
+    stop_grace_period: 15s
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost:80/health"]
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost:80/health/ready"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -80,7 +82,7 @@ services:
       - S3_SECRET_KEY=${S3_SECRET_KEY:-}
       - S3_BUCKET=${S3_BUCKET:-uploads}
       - FILE_TOKEN_SECRET=$FILE_TOKEN_SECRET
-      - TURN_URIS=lima.research.clinic
+      - TURN_URIS=${TURN_URIS:-}
       - GCM_API_KEY=$GCM_API_KEY # key for push notifications
       - SENTRY_DSN=${SENTRY_DSN:-}
       - STRIPE_SK=$STRIPE_SK
@@ -98,8 +100,9 @@ services:
     restart: always
 
   home:
+    stop_grace_period: 15s
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/health/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -127,8 +130,9 @@ services:
         max-size: '1m'
 
   home2:
+    stop_grace_period: 15s
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/health/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
       interval: 30s
       timeout: 10s
       retries: 3

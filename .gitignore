@@ -35,3 +35,6 @@ jumpinchat-deploy/logs.txt
 
 docs/
 CLAUDE.md
+
+# Python tooling cache
+__pycache__/

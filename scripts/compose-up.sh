@@ -3,6 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../jumpinchat-deploy"
 
+node ../scripts/preflight.mjs
 podman-compose up -d "$@"
 
 echo ""

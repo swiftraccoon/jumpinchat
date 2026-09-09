@@ -50,7 +50,7 @@
     "start": "node app.js",
     "dev": "npx nodemon app.js",
     "build": "node build.js",
-    "test": "NODE_ENV=test npx mocha --loader=esmock --exit -t 3000 'routes/**/*.spec.js' 'utils/**/*.spec.js'",
+    "test": "NODE_ENV=test mocha --loader=esmock --exit -t 3000 'routes/**/*.spec.js' 'utils/**/*.spec.js'",
     "lint": "npx eslint ."
   }
 }

@@ -1,4 +1,4 @@
-FROM nginx:stable
+FROM docker.io/library/nginx:stable@sha256:d5792f71a9496b833bc08ea834a758c46e2b6a6306c10f4be926f38a656cdc1c
 
 RUN apt-get update > /dev/null && \
     apt-get install -y -qq \

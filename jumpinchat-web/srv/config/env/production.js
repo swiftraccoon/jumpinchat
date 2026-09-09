@@ -34,7 +34,7 @@ export default {
     },
   },
   turn: {
-    uris: process.env.TURN_URIS.split(','),
+    uris: (process.env.TURN_URIS || '').split(',').map(uri => uri.trim()).filter(Boolean),
     ttl: process.env.TURN_TTL || 60 * 60 * 24,
   },
   auth: {

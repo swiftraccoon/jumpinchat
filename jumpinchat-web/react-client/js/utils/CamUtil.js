@@ -2,13 +2,13 @@
  * Created by Zaccary on 09/09/2015.
  */
 
-/* global navigator,window */
+/* global MediaStream */
 
-import React from 'react';
 import * as uuid from 'uuid';
 import axios from 'axios';
 import Janus from 'janus-gateway';
 import adapter from 'webrtc-adapter';
+import createMediaRecovery from './mediaRecovery';
 import camStore from '../stores/CamStore/CamStore';
 import {
   destroyLocalStream,
@@ -37,9 +37,11 @@ let janus = null;
 let janusMcuPlugin = null;
 let slowlinkTimeout;
 let localMediaStream = null;
+let sessionGeneration = 0;
 
 
 const closeBroadcast = () => {
+  recovery.cancel();
   // Stop all local media tracks to ensure camera/mic are released
   if (janusMcuPlugin && janusMcuPlugin.webrtcStuff && janusMcuPlugin.webrtcStuff.myStream) {
     const tracks = janusMcuPlugin.webrtcStuff.myStream.getTracks();
@@ -124,7 +126,6 @@ const getServerInfo = function getServerInfo(roomName, cb) {
     getToken(),
   ])
     .then(([endpoints, turnData, token]) => {
-      console.log({ endpoints, turnData, token });
       data.endpoints = endpoints;
 
       turnData.uris.forEach((uri) => {
@@ -163,6 +164,7 @@ const getServerInfo = function getServerInfo(roomName, cb) {
 };
 
 function publishOwnFeed(isGold, videoQuality, videoDevice, audioDevice, sendAudio = false) {
+  const currentSession = sessionGeneration;
   // Publish our stream
   console.log('publish own feed', { isGold, videoQuality });
   let media = {
@@ -230,6 +232,7 @@ function publishOwnFeed(isGold, videoQuality, videoDevice, audioDevice, sendAudi
       simulcastMaxBitrates,
       // Publishers are sendonly
       success(jsep) {
+        if (currentSession !== sessionGeneration) return;
         const message = {
           request: 'configure',
           audio: true,
@@ -252,52 +255,21 @@ function publishOwnFeed(isGold, videoQuality, videoDevice, audioDevice, sendAudi
       },
 
       error(err) {
+        if (currentSession !== sessionGeneration) return;
         console.error('WebRTC error:', err);
-        if (error.message === 'NavigatorUserMediaError') {
-          trackEvent('Error', 'Cam Util', 'missing screen sharing plugin');
-          setModalError({
-            message: (
-              <span>
-                You are missing the
-                <a
-                  href="https://chrome.google.com/webstore/detail/janus-webrtc-screensharin/hapfgfdkleiggjjpfpenajgdnfckjpaj?hl=en"
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  &nbsp;required plugin&nbsp;
-                </a>
-                to use screensharing
-              </span>
-            ),
-          });
-        } else {
-          console.error(err);
-          if (err.name === 'NotReadableError') {
-            addNotification({
-              color: 'red',
-              message: 'Media source is inaccessable',
-              autoClose: false,
-            });
-          } else if (err.name === 'NotAllowedError') {
-            addNotification({
-              color: 'red',
-              message: error.message,
-              autoClose: false,
-            });
-          } else {
-            addNotification({
-              color: 'red',
-              message: 'Unable to broadcast',
-              autoClose: false,
-            });
-          }
-
-          trackEvent('Error', 'Cam Util', `Create offer: ${err.toString()}`);
+        try {
+          const message = err && err.name === 'NotAllowedError'
+            ? 'Camera or microphone permission was denied. Allow access in your browser and try again.'
+            : err && err.name === 'NotReadableError'
+              ? 'Camera or microphone is unavailable. Close other apps using it and try again.'
+              : 'Unable to broadcast. Check your camera and microphone and try again.';
+          addNotification({ color: 'red', message, autoClose: false });
+          trackEvent('Error', 'Cam Util', `Create offer: ${String(err)}`);
+        } finally {
           setMediaSelectionModal(false);
+          setMediaSelectionModalLoading(false);
+          closeBroadcast();
         }
-
-        setMediaSelectionModalLoading(false);
-        closeBroadcast();
       },
     },
   );
@@ -332,6 +304,11 @@ export function setAudioState(state) {
 }
 
 export function unpublishOwnFeed() {
+  recovery.cancel();
+  if (!janusMcuPlugin) {
+    closeBroadcast();
+    return;
+  }
   // Unpublish our stream
   const message = { request: 'unpublish' };
   janusMcuPlugin.send({ message });
@@ -507,147 +484,54 @@ function reconnectFailed() {
   return closeBroadcast();
 }
 
-const reconnectMethods = {
-  RENEGOTIATE: 'RENEGOTIATE',
-  RECONNECT: 'RECONNECT',
-  RESTART: 'RESTART',
-};
+const recovery = createMediaRecovery({
+  onStart: () => addNotification({
+    color: 'yellow', message: 'Attempting to reconnect to media server',
+  }),
+  onFailure: reconnectFailed,
+});
 
-let reconnectAttempts = 0;
-let reconnectMethod;
 function reconnect() {
-  const method = reconnectMethods.RECONNECT;
-  console.log({ method });
-  if (reconnectAttempts >= 5) {
-    return reconnectFailed();
-  }
+  recovery.start((success, error) => janus.reconnect({ success, error }), () => {
+    addNotification({ color: 'blue', message: 'Reconnected to media server' });
+    resumeAllRemoteStreams();
+  });
+}
 
-  if (reconnectMethod && reconnectMethod !== method) {
-    return null;
-  }
-
-  reconnectMethod = method;
-
-  if (reconnectAttempts === 0) {
-    addNotification({
-      color: 'yellow',
-      message: 'Attempting to reconnect to media server',
-    });
-  }
-
-  return setTimeout(() => {
-    reconnectAttempts += 1;
-    janus.reconnect({
-      success: () => {
-        console.log('janus reconnected');
-        addNotification({
-          color: 'blue',
-          message: 'Reconnected to media server',
-        });
-        reconnectAttempts = 0;
-        resumeAllRemoteStreams();
-      },
-      error: (error) => {
-        console.error({ error }, 'failed to reconnect to janus');
-        reconnect();
-      },
-    });
-  }, 2000);
+function recoverOffer(options) {
+  recovery.start((success, error) => {
+    janusMcuPlugin.createOffer({ ...options, success, error });
+  }, (jsep) => {
+    janusMcuPlugin.send({ message: { request: 'configure', audio: true, video: true }, jsep });
+    addNotification({ color: 'blue', message: 'Connection to media server restored' });
+  });
 }
 
 function renegotiate() {
-  const method = reconnectMethods.RENEGOTIATE;
-  console.log({ method });
-  console.trace(method);
-  if (reconnectAttempts >= 5) {
-    return reconnectFailed();
-  }
-
-  if (reconnectMethod && reconnectMethod !== method) {
-    return null;
-  }
-
-  reconnectMethod = method;
-
-  addNotification({
-    color: 'yellow',
-    message: 'Attempting to reconnect to media server',
-  });
-
-  return setTimeout(() => {
-    janusMcuPlugin.createOffer(
-      {
-        media: {
-          video: false,
-          audio: false,
-        },
-        success: (jsep) => {
-          reconnectAttempts = 0;
-
-          addNotification({
-            color: 'blue',
-            message: 'Connection to media server restored',
-          });
-
-          janusMcuPlugin.send({
-            message: { audio: true, video: true },
-            jsep,
-          });
-        },
-        error: (error) => {
-          console.error({ error }, 'failed to reconnect to janus');
-          reconnectAttempts += 1;
-          renegotiate();
-        },
-      },
-    );
-  }, 2000);
+  recoverOffer({ media: { video: false, audio: false } });
 }
 
 function restartIce() {
-  const method = reconnectMethods.RESTART;
-  console.log({ method });
-  if (reconnectAttempts >= 5) {
-    return reconnectFailed();
-  }
+  recoverOffer({ iceRestart: true, media: {} });
+}
 
-  if (reconnectMethod && reconnectMethod !== method) {
-    return null;
-  }
-
-  reconnectMethod = method;
-
-  return setTimeout(() => {
-    janusMcuPlugin.createOffer(
-      {
-        iceRestart: true,
-        media: {},
-        success: (jsep) => {
-          reconnectAttempts = 0;
-
-          addNotification({
-            color: 'blue',
-            message: 'Connection to media server restored',
-          });
-
-          janusMcuPlugin.send({
-            message: { audio: true, video: true },
-            jsep,
-          });
-        },
-        error: (error) => {
-          console.error({ error }, 'failed to reconnect to janus');
-          reconnectAttempts += 1;
-          restartIce();
-        },
-      },
-    );
-  }, 2000);
+export function destroy() {
+  sessionGeneration += 1;
+  recovery.cancel();
+  clearTimeout(slowlinkTimeout);
+  slowlinkTimeout = null;
+  closeBroadcast();
+  const previous = janus;
+  janus = null;
+  janusMcuPlugin = null;
+  if (previous) previous.destroy();
 }
 
 export function init(roomId, roomName, userId, cb = () => {}) {
-  console.log({ roomId, roomName, userId }, 'init');
+  destroy();
+  const currentSession = sessionGeneration;
   getServerInfo(roomName, (err, info) => {
+    if (currentSession !== sessionGeneration) return;
     if (err) {
       console.error('error getting sever endpoints');
       addNotification({
@@ -664,6 +548,7 @@ export function init(roomId, roomName, userId, cb = () => {}) {
       debug: process.env.NODE_ENV === 'production' ? 'error' : 'all',
       dependencies: Janus.useDefaultDependencies({ adapter }),
       callback() {
+        if (currentSession !== sessionGeneration) return;
         if (!Janus.isWebrtcSupported()) {
           console.warn('No WebRTC support... ');
           addNotification({
@@ -681,11 +566,16 @@ export function init(roomId, roomName, userId, cb = () => {}) {
           token,
           keepAlivePeriod: 25000,
           success() {
+            if (currentSession !== sessionGeneration) return;
             // Attach to video MCU test plugin
             janus.attach({
               plugin: 'janus.plugin.videoroom',
               token,
               success(pluginHandle) {
+                if (currentSession !== sessionGeneration) {
+                  pluginHandle.detach();
+                  return;
+                }
                 janusMcuPlugin = pluginHandle;
                 const message = {
                   request: 'join',
@@ -701,6 +591,7 @@ export function init(roomId, roomName, userId, cb = () => {}) {
               },
 
               error(error) {
+                if (currentSession !== sessionGeneration) return;
                 console.error('  -- Error attaching plugin... ', error);
                 trackEvent('Error', 'Cam Util', `error attaching plugin: ${error}`);
                 addNotification({
@@ -717,6 +608,7 @@ export function init(roomId, roomName, userId, cb = () => {}) {
               },
 
               iceState(state) {
+                if (currentSession !== sessionGeneration) return;
                 if (state === 'disconnected') {
                   trackEvent('Error', 'Cam Util', 'ice disconnected');
                 }
@@ -727,6 +619,7 @@ export function init(roomId, roomName, userId, cb = () => {}) {
                 }
               },
               webrtcState(connected, reason) {
+                if (currentSession !== sessionGeneration) return;
                 console.log('::: peer connection established?', connected);
                 if (connected) {
                   janusMcuPlugin.send({ message: { request: 'configure' } });
@@ -735,6 +628,7 @@ export function init(roomId, roomName, userId, cb = () => {}) {
                 }
               },
               slowLink() {
+                if (currentSession !== sessionGeneration) return;
                 if (!slowlinkTimeout) {
                   trackEvent('Cams', 'Slow link');
                   addNotification({
@@ -743,11 +637,12 @@ export function init(roomId, roomName, userId, cb = () => {}) {
                   });
 
                   slowlinkTimeout = setTimeout(() => {
-                    clearTimeout(slowlinkTimeout);
+                    slowlinkTimeout = null;
                   }, 1000 * 60 * 5);
                 }
               },
               mediaState(type, on) {
+                if (currentSession !== sessionGeneration) return;
                 console.log('::: mediaState :::', type, on);
                 if (type === 'video' && !on) {
                   renegotiate();
@@ -759,6 +654,7 @@ export function init(roomId, roomName, userId, cb = () => {}) {
               },
 
               onmessage(msg, jsep) {
+                if (currentSession !== sessionGeneration) return;
                 const event = msg.videoroom;
 
                 if (event !== undefined && event !== null) {
@@ -835,6 +731,7 @@ export function init(roomId, roomName, userId, cb = () => {}) {
               },
 
               onlocaltrack(track, on) {
+                if (currentSession !== sessionGeneration) return;
                 if (!on) return;
                 if (!localMediaStream) {
                   localMediaStream = new MediaStream();
@@ -850,12 +747,14 @@ export function init(roomId, roomName, userId, cb = () => {}) {
               },
 
               oncleanup() {
+                if (currentSession !== sessionGeneration) return;
                 closeBroadcast();
               },
             });
           },
 
           error(error) {
+                if (currentSession !== sessionGeneration) return;
             console.error('Janus error', error);
             trackEvent('Error', 'Cam Util', `Media server error: ${error}`);
             addNotification({

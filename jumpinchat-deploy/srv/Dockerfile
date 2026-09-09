@@ -1,23 +1,24 @@
-FROM node:22-bullseye AS builder
+FROM docker.io/library/node:22-bullseye@sha256:959fa6e5c12f4b08f58808f953c7a6a05f1f72629b57ef3a648b8809362fdad9 AS builder
 
 ENV SERVER_PATH /var/www
 
 WORKDIR /build
 
-# Copy local jumpinchat-web source
+# Install the committed dependency tree before copying frequently changed source.
+COPY jumpinchat-web/package.json jumpinchat-web/package-lock.json ./
+RUN npm ci --legacy-peer-deps
 COPY jumpinchat-web/ ./
-
-# Install ALL dependencies (including devDependencies needed for build)
-RUN npm install --legacy-peer-deps
 
 # Build with gulp (use local binary, not npx)
 RUN ./node_modules/.bin/gulp build
+RUN npm prune --omit=dev --legacy-peer-deps
 
-# Generate version.js (normally done by publish-artifact.sh)
-RUN echo "window.BUILD_NUM='$(git rev-parse HEAD 2>/dev/null || echo local-dev)';" > dist/version.js
+# Supply a revision from CI or the build wrapper, since .git is excluded.
+ARG BUILD_REVISION=local-dev
+RUN node -e "require('fs').writeFileSync('dist/version.js', 'window.BUILD_NUM=' + JSON.stringify(process.argv[1]) + ';\n')" "$BUILD_REVISION"
 
 # Production image
-FROM nginx:stable
+FROM docker.io/library/nginx:stable@sha256:d5792f71a9496b833bc08ea834a758c46e2b6a6306c10f4be926f38a656cdc1c
 
 ENV SERVER_PATH /var/www
 ENV NODE_ENV "production"

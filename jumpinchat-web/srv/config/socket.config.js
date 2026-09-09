@@ -46,6 +46,9 @@ export default function socketConfig(io) {
   // Redis adapter (replaces socket.io-redis with @socket.io/redis-adapter + ioredis)
   const pubClient = new Redis(config.redis.uri);
   const subClient = pubClient.duplicate();
+  [pubClient, subClient].forEach((client) => {
+    client.on('error', (err) => log.error({ err }, 'socket adapter redis error'));
+  });
   io.adapter(createAdapter(pubClient, subClient));
 
   adminController.setSocketIo(io);
@@ -99,4 +102,6 @@ export default function socketConfig(io) {
 
     _onConnect(socket, io);
   });
+
+  return { pubClient, subClient };
 };

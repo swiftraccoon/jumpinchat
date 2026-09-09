@@ -53,11 +53,12 @@ For a VPS, point a real domain at it instead.
 ### 3. Configure environment
 
 ```bash
-cp example.env .env
+node ../scripts/init-env.mjs
 ```
 
-Edit `.env` and change the secrets. The defaults work for local testing, but
-**change them for anything internet-facing**.
+The command creates `.env` with unique secrets and restricted file permissions;
+it refuses to overwrite an existing file. Production-mode containers reject
+placeholder secrets even for local use. Edit `.env` to configure your deployment.
 
 | Variable | What it does |
 |---|---|
@@ -78,13 +79,16 @@ Optional (features won't work without them, but the app still runs):
 
 ### 4. Configure WebRTC NAT
 
-Edit `docker-compose.yml` and set `NAT_1_1_IP` to your machine's LAN IP
-(or public IP on a VPS). This tells the WebRTC server what IP to advertise
-for media connections. It appears twice (for `janus` and `janus2`):
+Set `JANUS_NAT_IP` in `.env` to your machine's LAN IP (or public IP on a VPS).
+Both Janus instances advertise this address for media connections:
 
-```yaml
-- NAT_1_1_IP=192.168.1.100
+```dotenv
+JANUS_NAT_IP=192.168.1.100
+TURN_URIS=
 ```
+
+TURN can be empty for LAN-only use. For clients behind restrictive NATs, configure
+your own TURN server hostnames as a comma-separated list.
 
 ### 5. Prepare MongoDB directories
 
@@ -100,6 +104,7 @@ If using Docker (root), skip this step.
 ### 6. Build and start
 
 ```bash
+node ../scripts/preflight.mjs
 podman-compose -f docker-compose.yml build
 podman-compose -f docker-compose.yml up -d
 ```
@@ -114,8 +119,7 @@ use cache and are much faster.
 First launch only:
 
 ```bash
-podman-compose exec mongodb mongo --eval "rs.initiate()"
-podman-compose exec mongodb mongo --eval "rs.add('mongodbslave:27017')"
+../scripts/init-mongo.sh -f docker-compose.yml
 ```
 
 ### 8. Open it
@@ -158,8 +162,8 @@ podman-compose -f docker-compose.yml logs -f nginx      # reverse proxy
 Run tests:
 
 ```bash
-cd ../jumpinchat-web && NODE_ENV=test npm test     # server tests (388 specs)
-cd ../jumpinchat-homepage && NODE_ENV=test npm test # homepage tests
+cd ..
+./scripts/test.sh  # server, focused frontend, and homepage suites
 ```
 
 ## Troubleshooting
@@ -167,13 +171,15 @@ cd ../jumpinchat-homepage && NODE_ENV=test npm test # homepage tests
 **502 Bad Gateway after restart**: Wait 15-20 seconds. Nginx reloads
 automatically after startup to pick up fresh container IPs.
 
-**Camera shows gray square / DTLS alert**: Check that `NAT_1_1_IP` in
-`docker-compose.yml` matches the IP your browser uses to reach the server.
+**Camera shows gray square / DTLS alert**: Check that `JANUS_NAT_IP` in
+`.env` matches the IP your browser uses to reach the server.
 The browser sends WebRTC media directly to this IP on UDP ports 20000-20200.
 
-**MongoDB home containers crash on startup**: They sometimes start before
-the replica set primary is elected. Just restart them:
-`podman-compose restart home home2`.
+**Application remains unready**: Initialize the replica set on first launch,
+then inspect MongoDB and Redis logs. Applications wait up to 60 seconds for
+MongoDB and the web server also waits for Redis. Failed startup exits for the
+container restart policy to retry. `/health/ready` checks dependencies;
+`/health/live` only checks the running HTTP process.
 
 **Can't bind to port 8080/8443**: Something else is using those ports, or
 on a VPS you may need to adjust firewall rules. Rootless Podman can't bind
@@ -195,7 +201,22 @@ MinIO setup instructions.
 
 For WebRTC to work across NATs (e.g., users behind carrier-grade NAT or
 restrictive firewalls), you need a TURN server. Set `TURN_URIS` in
-`docker-compose.yml` to your TURN server hostname. The app generates
+`.env` to your TURN server hostname. The app generates
 HMAC-SHA1 credentials using `JANUS_TOKEN_SECRET`.
 
 For local/LAN testing, TURN is not needed.
+
+## Development and recovery
+
+See [TESTING.md](TESTING.md) for the test commands and remaining coverage gaps,
+and [RECOVERY.md](RECOVERY.md) for maintenance-window backups and an isolated
+restore procedure. A passing unit suite does not replace a two-browser media
+check or a restore exercise.
+
+The split Compose service files are canonical. After editing them, run
+`python3 scripts/generate-compose.py` to refresh `docker-compose.yml`; CI checks
+for drift. The lite profile remains a separate topology. npm package locks are
+authoritative for installation; image builds use `npm ci` and prune build tools.
+
+Redis is pinned by digest. Set `REDIS_IMAGE` to your deployment's existing image
+when preserving its current version; validate a version change before rollout.

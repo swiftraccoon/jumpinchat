@@ -19,7 +19,7 @@ API server and React client for JumpInChat video chat rooms.
 ## Installation
 
 ```bash
-npm install --legacy-peer-deps
+npm ci --legacy-peer-deps
 ```
 
 Copy `example.env` to `.env` and fill in the required values.
@@ -75,7 +75,9 @@ Server tests (mocha):
 npm test
 ```
 
-Tests use ESM via esmock for module mocking.
+Tests use ESM via esmock for module mocking. Run `npm run test:client` for the
+focused media regression suite. See [TESTING.md](../TESTING.md) for the shared
+command, CI checks, and historical frontend specs that still need migration.
 
 ## Architecture
 

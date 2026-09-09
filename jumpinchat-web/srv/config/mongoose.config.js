@@ -22,7 +22,9 @@ if (config.env === 'development') {
 }
 
 export default function mongooseConfig() {
-  mongoose.connect(config.mongo.uri, config.mongo.options)
+  const connection = mongoose.connect(config.mongo.uri, {
+    ...config.mongo.options, serverSelectionTimeoutMS: 60000,
+  })
     .catch((err) => {
       log.fatal({ err }, 'failed to connect to MongoDB');
       throw err;
@@ -39,4 +41,6 @@ export default function mongooseConfig() {
   mongoose.connection.on('disconnected', () => {
     log.fatal('Mongoose disconnected');
   });
+
+  return connection;
 };

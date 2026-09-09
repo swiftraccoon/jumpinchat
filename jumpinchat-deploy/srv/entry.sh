@@ -1,4 +1,5 @@
 #!/bin/sh
-
+set -eu
 nginx
-NODE_ENV=production node /var/www/jic-web/srv/index.js
+# Node receives container termination signals directly.
+exec node /var/www/jic-web/srv/index.js

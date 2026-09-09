@@ -29,7 +29,7 @@ services:
       - ENABLE_EVENTS=true
       - ENABLE_RABBIT_EVENTS=false
       - JANUS_TOKEN_SECRET=$JANUS_TOKEN_SECRET
-      - NAT_1_1_IP=192.168.88.197
+      - NAT_1_1_IP=${JANUS_NAT_IP:?Set JANUS_NAT_IP to the media server address}
     logging:
       options:
         max-size: '1m'
@@ -57,7 +57,7 @@ services:
       - ENABLE_EVENTS=true
       - ENABLE_RABBIT_EVENTS=false
       - JANUS_TOKEN_SECRET=$JANUS_TOKEN_SECRET
-      - NAT_1_1_IP=192.168.88.197
+      - NAT_1_1_IP=${JANUS_NAT_IP:?Set JANUS_NAT_IP to the media server address}
       - RTP_PORT_MIN=20101
       - RTP_PORT_MAX=20200
     logging:

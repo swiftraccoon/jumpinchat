@@ -4,6 +4,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { Helmet } from 'react-helmet';
 import classnames from 'classnames';
+import { destroy as destroyMedia } from '../../utils/CamUtil';
 import { connectToRoom } from '../../utils/RoomUtils';
 import * as chatActions from '../../actions/ChatActions';
 import { setSettingsModal } from '../../actions/AppActions';
@@ -122,6 +123,7 @@ class Room extends Component {
   }
 
   componentWillUnmount() {
+    destroyMedia();
     appStore.removeChangeListener(this._onChange);
     userStore.removeChangeListener(this._onChange);
     roomStore.removeChangeListener(this._onChange);

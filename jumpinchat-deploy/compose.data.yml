@@ -9,7 +9,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    image: docker.io/library/mongo:4.4
+    image: docker.io/library/mongo:4.4@sha256:4be76f674fc4b27859816811b8baa3c51830eb1dbf4ca81a51e26b79edd662ef
     command: "--replSet rs0"
     expose:
       - "27017"
@@ -27,7 +27,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    image: docker.io/library/mongo:4.4
+    image: docker.io/library/mongo:4.4@sha256:4be76f674fc4b27859816811b8baa3c51830eb1dbf4ca81a51e26b79edd662ef
     command: "--replSet rs0"
     expose:
       - "27017"
@@ -45,7 +45,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    image: docker.io/library/redis
+    # Resolved from redis:latest on 2026-09-08; override to retain an existing deployment version.
+    image: ${REDIS_IMAGE:-docker.io/library/redis@sha256:298e5b3bc566bade82f46ad5511777a4a07a294097ce16ada2f6a42be5239df5}
     expose:
       - "6379"
     logging:

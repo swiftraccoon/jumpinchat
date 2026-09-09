@@ -9,7 +9,9 @@
   },
   "scripts": {
     "start": "node srv/index.js",
-    "test": "NODE_ENV=test ./node_modules/.bin/mocha --loader=esmock --exit -t 3000 'srv/**/*.spec.js'"
+    "test": "NODE_ENV=test ./node_modules/.bin/mocha --loader=esmock --exit -t 3000 'srv/**/*.spec.js'",
+    "test:client": "NODE_ENV=test mocha --exit -t 3000 'test/client/**/*.spec.js'",
+    "lint:critical": "eslint --config eslint.critical.config.js react-client/js/utils/CamUtil.js react-client/js/utils/mediaRecovery.js srv/index.js srv/lib/health.js srv/config/mongoose.config.js srv/config/express.config.js srv/config/socket.config.js"
   },
   "author": "vivaldi",
   "license": "ISC",

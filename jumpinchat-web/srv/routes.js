@@ -20,7 +20,6 @@ import roomUtils from './api/room/room.utils.js';
 import logFactory from './utils/logger.util.js';
 const log = logFactory({ name: 'routes' });
 export default function routes(app) {
-  app.get('/health', (req, res) => res.status(200).send('ok'));
   app.use('/api/user', user);
   app.use('/api/rooms', room);
   app.use('/api/janus', janus);

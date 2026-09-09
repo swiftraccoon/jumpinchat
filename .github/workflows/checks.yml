@@ -1,0 +1,30 @@
+name: Project checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            jumpinchat-web/package-lock.json
+            jumpinchat-homepage/package-lock.json
+      - run: npm --prefix jumpinchat-web ci --legacy-peer-deps
+      - run: npm --prefix jumpinchat-homepage ci --legacy-peer-deps
+      - run: ./scripts/test.sh
+      - run: npm --prefix jumpinchat-web run lint:critical
+      - run: ./scripts/build.sh
+      - run: npm --prefix jumpinchat-homepage run build
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python3 scripts/generate-compose.py --check
+      - run: python3 -m unittest discover -s scripts -p 'test_*.py'
+      - name: Historical lint backlog (informational)
+        continue-on-error: true
+        run: ./scripts/lint.sh

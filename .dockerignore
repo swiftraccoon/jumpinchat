@@ -1,0 +1,14 @@
+.git
+**/node_modules
+**/.env
+**/.env.*
+**/*.pem
+**/.npmrc
+**/dist
+**/.tmp
+**/coverage
+**/*.log
+**/*.swp
+jumpinchat-deploy/data
+jumpinchat-deploy/core
+jumpinchat-deploy/valgrind

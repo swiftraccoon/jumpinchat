@@ -29,6 +29,7 @@ export default function expressConfig(app, io) {
     sessionRedisOpts.url = config.redis.uri;
   }
   const sessionRedisClient = createRedisClient(sessionRedisOpts);
+  sessionRedisClient.on('error', (err) => log.error({ err }, 'session redis error'));
   sessionRedisClient.connect().catch((err) => {
     log.fatal({ err }, 'session redis connection failed');
   });
@@ -133,4 +134,6 @@ export default function expressConfig(app, io) {
     app.use(express.static(path.join(config.root, 'node_modules')));
     app.use(errorHandler());
   }
+
+  return sessionRedisClient;
 };

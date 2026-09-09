@@ -9,11 +9,19 @@ import { fileURLToPath } from 'url';
 import config from './config/index.js';
 import { checkUserSession, initLocals, initErrorHandlers, cache } from './routes/middleware.js';
 import routes from './routes/index.js';
+import { registerHealthRoutes } from './utils/health.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+let stopping = false;
+let server;
+let sessionReady = false;
+registerHealthRoutes(app, {
+  isReady: () => !stopping && sessionReady && mongoose.connection.readyState === 1,
+  check: () => mongoose.connection.db.admin().command({ ping: 1 }),
+});
 
 // Trust first proxy (nginx) so Express sees X-Forwarded-Proto as HTTPS
 // Required for secure session cookies behind reverse proxy
@@ -44,16 +52,18 @@ app.use(cookieParser(config.auth.cookieSecret));
 
 // MongoDB connection URI from environment (same as keystone.js used)
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost/tc';
+const connection = mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 60000 });
 
-// Session with MongoStore
+// Share the ODM client and await the session collection/index before listening.
+const sessionStore = MongoStore.create({
+  clientPromise: connection.then(() => mongoose.connection.getClient()),
+  ttl: Math.floor(config.auth.cookieTimeout / 1000),
+});
 app.use(session({
   secret: config.auth.cookieSecret,
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: mongoUri,
-    ttl: Math.floor(config.auth.cookieTimeout / 1000),
-  }),
+  store: sessionStore,
   cookie: {
     secure: config.env === 'production',
     sameSite: 'lax',
@@ -74,9 +84,6 @@ app.use(cache);
 app.use(checkUserSession);
 app.use(initLocals);
 app.use(initErrorHandlers);
-
-// Health check
-app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
 // Routes
 routes(app);
@@ -104,17 +111,34 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Connect to MongoDB and start server
-mongoose.connect(mongoUri)
-  .then(() => {
-    console.log('Mongoose connected to', mongoUri);
-    app.listen(config.port, () => {
-      console.log(`Homepage server listening on port ${config.port} [${config.env}]`);
-    });
-  })
-  .catch((err) => {
-    console.error('Failed to connect to MongoDB:', err);
-    process.exit(1);
+async function shutdown(exitCode = 0) {
+  if (stopping) return;
+  stopping = true;
+  const deadline = setTimeout(() => process.exit(1), 10000);
+  try {
+    if (server) await new Promise(resolve => server.close(resolve));
+    await mongoose.disconnect();
+  } finally {
+    clearTimeout(deadline);
+    process.exit(exitCode);
+  }
+}
+process.on('SIGTERM', () => shutdown());
+process.on('SIGINT', () => shutdown());
+
+Promise.all([connection, sessionStore.collectionP]).then(() => {
+  if (stopping) return;
+  sessionReady = true;
+  server = app.listen(config.port, () => {
+    console.log(`Homepage server listening on port ${config.port} [${config.env}]`);
   });
+  server.on('error', (err) => {
+    console.error('HTTP server failed:', err);
+    shutdown(1);
+  });
+}).catch((err) => {
+  console.error('Failed to connect to MongoDB:', err);
+  shutdown(1);
+});
 
 export default app;

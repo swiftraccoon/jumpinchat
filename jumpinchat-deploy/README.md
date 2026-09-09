@@ -11,8 +11,9 @@ haproxy) — about half the footprint of the full stack, with no loss of
 availability on a single host.
 
 ```bash
-cp env/.env.lite.example .env
-# Edit .env with your secrets
+node ../scripts/init-env.mjs
+# Set JANUS_NAT_IP and prepare TLS files as described in the root README
+node ../scripts/preflight.mjs --profile lite
 podman-compose -f compose.lite.yml build
 podman-compose -f compose.lite.yml up -d
 ../scripts/init-mongo-lite.sh   # first boot only
@@ -25,10 +26,12 @@ Runs all 12 containers (duplicated web/home/janus, mongo secondary,
 haproxy). Useful as a staging mirror of a multi-server layout.
 
 ```bash
-cp example.env .env
-# Edit .env with your secrets
+node ../scripts/init-env.mjs
+# Set JANUS_NAT_IP and prepare TLS files as described in the root README
+node ../scripts/preflight.mjs
 podman-compose -f compose.yml build
 podman-compose -f compose.yml up -d
+../scripts/init-mongo.sh -f compose.yml
 ```
 
 Or use the legacy all-in-one file: `podman-compose -f docker-compose.yml up -d`
@@ -70,7 +73,7 @@ MongoDB, Redis, MinIO, and email use upstream images and don't have build direct
 | `compose.data.yml` | mongodb, mongodbslave, redis | Data tier |
 | `compose.storage.yml` | minio | Object storage tier |
 | `compose.email.yml` | email | Email tier |
-| `docker-compose.yml` | All (monolithic) | Legacy single-server |
+| `docker-compose.yml` | All (generated from service groups) | Standalone full deployment without include support |
 
 ## Multi-Server Deployment
 
@@ -160,3 +163,31 @@ podman restart jumpinchat-deploy_janus_1 jumpinchat-deploy_janus2_1
 The compose files use local image tags (e.g., `jumpinchat/web`). These
 don't need an actual registry -- Podman/Docker builds and tags them
 locally. Change the image names if you want to push to your own registry.
+
+## Configuration and operational checks
+
+Edit the split service definitions, then run `python3 ../scripts/generate-compose.py`
+to regenerate the legacy entry point. `--check` detects drift. The lite topology
+remains separately maintained. Both full and lite take `JANUS_NAT_IP` and
+`TURN_URIS` from `.env`; the advertised address has no machine-specific default.
+
+Run `node ../scripts/preflight.mjs --profile app` (or `media`, `data`, `storage`,
+`email`, `lite`, `full`) with `--env-file PATH` for split deployments. Environment
+values already supplied by the shell take precedence. Preflight validates
+configuration and certificate presence; it does not establish network reachability.
+
+`/health/live` and `/health` report process liveness. `/health/ready` checks required
+dependencies with a one-second response deadline. App containers and HAProxy use
+readiness. Servers have a ten-second graceful shutdown deadline; deployment stop
+timeouts should exceed that deadline. Existing calls can be interrupted on restart.
+
+See [recovery procedures](../RECOVERY.md) and [test coverage](../TESTING.md). Build
+all images before runtime validation. To record a revision when building directly,
+pass `--build-arg BUILD_REVISION=$(git rev-parse HEAD)` to the build command.
+
+For Redis, the default image is pinned to the registry digest resolved from the
+previous unversioned reference on September 8, 2026. Set `REDIS_IMAGE` to retain an
+existing installation's version. The other upstream base/service image references are pinned in their Dockerfiles
+and Compose definitions, with resolutions recorded in `images.lock.json`. OS
+package repositories and Janus source dependencies still need a separate update
+policy; these builds are not claimed to be byte-for-byte reproducible.

@@ -1,0 +1,15 @@
+{
+  "resolved_at": "2026-09-09",
+  "registry": "docker.io",
+  "images": {
+    "library/node:22-bullseye": "sha256:959fa6e5c12f4b08f58808f953c7a6a05f1f72629b57ef3a648b8809362fdad9",
+    "library/node:22-bullseye-slim": "sha256:5736e7ef1f3f2109be7ef8aea0cbdf931804aee9a18c6760507b8ded078b25a9",
+    "library/node:22-alpine": "sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32",
+    "library/nginx:stable": "sha256:d5792f71a9496b833bc08ea834a758c46e2b6a6306c10f4be926f38a656cdc1c",
+    "library/haproxy:2.8": "sha256:8baa7d29a27a7aa2c24c33819ad93a40d90b36a338b9f5c5806c537c79cfb105",
+    "library/mongo:4.4": "sha256:4be76f674fc4b27859816811b8baa3c51830eb1dbf4ca81a51e26b79edd662ef",
+    "library/ubuntu:18.04": "sha256:152dc042452c496007f07ca9127571cb9c29697f42acbfad72324b2bb2e43c98",
+    "minio/minio:latest": "sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e",
+    "library/redis:latest": "sha256:298e5b3bc566bade82f46ad5511777a4a07a294097ce16ada2f6a42be5239df5"
+  }
+}
