@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
 cd "$(dirname "$0")/../jumpinchat-deploy"
-
-podman-compose exec mongodb mongo tc "$@"
+compose_command=(podman-compose)
+if [[ "${CONTAINER_ENGINE:-podman}" == docker ]]; then
+  compose_command=(docker compose)
+fi
+"${compose_command[@]}" -f "${COMPOSE_FILE:-docker-compose.yml}" exec mongodb mongosh tc "$@"

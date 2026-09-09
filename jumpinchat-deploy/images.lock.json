@@ -2,14 +2,20 @@
   "resolved_at": "2026-09-09",
   "registry": "docker.io",
   "images": {
-    "library/node:22-bullseye": "sha256:959fa6e5c12f4b08f58808f953c7a6a05f1f72629b57ef3a648b8809362fdad9",
-    "library/node:22-bullseye-slim": "sha256:5736e7ef1f3f2109be7ef8aea0cbdf931804aee9a18c6760507b8ded078b25a9",
-    "library/node:22-alpine": "sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32",
+    "library/node:24-trixie": "sha256:f7d34e58713740f9eef9092c0bd6ff10369d132f7238399a4b270f16d47fa608",
+    "library/node:24-trixie-slim": "sha256:50c3b2f6988dfc307b86e5301d69611af31f4789bdf232863b07d3b02fe55ae0",
+    "library/node:24-alpine": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
     "library/nginx:stable": "sha256:d5792f71a9496b833bc08ea834a758c46e2b6a6306c10f4be926f38a656cdc1c",
-    "library/haproxy:2.8": "sha256:8baa7d29a27a7aa2c24c33819ad93a40d90b36a338b9f5c5806c537c79cfb105",
-    "library/mongo:4.4": "sha256:4be76f674fc4b27859816811b8baa3c51830eb1dbf4ca81a51e26b79edd662ef",
-    "library/ubuntu:18.04": "sha256:152dc042452c496007f07ca9127571cb9c29697f42acbfad72324b2bb2e43c98",
-    "minio/minio:latest": "sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e",
-    "library/redis:latest": "sha256:298e5b3bc566bade82f46ad5511777a4a07a294097ce16ada2f6a42be5239df5"
+    "library/haproxy:3.4": "sha256:0e81cf4a7fac4f689289ae2afd29e1153e9e6d69ae3fb0c1f0345f998643c258",
+    "library/mongo:8.3": "sha256:613a7cc66be5bbf1796252660b43c9b8969a5ad1dab6180c9d917b7472867e64",
+    "library/ubuntu:26.04": "sha256:2260313b31c8c011cd2eebe728008efac1b3982be73eb71348ea2648d2c0e09b",
+    "library/redis:8.10.1": "sha256:298e5b3bc566bade82f46ad5511777a4a07a294097ce16ada2f6a42be5239df5",
+    "coturn/coturn:4.18.0-r0": "sha256:bbefd3e1fdfdc0d58770fe01b581fd8b00d9f3a5580d00acb77cf719a6bc78e3"
+  },
+  "sources": {
+    "janus-gateway:1.4.1": {
+      "url": "https://codeload.github.com/meetecho/janus-gateway/tar.gz/refs/tags/v1.4.1",
+      "sha256": "cba1e7aac44f4458701c5e14698e791a0eee13ecacbdacc71b4245716c442c08"
+    }
   }
 }

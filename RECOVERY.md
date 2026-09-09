@@ -39,8 +39,14 @@ read the upload volume without networking. All application writers must use this
 deployment; stop external writers separately before starting. Requests and calls
 can be interrupted during maintenance.
 
-A successful directory contains two archives and a checksummed manifest. If a
-command fails, preserve the output for diagnosis; an incomplete directory must
+A successful directory contains two archives and a checksummed version-2 manifest.
+The manifest records the source MongoDB version, FCV and Database Tools version.
+Checksum verification also accepts older version-1 manifests, but those lack the
+version metadata: recover the recorded original server/tool versions separately.
+Restore archives to a compatible server release; do not assume an old dump can
+be imported directly into 8.3.
+
+If a command fails, preserve the output for diagnosis; an incomplete directory must
 not be treated as a backup. Check application health after the command, including
 when it exits nonzero. A machine crash or forced process termination can prevent
 automatic service restart.
@@ -51,7 +57,8 @@ Restore verification is an operator-run procedure. Do not run it against the
 source project, database URI, upload volume, or S3 bucket.
 
 1. On a separate host/VM, check out the recorded application revision. Prepare
-   fresh configuration and TLS material. Keep outbound email/payments disabled
+   fresh configuration and TLS material using the recorded compatible database
+   release and tools (8.3 for current backups). Keep outbound email/payments disabled
    and restrict ingress. Copy the backup to this host and run `backup.py verify`.
 2. Use a new Compose project, for example `jic-restore`, **and a separate checkout
    with empty `jumpinchat-deploy/data/` directories**. A project name alone does
@@ -104,3 +111,61 @@ the app and nginx to use that bucket and repeat the verification above. Bucket
 versioning or replication alone is not a demonstrated restore procedure. A
 provider-specific restore exercise remains required before enabling scheduled
 S3 backups.
+
+## Upgrade an existing MongoDB 4.4 deployment
+
+This checkout targets MongoDB 8.3. Its startup wrapper checks
+`data/db/.jic-mongodb-series` (and `data/db2` for the second full-profile member).
+It creates the marker only for an empty directory. An existing unmarked directory
+is refused before `mongod` can open it. Never remove database files to bypass this
+check, and never mark a 4.4 directory as 8.3.
+
+1. Inventory the running server version, featureCompatibilityVersion (FCV),
+   replica-set membership, application revision and data paths. Keep the recorded
+   old revision and image digests available. Use that revision's matching tools
+   to take a coordinated backup of the database and public/private uploads. The
+   new backup tool expects a completed 8.3 migration. Verify a restore into an
+   isolated copy using the original database release before upgrading anything.
+2. Rehearse on copies on a separate host/VM with enough free disk space. A new
+   Compose project name alone does not isolate the `data/db` bind mount. Do not
+   expose test app writers, mail or payments to production services. Keep the
+   original data and backup untouched for recovery.
+3. Upgrade the copied database through the latest patch of **4.4 → 5.0 → 6.0 →
+   7.0 → 8.0 → 8.3**. Follow MongoDB's release-specific replica-set upgrade guide
+   at each step, including platform/CPU requirements, removed configuration,
+   indexes and FCV prerequisites. Use a separate migration Compose definition
+   with the matching upstream image and its upstream entrypoint. The application
+   Compose guard is intentionally not used until migration is complete. Upgrade
+   all members and verify their health before raising FCV for that step. Keep a
+   majority available; a two-member set cannot lose either member without losing
+   a majority. Do not use the lite init script to force a topology change.
+4. At each step, use the shell and Database Tools supported by that release.
+   MongoDB 6+ uses `mongosh`; the old `mongo` shell is removed. Confirm both the
+   binary version and FCV before proceeding. The supported direct path from
+   8.0 to 8.3 requires a completed 8.0/FCV 8.0 deployment. A BSON dump/restore
+   across all those releases is not a substitute for checking format and tool
+   compatibility.
+5. Validate collections, indexes, document counts and representative queries on
+   the 8.3 copy. Set and verify FCV 8.3 on all members. Test the upgraded app's
+   account/session flows, room data, uploads and payments with isolated test
+   services. Capture a fresh coordinated backup and rehearse its restore on 8.3.
+6. Plan the production maintenance window from the measured rehearsal. Stop all
+   writers, take the final coordinated backup, and perform the rehearsed steps.
+   Only after verifying **server 8.3 and FCV 8.3**, stop database containers cleanly
+   and write the line `8.3` to `.jic-mongodb-series` in each migrated data directory,
+   preserving directory ownership. This marker records completed operator
+   verification; writing it does not perform or validate a migration itself.
+7. Start the guarded 8.3 services from this checkout and confirm replica health,
+   then start app writers and check readiness, login and persisted data. Retain
+   the original backup and recorded old software. Rollback after writes or FCV
+   changes is a restore/cutover decision; never point an old binary at the
+   upgraded data directory.
+
+Release procedures: [5.0](https://www.mongodb.com/docs/v5.0/release-notes/5.0-upgrade-replica-set/),
+[6.0](https://www.mongodb.com/docs/v6.0/release-notes/6.0-upgrade-replica-set/),
+[7.0](https://www.mongodb.com/docs/v7.0/release-notes/7.0-upgrade-replica-set/),
+[8.0](https://www.mongodb.com/docs/v8.0/release-notes/8.0-upgrade-replica-set/), and
+[8.0 to 8.3](https://www.mongodb.com/docs/manual/release-notes/8.3-upgrade-from-8.0-replica-set/).
+Review the current [versioning policy](https://www.mongodb.com/docs/manual/reference/versioning/)
+and compatibility changes before each migration. No script in this checkout runs
+that migration or deletes the prior data.

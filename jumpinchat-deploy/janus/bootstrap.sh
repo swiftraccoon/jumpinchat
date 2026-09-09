@@ -1,16 +1,14 @@
 #!/usr/bin/env bash
 
-set -e
-
-INSTALL_DIR="/home/janus"
+set -euo pipefail
 JANUS_DIR="/opt/janus"
 
-if [ -z "${JANUS_TOKEN_SECRET}" ]; then
+if [ -z "${JANUS_TOKEN_SECRET:-}" ]; then
   echo "janus token secret is missing" >&2
   exit 1
 fi
 
-if [ -z "${SERVER_NAME}" ]; then
+if [ -z "${SERVER_NAME:-}" ]; then
   echo "server name is missing" >&2
   exit 1
 fi
@@ -18,20 +16,19 @@ fi
 # set colors from env var if it exists
 # set this to 'no' for prod so logs
 # don't get polluted by color codes
-if [ -z "${DEBUG_COLORS}" ]; then
+if [ -z "${DEBUG_COLORS:-}" ]; then
   DEBUG_COLORS=true
 fi
 
-if [ -z "${ENABLE_EVENTS}" ]; then
+if [ -z "${ENABLE_EVENTS:-}" ]; then
   ENABLE_EVENTS=true
 fi
 
-if [ -z "${ENABLE_RABBIT_EVENTS}" ]; then
-  ENABLE_RABBIT_EVENTS=true
-fi
-
-if [ -z "${RABBIT_HOST}" ]; then
-  RABBIT_HOST="rabbitmq"
+: "${NAT_1_1_IP:?Set NAT_1_1_IP to the media server address}"
+JANUS_EVENTS_URL="${JANUS_EVENTS_URL:-http://haproxy/api/janus/events}"
+STUN_CONFIG=""
+if [[ -n "${STUN_SERVER-stun1.l.google.com}" ]]; then
+  STUN_CONFIG="stun_server = \"${STUN_SERVER-stun1.l.google.com}\"; stun_port = 19302;"
 fi
 
 echo "generating the config file"
@@ -54,12 +51,11 @@ general: {
 }
 
 nat: {
-  stun_server = "stun1.l.google.com"
-  stun_port = 19302
+  ${STUN_CONFIG}
   server_name = "JumpInChat"
   full_trickle = true
   ice_enforce_list = "eth0"
-  nat_1_1_mapping = "${NAT_1_1_IP:-192.168.88.197}"
+  nat_1_1_mapping = "${NAT_1_1_IP}"
   rtp_port_range = "${RTP_PORT_MIN:-20000}-${RTP_PORT_MAX:-20100}"
   nice_debug = false
 }
@@ -74,12 +70,12 @@ media: {
 }
 
 plugins: {
-  disable = "libjanus_voicemail.so,libjanus_recordplay.so,libjanus_audiobridge.so,libjanus_videocall.so,libjanus_voicemail.so,libjanus_recordplay.so,libjanus_sip.so,libjanus_textroom.so,libjanus_echotest.so"
+  # Only VideoRoom is compiled into this image.
 }
 
 events: {
   broadcast = ${ENABLE_EVENTS}
-  disable = "libjanus_mqttevh.so,libjanus_wsevh.so,libjanus_rabbitmqevh.so,libjanus_nanomsgevh.so"
+  # Only the HTTP sample event handler is compiled.
   stats_period = 0
 }
 
@@ -129,7 +125,7 @@ general: {
   enabled = ${ENABLE_EVENTS}
   events = "plugins"
   grouping = true
-  backend = "http://haproxy/api/janus/events"
+  backend = "${JANUS_EVENTS_URL}"
 }
 EOF
 
@@ -138,16 +134,3 @@ general: {
   string_ids = true
 }
 EOF
-
-#cat << EOF > ${JANUS_DIR}/etc/janus/janus.eventhandler.rabbitmqevh.jcfg
-#general: {
-#  enabled = ${ENABLE_RABBIT_EVENTS}
-#  events = "plugins"
-#  grouping = false
-#  json = "compact"
-#  host = "${RABBIT_HOST}"
-#  port = 5672
-#  #exchange = "janus-exchange"
-#  route_key = "janus-events"
-#}
-#EOF

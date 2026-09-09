@@ -2,7 +2,7 @@ FROM docker.io/library/nginx:stable@sha256:d5792f71a9496b833bc08ea834a758c46e2b6
 
 RUN apt-get update > /dev/null && \
     apt-get install -y -qq \
-      curl \
+      curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up SSL

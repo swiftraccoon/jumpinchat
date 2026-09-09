@@ -2,11 +2,13 @@
 
 Self-hosted video chat rooms. WebRTC video/audio, text chat, room moderation.
 
-Runs as 12 containers via Podman Compose (or Docker Compose).
+Runs as 12 containers via Podman Compose (or Docker Compose), with an optional
+separate coturn service.
 
 ## Requirements
 
 - **Podman** (rootless) + **podman-compose** (`pip install podman-compose`), or Docker + Docker Compose
+- Node 24 LTS for local development and the configuration scripts (`nvm use` in each app)
 - A machine with a LAN IP (or a VPS with a public IP)
 - Ports: 8080 (HTTP), 8443 (HTTPS), 20000-20200/udp (WebRTC media)
 
@@ -92,6 +94,10 @@ your own TURN server hostnames as a comma-separated list.
 
 ### 5. Prepare MongoDB directories
 
+These instructions initialize a fresh MongoDB 8.3 deployment. For existing 4.4
+data, follow the staged migration in [RECOVERY.md](RECOVERY.md) first. The startup
+guard refuses to open existing data without a completed migration marker.
+
 Rootless Podman needs UID-mapped dirs for MongoDB:
 
 ```bash
@@ -137,7 +143,7 @@ Create a room by visiting `https://local.jumpin.chat:8443/yourroom`.
 | **haproxy** | Load balances between web and web2 |
 | **web / web2** | Node.js app (chat rooms, Socket.io, API) |
 | **home / home2** | Express 5 homepage (registration, login, settings, room directory) |
-| **mongodb + mongodbslave** | MongoDB 4.4 replica set |
+| **mongodb + mongodbslave** | MongoDB 8.3 replica set |
 | **redis** | Session store and cache |
 | **janus / janus2** | Janus WebRTC Gateway (video/audio media) |
 | **email** | SMTP email service |
@@ -163,7 +169,8 @@ Run tests:
 
 ```bash
 cd ..
-./scripts/test.sh  # server, focused frontend, and homepage suites
+./scripts/test.sh  # API, React, media callbacks, homepage, and email
+./scripts/lint.sh
 ```
 
 ## Troubleshooting
@@ -193,16 +200,24 @@ provider works (Mailgun, SendGrid, Gmail app password, self-hosted).
 User-uploaded files (avatars, room images, emoji) are stored on the local
 filesystem in an `uploads` Docker volume, served by nginx at `/uploads/`.
 
-Optionally, set `STORAGE_BACKEND=s3` in `.env` to use MinIO (or any
-S3-compatible service) instead. See `jumpinchat-deploy/README.md` for
-MinIO setup instructions.
+For external S3-compatible storage, set `STORAGE_BACKEND=s3`, the S3 credentials,
+bucket and region, and `S3_PUBLIC_BASE_URL` to an HTTPS URL ending in `/public/`.
+`S3_ENDPOINT` is optional for AWS. The application keeps public `/uploads/` URLs;
+signed private downloads stream through the API with server credentials. The
+archived MinIO service has been retired. See
+[jumpinchat-deploy/README.md](jumpinchat-deploy/README.md) for configuration and
+copy/verification steps that preserve both public and private objects.
 
 ## TURN Server
 
 For WebRTC to work across NATs (e.g., users behind carrier-grade NAT or
 restrictive firewalls), you need a TURN server. Set `TURN_URIS` in
-`.env` to your TURN server hostname. The app generates
-HMAC-SHA1 credentials using `JANUS_TOKEN_SECRET`.
+`.env` to comma-separated TURN hostnames or explicit `turn:`/`turns:` URIs.
+Hostnames expand to UDP and TCP on port 3478; specify
+`turns:relay.example.com:5349?transport=tcp` for a TLS listener. The app generates
+HMAC-SHA1 credentials using `TURN_SHARED_SECRET`, which must match coturn.
+See [jumpinchat-turn/README.md](jumpinchat-turn/README.md) for the upstream image,
+TLS and relay port configuration.
 
 For local/LAN testing, TURN is not needed.
 
@@ -220,3 +235,32 @@ authoritative for installation; image builds use `npm ci` and prune build tools.
 
 Redis is pinned by digest. Set `REDIS_IMAGE` to your deployment's existing image
 when preserving its current version; validate a version change before rollout.
+
+
+## Dependency maintenance
+
+Node 24 LTS is the deployment target; Node 26 is also accepted for development.
+The Node 24 build and runtime images use matching Debian releases for native npm
+modules. Janus uses supported Ubuntu 26.04 libraries for OpenSSL, ICE, SRTP and
+WebSockets, with its source archive and container bases pinned by checksum.
+
+The React 19 client uses Zustand subscriptions, Floating UI, native scroll/range
+controls and Emoji Mart 5. Homepage image cropping uses Cropper 2; date-fns replaces
+Moment. Pino emits structured JSON logs (`LOG_LEVEL` controls verbosity).
+The Node build script writes hashed bundles, styles, source maps, local fonts,
+media and the service worker; authenticated pages and APIs stay on the network.
+
+FingerprintJS 5 sends its algorithm version with the identifier. Existing web
+sessions and authenticated accounts keep up to five trusted versioned identifiers.
+A returning guest without a surviving session or account cannot be linked to the
+old algorithm. Fingerprints remain advisory metadata: existing IP/account/session
+ban matching is unchanged. Client-supplied historical aliases are not accepted.
+
+Weekly Dependabot configuration groups related npm updates and tracks container
+bases and GitHub Actions. It creates reviewable updates after reaching the default
+branch; this checkout does not enable automatic merging. Review major API changes,
+refresh `jumpinchat-deploy/images.lock.json` with image changes, and regenerate
+Compose from its canonical files. Janus source-version/checksum updates and distro
+library changes require native rebuild and media checks. Run all tests, builds,
+`npm ls --all` and `npm audit` in each app before accepting updates. Historical
+cleanup warnings remain visible in a full ESLint run; correctness errors block CI.

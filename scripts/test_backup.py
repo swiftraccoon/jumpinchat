@@ -42,6 +42,10 @@ class BackupTests(unittest.TestCase):
                     return json.dumps([{'Config': {'Env': ['STORAGE_BACKEND=local', 'MONGODB_URI=mongodb://mongodb/tc?replicaSet=rs0']},
                                         'State': {'Running': command[-1] == 'web'},
                                         'Image': 'test-image', 'Id': command[-1]}])
+                if 'mongosh' in command:
+                    return json.dumps({'version': '8.3.1', 'fcv': '8.3'})
+                if command[-1] == '--version':
+                    return 'mongodump version: 100.16.0'
                 if 'mongodump' in command:
                     raise RuntimeError('simulated dump failure')
                 return ''
@@ -51,6 +55,14 @@ class BackupTests(unittest.TestCase):
                     backup.backup(args)
             self.assertEqual(calls[-1][-2:], ['start', 'web'])
             self.assertFalse((args.directory / 'manifest.json').exists())
+
+    def test_new_manifest_requires_server_and_tool_versions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            manifest = {'format': 2, 'sha256': dict.fromkeys(backup.ARCHIVES, 'unused')}
+            (directory / 'manifest.json').write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, 'MongoDB version information'):
+                backup.verify(directory)
 
     def test_maintenance_acknowledgment_precedes_container_operations(self):
         with patch.object(backup, 'run') as run:

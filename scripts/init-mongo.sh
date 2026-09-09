@@ -8,7 +8,7 @@ compose_command=(podman-compose)
 if [[ "${CONTAINER_ENGINE:-podman}" == docker ]]; then
   compose_command=(docker compose)
 fi
-"${compose_command[@]}" "$@" exec -T mongodb mongo --quiet --eval '
+"${compose_command[@]}" "$@" exec -T mongodb mongosh --quiet --eval '
 try {
   var current = rs.conf();
   if (current._id !== "rs0" || current.members.length !== 2 ||

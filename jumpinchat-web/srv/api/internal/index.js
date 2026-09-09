@@ -1,8 +1,7 @@
 import express from 'express';
 import path from 'path';
-import fs from 'fs/promises';
 import { verifyFileToken } from '../../utils/fileToken.util.js';
-import config from '../../config/env/index.js';
+import { readPrivate } from '../../lib/storage.js';
 import logFactory from '../../utils/logger.util.js';
 
 const log = logFactory({ name: 'internal.file' });
@@ -23,11 +22,7 @@ router.get('/file/:token', async (req, res) => {
 
   const filePath = decoded.path;
 
-  // Path containment — only serve files from private upload directory
-  const basePath = config.uploads.basePath || '/data/uploads';
-  const privateBase = path.resolve(basePath, 'private');
-  if (!path.resolve(filePath).startsWith(privateBase + path.sep)) {
-    log.warn({ filePath }, 'path containment violation');
+  if (typeof filePath !== 'string') {
     return res.status(403).send({ error: 'Invalid file path' });
   }
 
@@ -39,12 +34,25 @@ router.get('/file/:token', async (req, res) => {
     return res.status(403).send({ error: 'File type not allowed' });
   }
 
-  // Verify file exists (async to avoid blocking event loop)
+  // The backend validates private scope and opens the file only after token verification.
+  let stream;
   try {
-    await fs.access(filePath);
-  } catch {
-    log.warn({ filePath }, 'private file not found');
-    return res.status(404).send({ error: 'File not found' });
+    stream = await readPrivate(filePath);
+  } catch (err) {
+    if (err.code === 'EPRIVATEPATH') {
+      log.warn('private file path rejected');
+      return res.status(403).send({ error: 'Invalid file path' });
+    }
+    if (err.code === 'ENOENT') {
+      return res.status(404).send({ error: 'File not found' });
+    }
+    log.error({ err }, 'error opening private file');
+    return res.status(500).send({ error: 'Error reading file' });
+  }
+
+  if (res.destroyed) {
+    stream.destroy();
+    return undefined;
   }
 
   res.set('Content-Type', contentType);
@@ -55,12 +63,13 @@ router.get('/file/:token', async (req, res) => {
   res.set('Content-Security-Policy', "default-src 'none'; sandbox");
   res.set('Cross-Origin-Resource-Policy', 'same-site');
 
-  const { createReadStream } = await import('fs');
-  const stream = createReadStream(filePath);
+  res.once('close', () => stream.destroy());
   stream.on('error', (err) => {
-    log.error({ err, filePath }, 'error streaming private file');
+    log.error({ err }, 'error streaming private file');
     if (!res.headersSent) {
       res.status(500).send({ error: 'Error reading file' });
+    } else {
+      res.destroy();
     }
   });
 

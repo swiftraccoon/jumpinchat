@@ -12,7 +12,7 @@ COPY . .
 
 ENV NODE_ENV=production
 
-EXPOSE 3001
+EXPOSE 3434
 
 CMD [ "node", "/opt/src/index.js" ]
 

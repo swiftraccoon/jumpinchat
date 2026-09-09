@@ -8,7 +8,7 @@ const { values } = parseArgs({ options: {
   output: { type: 'string', default: fileURLToPath(new URL('../jumpinchat-deploy/.env', import.meta.url)) },
 } });
 let template = fs.readFileSync(new URL('../jumpinchat-deploy/example.env', import.meta.url), 'utf8');
-for (const name of ['JWT_SECRET', 'COOKIE_SECRET', 'SHARED_SECRET', 'JANUS_TOKEN_SECRET', 'FILE_TOKEN_SECRET']) {
+for (const name of ['JWT_SECRET', 'COOKIE_SECRET', 'SHARED_SECRET', 'JANUS_TOKEN_SECRET', 'FILE_TOKEN_SECRET', 'TURN_SHARED_SECRET']) {
   template = template.replace(new RegExp(`^${name}=.*$`, 'm'), `${name}=${crypto.randomBytes(32).toString('hex')}`);
 }
 try {

@@ -27,7 +27,7 @@ services:
       - DEBUG_COLORS=false
       - SERVER_NAME=janus
       - ENABLE_EVENTS=true
-      - ENABLE_RABBIT_EVENTS=false
+      - JANUS_EVENTS_URL=${JANUS_EVENTS_URL:-http://haproxy/api/janus/events}
       - JANUS_TOKEN_SECRET=$JANUS_TOKEN_SECRET
       - NAT_1_1_IP=${JANUS_NAT_IP:?Set JANUS_NAT_IP to the media server address}
     logging:
@@ -55,7 +55,7 @@ services:
       - DEBUG_COLORS=false
       - SERVER_NAME=janus2
       - ENABLE_EVENTS=true
-      - ENABLE_RABBIT_EVENTS=false
+      - JANUS_EVENTS_URL=${JANUS_EVENTS_URL:-http://haproxy/api/janus/events}
       - JANUS_TOKEN_SECRET=$JANUS_TOKEN_SECRET
       - NAT_1_1_IP=${JANUS_NAT_IP:?Set JANUS_NAT_IP to the media server address}
       - RTP_PORT_MIN=20101

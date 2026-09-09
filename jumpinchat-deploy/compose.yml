@@ -2,7 +2,7 @@
 # Includes all service groups via compose include
 #
 # Usage: podman-compose -f compose.yml up -d
-# With MinIO: podman-compose -f compose.yml -f compose.storage.yml up -d
+# External object storage is configured with STORAGE_BACKEND=s3; see README.md.
 
 include:
   - compose.app.yml

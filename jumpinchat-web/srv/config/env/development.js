@@ -38,9 +38,7 @@ export default {
     },
   },
   turn: {
-    uris: [
-      'turn.jumpin.chat',
-    ],
+    uris: (process.env.TURN_URIS || '').split(',').map(uri => uri.trim()).filter(Boolean),
     ttl: process.env.TURN_TTL || 60 * 60 * 24,
   },
   auth: {
@@ -48,7 +46,7 @@ export default {
     cookieSecret: 'foo',
     secureSessionCookie: false,
     jwt_secret: 'jwtsecret',
-    turnSecret: 'janus',
+    turnSecret: process.env.TURN_SHARED_SECRET,
     fileTokenSecret: process.env.FILE_TOKEN_SECRET || 'dev-file-token-secret',
     activityTokenTimeout: 1000 * 60 * 60 * 24,
     cookieTimeout: 1000 * 60 * 60 * 24 * 180,

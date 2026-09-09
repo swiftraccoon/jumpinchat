@@ -11,7 +11,7 @@ const { values } = parseArgs({ options: {
   'env-file': { type: 'string', default: path.join(deploy, '.env') },
   profile: { type: 'string', default: 'full' },
 } });
-const profiles = ['full', 'lite', 'app', 'media', 'data', 'storage', 'email'];
+const profiles = ['full', 'lite', 'app', 'media', 'data', 'email'];
 if (!profiles.includes(values.profile)) throw new Error(`Profile must be one of: ${profiles.join(', ')}`);
 try {
   process.loadEnvFile(values['env-file']);
@@ -44,13 +44,12 @@ if (app && !['local', 's3'].includes(env.STORAGE_BACKEND || 'local')) {
   failures.push('STORAGE_BACKEND must be local or s3');
 }
 if (app && env.STORAGE_BACKEND === 's3') {
-  for (const name of ['S3_ENDPOINT', 'S3_ACCESS_KEY', 'S3_SECRET_KEY', 'S3_BUCKET']) {
+  for (const name of ['S3_ACCESS_KEY', 'S3_SECRET_KEY', 'S3_BUCKET']) {
     if (!env[name]) failures.push(`${name} is required for S3 storage`);
   }
-}
-if (values.profile === 'storage') {
-  for (const name of ['MINIO_ACCESS_KEY', 'MINIO_SECRET_KEY']) {
-    if (!env[name]) failures.push(`${name} is required for MinIO`);
+  const origin = env.S3_PUBLIC_BASE_URL || '';
+  if (origin.includes('/../') || origin.includes('/./') || !/^https:\/\/[a-zA-Z0-9.-]+(?::\d+)?\/(?:[a-zA-Z0-9_.-]+\/)*public\/$/.test(origin)) {
+    failures.push('S3_PUBLIC_BASE_URL must be an HTTPS URL ending in /public/ with no credentials, query, or fragment');
   }
 }
 if (app || media) {

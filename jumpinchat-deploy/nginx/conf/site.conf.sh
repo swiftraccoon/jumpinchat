@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-EXTERNAL_IP=$(curl -s --connect-timeout 5 icanhazip.com || echo "")
+set -euo pipefail
 
 # Container DNS server (aardvark-dns/docker DNS), used so upstream
 # hostnames re-resolve at runtime instead of only at nginx startup
@@ -24,25 +24,33 @@ JANUS_HTTP_HOST="${JANUS_HTTP_HOST:-janus}"
 JANUS_HTTP_PORT="${JANUS_HTTP_PORT:-8088}"
 JANUS_ADMIN_PORT="${JANUS_ADMIN_PORT:-8188}"
 
-# Storage backend: "local" serves from shared volume, "s3" proxies to MinIO
+# Local images stay on the upload volume. External S3 images are read only
+# through a public origin rooted at the public/ object prefix, never the bucket.
 STORAGE_BACKEND="${STORAGE_BACKEND:-local}"
-MINIO_HOST="${MINIO_HOST:-minio}"
-MINIO_PORT="${MINIO_PORT:-9000}"
-
-# Build /uploads/ location based on storage backend
 if [[ "$STORAGE_BACKEND" == "s3" ]]; then
+  # Reject credentials, query strings, fragments and nginx syntax in this value.
+  # Requiring /public/ at the end keeps private/ outside the readable namespace.
+  if [[ ! "${S3_PUBLIC_BASE_URL:-}" =~ ^https://([A-Za-z0-9.-]+)(:[0-9]+)?(/[A-Za-z0-9_./-]*)?/public/$ ]]; then
+    echo 'S3_PUBLIC_BASE_URL must be an HTTPS origin ending in /public/ without credentials or query parameters' >&2
+    exit 1
+  fi
+  S3_PUBLIC_HOST="${BASH_REMATCH[1]}"
+  if [[ "$S3_PUBLIC_BASE_URL" == *'/../'* || "$S3_PUBLIC_BASE_URL" == *'/./'* ]]; then
+    echo 'S3_PUBLIC_BASE_URL must not contain dot segments' >&2
+    exit 1
+  fi
 UPLOADS_LOCATION=$(cat <<'UPLOADSEOF'
-  # Proxy uploads to MinIO (S3 backend)
-  # storage.js stores objects at key public/{file} in bucket uploads
   location /uploads/ {
-    proxy_set_header Host $host;
-    proxy_hide_header x-amz-request-id;
-    proxy_hide_header x-amz-id-2;
-
-    location ~* \.(jpg|jpeg|png|gif)$ {
-      rewrite ^/uploads/(.*)$ /uploads/public/$1 break;
-      proxy_pass http://MINIO_UPSTREAM;
-      proxy_set_header Host $host;
+    location ~* ^/uploads/(?<public_image_key>[A-Za-z0-9_./-]+\.(jpg|jpeg|png|gif))$ {
+      proxy_pass PUBLIC_ASSET_BASE$public_image_key;
+      proxy_set_header Host $proxy_host;
+      proxy_set_header Cookie "";
+      proxy_set_header Authorization "";
+      proxy_ssl_server_name on;
+      proxy_ssl_name PUBLIC_ASSET_HOST;
+      proxy_ssl_verify on;
+      proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
+      proxy_hide_header Set-Cookie;
       proxy_hide_header x-amz-request-id;
       proxy_hide_header x-amz-id-2;
       add_header X-Content-Type-Options "nosniff" always;
@@ -51,13 +59,12 @@ UPLOADS_LOCATION=$(cat <<'UPLOADSEOF'
       add_header Cross-Origin-Resource-Policy "same-site" always;
       add_header Cache-Control "public, max-age=86400" always;
     }
-
     return 403;
   }
 UPLOADSEOF
 )
-# Replace placeholder with actual MinIO host:port
-UPLOADS_LOCATION="${UPLOADS_LOCATION//MINIO_UPSTREAM/${MINIO_HOST}:${MINIO_PORT}}"
+UPLOADS_LOCATION="${UPLOADS_LOCATION//PUBLIC_ASSET_BASE/$S3_PUBLIC_BASE_URL}"
+UPLOADS_LOCATION="${UPLOADS_LOCATION//PUBLIC_ASSET_HOST/$S3_PUBLIC_HOST}"
 else
 UPLOADS_LOCATION=$(cat <<'UPLOADSEOF'
   # Serve uploaded images directly from shared volume (local backend)
@@ -81,7 +88,7 @@ UPLOADSEOF
 )
 fi
 
-cat << EOF > /etc/nginx/conf.d/site.conf
+cat << EOF > "${NGINX_CONFIG_OUTPUT:-/etc/nginx/conf.d/site.conf}"
 # Re-resolve upstream container hostnames at runtime (requires nginx >= 1.27.3
 # for 'resolve' in upstream server lines; 'zone' is required for 'resolve')
 resolver ${NAMESERVER} valid=10s ipv6=off;
@@ -137,7 +144,6 @@ upstream janushttp {
 geo \$limit {
   default 1;
   10.0.0.0/8 0;
-  ${EXTERNAL_IP} 0;
 }
 
 map \$limit \$limit_key {
@@ -173,8 +179,9 @@ server {
 }
 
 server {
-  listen 443 ssl http2;
-  listen [::]:443 ssl http2;
+  listen 443 ssl;
+  listen [::]:443 ssl;
+  http2 on;
 
   server_name "~^172\.\d{1,3}\.\d{1,3}\.\d{1,3}\$" "~^10\.136\.\d{1,3}\.\d{1,3}\$" jumpin.chat local.jumpin.chat jumpinchat.com;
   client_max_body_size 10M;

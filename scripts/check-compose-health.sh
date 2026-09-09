@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Validate that each split compose file starts independently.
-# Tests data, storage, and email tiers (app and media require builds).
+# Tests data and email tiers (app and media require builds).
 #
 # Usage: ./scripts/check-compose-health.sh
 
@@ -10,7 +10,6 @@ cd "$(dirname "$0")/../jumpinchat-deploy"
 
 COMPOSE_FILES=(
   compose.data.yml
-  compose.storage.yml
   compose.email.yml
 )
 

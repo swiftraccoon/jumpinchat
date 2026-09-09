@@ -1,9 +1,4 @@
-#!/bin/bash
-
-echo "start janus"
-
-env
-
+#!/usr/bin/env bash
+set -euo pipefail
 /tmp/scripts/bootstrap.sh
-
-/opt/janus/bin/janus
+exec /opt/janus/bin/janus

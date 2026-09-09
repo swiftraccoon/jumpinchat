@@ -36,6 +36,11 @@ export function validateEnv(env, processEnv) {
 
   const failures = [];
 
+  if (processEnv.TURN_URIS && (!processEnv.TURN_SHARED_SECRET
+    || KNOWN_DEFAULTS.has(processEnv.TURN_SHARED_SECRET) || processEnv.TURN_SHARED_SECRET === 'janus')) {
+    failures.push('TURN_SHARED_SECRET must be set to a unique secret when TURN_URIS is configured');
+  }
+
   for (const varName of REQUIRED_VARS) {
     const value = processEnv[varName];
 

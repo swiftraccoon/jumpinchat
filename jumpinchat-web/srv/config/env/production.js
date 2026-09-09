@@ -42,7 +42,7 @@ export default {
     cookieSecret: process.env.COOKIE_SECRET,
     secureSessionCookie: true,
     jwt_secret: process.env.JWT_SECRET,
-    turnSecret: 'janus',
+    turnSecret: process.env.TURN_SHARED_SECRET,
     fileTokenSecret: process.env.FILE_TOKEN_SECRET,
     activityTokenTimeout: 1000 * 60 * 60 * 24,
     cookieTimeout: 1000 * 60 * 60 * 24 * 30,

@@ -32,8 +32,12 @@ def digest(path):
 
 def verify(directory):
     manifest = json.loads((directory / 'manifest.json').read_text())
-    if manifest.get('format') != 1 or set(manifest.get('sha256', {})) != set(ARCHIVES):
+    if manifest.get('format') not in (1, 2) or set(manifest.get('sha256', {})) != set(ARCHIVES):
         raise ValueError('Unsupported or incomplete backup manifest')
+    if manifest['format'] == 2:
+        source = manifest.get('mongodb', {})
+        if not all(source.get(key) for key in ('version', 'fcv', 'database_tools')):
+            raise ValueError('Backup manifest is missing MongoDB version information')
     for name in ARCHIVES:
         archive = directory / name
         if not archive.is_file() or archive.stat().st_size == 0:
@@ -48,9 +52,13 @@ def backup(args):
         raise ValueError('--maintenance is required: backup temporarily stops application services')
     if not re.fullmatch(r'[a-z0-9][a-z0-9_-]*', args.project):
         raise ValueError('Invalid Compose project name')
+    if not re.fullmatch(r'[A-Za-z0-9_-]+', args.database):
+        raise ValueError('Invalid database name')
     compose = (['docker', 'compose'] if args.engine == 'docker' else ['podman-compose'])
     compose += ['-p', args.project, '-f', str(args.compose_file.resolve())]
     services = run(compose + ['config', '--services']).splitlines()
+    if 'mongodb' not in services:
+        raise ValueError('Backup requires the local mongodb service')
     containers = {}
     for service in ('web', 'web2', 'home', 'home2'):
         if service not in services:
@@ -71,6 +79,15 @@ def backup(args):
                  + re.escape(args.database) + r'(?:\?replicaSet=rs0)?')
     if not re.fullmatch(local_uri, web_env.get('MONGODB_URI', '')):
         raise ValueError('External or custom MongoDB URI requires an operator-managed backup procedure')
+    # Record format compatibility before stopping writers. A dump is not a
+    # shortcut past the supported MongoDB server/FCV upgrade sequence.
+    mongo = json.loads(run(compose + ['exec', '-T', 'mongodb', 'mongosh', '--quiet',
+        '--eval', 'print(JSON.stringify({version: db.version(), fcv: '
+        'db.adminCommand({getParameter: 1, featureCompatibilityVersion: 1})'
+        '.featureCompatibilityVersion.version}))']))
+    if not mongo.get('version', '').startswith('8.3.') or mongo.get('fcv') != '8.3':
+        raise ValueError('Finish the MongoDB 8.3/FCV migration first; use the recorded old revision to back up an older deployment')
+    mongo['database_tools'] = run(compose + ['exec', '-T', 'mongodb', 'mongodump', '--version']).splitlines()[0]
     # Refuse an existing destination, including incomplete backups.
     args.directory.mkdir(mode=0o700, parents=False, exist_ok=False)
     running = [name for name, info in containers.items() if info['State']['Running']]
@@ -85,11 +102,12 @@ def backup(args):
                  '--volumes-from', f"{web['Id']}:ro", '--entrypoint', 'tar',
                  web['Image'], '-C', '/data/uploads', '-czf', '-', '.'], output)
         manifest = {
-            'format': 1,
+            'format': 2,
             'created_at': datetime.now(timezone.utc).isoformat(),
             'project': args.project,
             'database': args.database,
             'storage_backend': 'local',
+            'mongodb': mongo,
             'sha256': {name: digest(args.directory / name) for name in ARCHIVES},
         }
         (args.directory / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')

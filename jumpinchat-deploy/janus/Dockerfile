@@ -1,127 +1,34 @@
-FROM docker.io/library/ubuntu:18.04@sha256:152dc042452c496007f07ca9127571cb9c29697f42acbfad72324b2bb2e43c98
+FROM docker.io/library/ubuntu:26.04@sha256:2260313b31c8c011cd2eebe728008efac1b3982be73eb71348ea2648d2c0e09b AS builder
 
-ARG INSTALL_DIR="/home/janus"
-ARG JANUS_DIR="/opt/janus"
+ARG JANUS_VERSION=1.4.1
+ARG JANUS_SHA256=cba1e7aac44f4458701c5e14698e791a0eee13ecacbdacc71b4245716c442c08
 
-ENV SCRIPTS_DIR /tmp/scripts
+# Use maintained distribution OpenSSL, ICE, SRTP and WebSocket libraries.
+# Build only the VideoRoom plugin, HTTP/WebSocket transports and HTTP events.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates curl build-essential autoconf automake libtool pkg-config \
+      gengetopt libjansson-dev libnice-dev libglib2.0-dev libssl-dev \
+      libsrtp2-dev libmicrohttpd-dev libwebsockets-dev libcurl4-openssl-dev \
+      libconfig-dev && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update > /dev/null && \
-    apt-get install -y \
-        curl \
-        git \
-        build-essential \
-        cmake \
-        gcc \
-        automake \
-        wget \
-        libmicrohttpd-dev \
-        libjansson-dev \
-        libssl-dev \
-        libsofia-sip-ua-dev \
-        libglib2.0-dev \
-        libopus-dev \
-        libogg-dev \
-        libini-config-dev \
-        libcollection-dev \
-        pkg-config \
-        gengetopt \
-        libcurl4-gnutls-dev \
-        libtool \
-        gtk-doc-tools \
-        libconfig-dev
+WORKDIR /build
+RUN curl -fsSL "https://codeload.github.com/meetecho/janus-gateway/tar.gz/refs/tags/v${JANUS_VERSION}" -o janus.tar.gz && \
+    echo "${JANUS_SHA256}  janus.tar.gz" | sha256sum -c - && \
+    tar -xzf janus.tar.gz --strip-components=1 && \
+    sh autogen.sh && \
+    ./configure --prefix=/opt/janus \
+      --disable-docs --disable-data-channels --disable-all-loggers \
+      --disable-all-plugins --enable-plugin-videoroom \
+      --disable-all-transports --enable-rest --enable-websockets \
+      --disable-all-handlers --enable-sample-event-handler && \
+    make -j2 && make install && make configs
 
-# Upgrade CMake
-RUN cd /tmp && \
-    wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh && \
-    chmod +x cmake-3.26.4-linux-x86_64.sh && \
-    ./cmake-3.26.4-linux-x86_64.sh --skip-license --prefix=/usr/local && \
-    rm cmake-3.26.4-linux-x86_64.sh
-
-RUN mkdir -p $INSTALL_DIR && mkdir -p $JANUS_DIR/certs
-
-ARG OPENSSL_VERSION=1.1.1f
-RUN cd $INSTALL_DIR && \
-  wget https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz && \
-  tar xzvf openssl-$OPENSSL_VERSION.tar.gz && \
-  cd $INSTALL_DIR/openssl-$OPENSSL_VERSION && \
-  ./config -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' && \
-  make && \
-  make install
-
-
-ARG LIBSRTP_VERSION=2.2.0
-RUN cd ${INSTALL_DIR} && \
-  wget https://github.com/cisco/libsrtp/archive/v${LIBSRTP_VERSION}.tar.gz && \
-  tar xfv v${LIBSRTP_VERSION}.tar.gz && \
-  cd ${INSTALL_DIR}/libsrtp-${LIBSRTP_VERSION} && \
-  ./configure --prefix=/usr --enable-openssl && \
-  make shared_library && make install
-
-# install libnice
-#ARG LIBNICE_VERSION=tags/0.1.16
-
-# install build deps
-RUN apt-get update > /dev/null && \
-      apt-get install -y \
-      python3 python3-pip python3-setuptools python3-wheel ninja-build
-RUN pip3 install meson
-ARG LIBNICE_VERSION=0.1.21
-RUN git clone https://gitlab.freedesktop.org/libnice/libnice.git ${INSTALL_DIR}/libnice && \
-  cd ${INSTALL_DIR}/libnice && \
-  git checkout $LIBNICE_VERSION && \
-  meson --prefix /usr builddir && \
-  ninja -C builddir && ninja -C builddir install
-
-# install rabbitmq
-RUN git clone https://github.com/alanxz/rabbitmq-c ${INSTALL_DIR}/rabbitmq-c && \
-  cd ${INSTALL_DIR}/rabbitmq-c && \
-  git submodule init && \
-  git submodule update && \
-  mkdir build && cd build && \
-  cmake -DCMAKE_INSTALL_PREFIX=/usr .. && \
-  make && make install
-
-
-# build libwebsockets
-ARG LIBWEBSOCKETS_VERSION=3.2.1
-RUN git clone https://github.com/warmcat/libwebsockets.git ${INSTALL_DIR}/libwebsockets && \
-  cd ${INSTALL_DIR}/libwebsockets && \
-  git checkout tags/v${LIBWEBSOCKETS_VERSION} && \
-  mkdir build && cd build && \
-  cmake -DLWS_MAX_SMP=1 -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_C_FLAGS="-fpic" .. && \
-  make && make install
-
-# build janus gateway
-#ARG JANUS_VERSION=tags/v0.10.4
-#ARG JANUS_VERSION=sendmmsg
-ARG JANUS_VERSION=v1.0.0
-RUN git clone https://github.com/meetecho/janus-gateway.git ${INSTALL_DIR}/janus-gateway && \
-  cd ${INSTALL_DIR}/janus-gateway && \
-  git rev-parse --verify HEAD && \
-  git checkout ${JANUS_VERSION} && \
-  sh autogen.sh && \
-  ./configure --prefix=${JANUS_DIR} \
-    --disable-docs \
-    --disable-data-channels \
-    --disable-rabbitmq \
-    --disable-mqtt \
-    --disable-plugin-lua \
-    PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig && \
-  make && make install
-
-ARG DEBUG_COLORS
-ARG ENABLE_EVENTS
-ARG JANUS_TOKEN_SECRET
-ARG RABBIT_HOST
-ARG ENABLE_RABBIT_EVENTS
-
-COPY ./start.sh /tmp/scripts/start.sh
-COPY ./bootstrap.sh /tmp/scripts/bootstrap.sh
-
-RUN mkdir /cores
-RUN apt-get clean && rm -rf $INSTALL_DIR
-
-RUN ulimit -c unlimited
-
-
-CMD ["/tmp/scripts/start.sh"]
+FROM docker.io/library/ubuntu:26.04@sha256:2260313b31c8c011cd2eebe728008efac1b3982be73eb71348ea2648d2c0e09b
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates curl libjansson4 libnice10 libglib2.0-0t64 libssl3t64 \
+      libsrtp2-1 libmicrohttpd12t64 libwebsockets19t64 libcurl4t64 libconfig11 && \
+    rm -rf /var/lib/apt/lists/*
+COPY --from=builder /opt/janus /opt/janus
+COPY --chmod=755 start.sh bootstrap.sh /tmp/scripts/
+RUN mkdir -p /opt/janus/certs
+ENTRYPOINT ["/tmp/scripts/start.sh"]

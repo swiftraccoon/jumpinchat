@@ -1,0 +1,21 @@
+# Optional TURN service. Set TURN_URIS in the app to this server's public host.
+services:
+  turn:
+    build: ../jumpinchat-turn
+    image: echo.research.clinic/turn
+    environment:
+      - TURN_SHARED_SECRET=${TURN_SHARED_SECRET:?Set TURN_SHARED_SECRET in both TURN and app environments}
+      - TURN_REALM=${TURN_REALM:?Set TURN_REALM to the TURN hostname}
+      - EXTERNAL_IP=${TURN_EXTERNAL_IP:?Set TURN_EXTERNAL_IP to the TURN public address}
+    ports:
+      - "3478:3478/tcp"
+      - "3478:3478/udp"
+      - "5349:5349/tcp"
+      - "49160-49200:49160-49200/udp"
+    volumes:
+      - ./fullchain.pem:/etc/certs/fullchain.pem:ro,z
+      - ./privkey.pem:/etc/certs/privkey.pem:ro,z
+    restart: always
+    logging:
+      options:
+        max-size: '1m'
