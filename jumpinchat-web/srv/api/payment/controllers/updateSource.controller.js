@@ -1,35 +1,33 @@
-
+import stripe from '../stripe.client.js';
+import { getPaymentByUserId } from '../payment.utils.js';
+import errors from '../../../config/constants/errors.js';
 import logFactory from '../../../utils/logger.util.js';
-import { getUserById } from '../../user/user.utils.js';
-import paymentUtils from '../payment.utils.js';
-const log = logFactory({ name: 'updateSource.controller' });
-export default async function updateSource(req, res) {
+
+const log = logFactory({ name: 'updatePaymentMethod.controller' });
+const resourceId = value => typeof value === 'string' ? value : value?.id;
+export default async function updatePaymentMethod(req, res) {
   const { userId } = req.params;
-  const { stripeToken } = req.body;
-
-  if (!stripeToken) {
-    return res.status(400).send({
-      error: 'ERR_NO_TOKEN',
-      message: 'Card token is missing',
-    });
+  if (String(req.user._id) !== userId) return res.status(403).send();
+  const { setupIntentId } = req.body;
+  if (typeof setupIntentId !== 'string' || !setupIntentId.startsWith('seti_')) {
+    return res.status(400).send({ message: 'A confirmed payment method setup is required' });
   }
-
-  if (String(req.user._id) !== userId) {
-    return res.status(401).send({
-      error: 'ERR_NOT_AUTHORIZED',
-      message: 'You are not authorized to perform this action',
-    });
-  }
-
   try {
-    const customer = await paymentUtils.getCustomerByUserId(req.user._id);
-    await paymentUtils.updateCustomer(customer.id, {
-      source: stripeToken,
-    });
-
-    return res.status(200).send();
+    const payment = await getPaymentByUserId(userId, { isSubscription: true });
+    if (!payment?.customerId || !payment.subscription?.id) return res.status(404).send();
+    const intent = await stripe.setupIntents.retrieve(setupIntentId, { expand: ['payment_method'] });
+    const method = intent.payment_method;
+    if (intent.status !== 'succeeded' || resourceId(intent.customer) !== payment.customerId
+      || intent.metadata?.userId !== userId || method?.type !== 'card'
+      || resourceId(method.customer) !== payment.customerId) {
+      return res.status(400).send({ message: 'Payment method setup is incomplete or belongs to another account' });
+    }
+    // Updating both defaults also supports subscriptions that override the customer default.
+    await stripe.subscriptions.update(payment.subscription.id, { default_payment_method: method.id });
+    await stripe.customers.update(payment.customerId, { invoice_settings: { default_payment_method: method.id } });
+    return res.status(200).send({ updated: true });
   } catch (err) {
-    log.fatal({ err }, 'failed to update payment source');
-    return res.status(500).send();
+    log.error({ err }, 'failed to update payment method');
+    return res.status(500).send(errors.ERR_SRV);
   }
-};
+}

@@ -32,4 +32,5 @@ export const stripeEvents = {
   CHARGE_SUCCESS: 'charge.succeeded',
   INVOICE_PAID: 'invoice.payment_succeeded',
   SESSION_COMPLETED: 'checkout.session.completed',
+  SESSION_PAID: 'checkout.session.async_payment_succeeded',
 };

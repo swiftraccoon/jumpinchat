@@ -6,6 +6,11 @@ const CheckoutSessionSchema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },
   checkoutSessionId: String,
+  fulfillmentVersion: Number,
+  subscriptionCanceledAt: Date,
+  fulfilledAt: Date,
+  fulfillmentClaimToken: String,
+  fulfillmentClaimUntil: Date,
   beneficiary: { type: Schema.Types.ObjectId, ref: 'User' },
 });
 

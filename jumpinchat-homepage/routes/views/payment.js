@@ -20,9 +20,8 @@ export default async function payment(req, res) {
   locals.page = req.params.page;
   locals.section = 'Payment';
   locals.user = req.user;
-  locals.key = config.stripe.publicKey;
   locals.productIdMap = productIdMap;
-  locals.checkoutSessionId = null;
+  locals.checkoutUrl = null;
 
   // Init phase
   if (!locals.user) {
@@ -47,7 +46,7 @@ export default async function payment(req, res) {
   }
 
   locals.productId = productId;
-  locals.product = products[productId];
+  locals.product = { ...products[productId] };
   locals.beneficiary = beneficiary;
 
   if (beneficiary) {
@@ -77,7 +76,7 @@ export default async function payment(req, res) {
   let sessionUrl = `${api}/api/payment/session?${querystring.stringify(query)}`;
 
   if (locals.productId === productIdMap.onetime) {
-    sessionUrl = `${sessionUrl}&amount=${products[locals.productId].amount}`;
+    sessionUrl = `${sessionUrl}&amount=${locals.product.amount}`;
   }
 
   try {
@@ -103,47 +102,14 @@ export default async function payment(req, res) {
         })}`);
       }
       log.warn('failed to create payment', { body: response.data, code: response.status });
+      return res.redirect(`/support/payment/failed?${querystring.stringify({ reason: 'Payment failed' })}`);
     }
 
-    locals.checkoutSessionId = response.data;
+    const checkoutUrl = new URL(response.data.url);
+    if (checkoutUrl.protocol !== 'https:') throw new Error('Invalid Checkout URL');
+    locals.checkoutUrl = checkoutUrl.href;
   } catch (err) {
     return res.status(500).send();
-  }
-
-  // POST handling
-  if (req.method === 'POST' && req.body.action === 'payment') {
-    locals.error = null;
-
-    try {
-      const payResponse = await axios({
-        url: sessionUrl,
-        method: 'POST',
-        data: req.body,
-        headers: {
-          Authorization: token,
-        },
-        validateStatus: () => true,
-      });
-
-      if (payResponse.status >= 400) {
-        log.warn({ body: payResponse.data, status: payResponse.status }, 'failed to create payment');
-        if (payResponse.data && payResponse.data.message) {
-          return res.redirect(`/support/payment/failed?${querystring.stringify({
-            reason: payResponse.data.message,
-          })}`);
-        }
-
-        log.warn('failed to create payment', { body: payResponse.data, code: payResponse.status });
-        return res.redirect(`/support/payment/failed?${querystring.stringify({
-          reason: 'Payment failed',
-        })}`);
-      }
-
-      const productValue = products[locals.productId].amount;
-      return res.redirect(`/support/payment/success?productId=${locals.productId}&value=${productValue}`);
-    } catch (err) {
-      return res.status(500).send();
-    }
   }
 
   return res.render('payment');

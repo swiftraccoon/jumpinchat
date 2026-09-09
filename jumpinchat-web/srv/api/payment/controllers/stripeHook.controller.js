@@ -1,68 +1,43 @@
-import Stripe from 'stripe';
 import config from '../../../config/env/index.js';
+import stripe from '../stripe.client.js';
 import logFactory from '../../../utils/logger.util.js';
 import { stripeEvents } from '../payment.constants.js';
 import fulfillPayment from './fulfillPayment.controller.js';
+import { handleSubscriptionDeleted, renewSubscription } from '../payment.utils.js';
+
 const log = logFactory({ name: 'stripeEvent.controller' });
-import { deletePayment, getPaymentByCustomerId, updateExpire } from '../payment.utils.js';
-
-const stripe = new Stripe(config.payment.stripe.secretKey);
-
 export default async function stripeHook(req, res) {
-  const sig = req.headers['stripe-signature'];
-  const endpointSecret = config.payment.stripe.whKey;
+  if (!config.payment.stripe.whKey) return res.status(503).send({ message: 'Payment webhook is not configured' });
+  let event;
   try {
-    const event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-    log.info({ stripeEvent: event }, 'stripe.event');
-
-    const { type } = event;
-
-    switch (type) {
+    event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], config.payment.stripe.whKey);
+  } catch (err) {
+    log.warn({ errorType: err.type }, 'invalid Stripe webhook signature');
+    return res.status(400).send({ message: 'Invalid webhook signature' });
+  }
+  log.info({ eventId: event.id, type: event.type }, 'stripe.event');
+  try {
+    switch (event.type) {
       case stripeEvents.SUBSCRIPTION_DELETE: {
-        const customerId = event.data.object.customer;
-        const payment = await getPaymentByCustomerId(customerId);
-        try {
-          if (payment) {
-            await deletePayment(payment._id);
-          } else {
-            log.error({ customerId, type }, 'no payment found');
-          }
-        } catch (err) {
-          log.fatal({ err }, 'failed to get payment');
-        }
+        await handleSubscriptionDeleted(event.data.object);
         break;
       }
       case stripeEvents.INVOICE_PAID: {
-        const customerId = event.data.object.customer;
-        try {
-          const payment = await getPaymentByCustomerId(customerId);
-          // if a payment exists, meaning a customer is an existing subscriber,
-          // update the support expiration time.
-          if (payment) {
-            await updateExpire(payment._id, payment.userId);
-          }
-        } catch (err) {
-          log.fatal({ err }, 'failed to get payment');
-        }
+        // Request the pinned API shape rather than assuming the endpoint's version.
+        const invoice = await stripe.invoices.retrieve(event.data.object.id);
+        await renewSubscription(invoice);
         break;
       }
-      case stripeEvents.SESSION_COMPLETED: {
-        const session = event.data.object;
-        try {
-          await fulfillPayment(session);
-          return res.status(200).send({ received: true });
-        } catch (err) {
-          log.fatal({ err }, 'failed to fulfill payment');
-          return res.status(500).send(err);
-        }
-      }
+      case stripeEvents.SESSION_COMPLETED:
+      case stripeEvents.SESSION_PAID:
+        await fulfillPayment(event.data.object);
+        break;
       default:
         break;
     }
+    return res.status(200).send({ received: true });
   } catch (err) {
-    log.error({ err }, 'error receiving event');
-    return res.status(400).send(err);
+    log.error({ err, eventId: event.id }, 'failed to process Stripe webhook; retry required');
+    return res.status(500).send({ message: 'Payment event could not be processed' });
   }
-
-  return res.status(200).send({ received: true });
-};
+}

@@ -60,26 +60,56 @@ export default async function accountSettings(req, res) {
   locals.brandMap = {
     MasterCard: 'mastercard',
     Visa: 'visa',
+    mastercard: 'mastercard',
+    visa: 'visa',
   };
   locals.supportExpires = null;
 
   // Init phase
   if (!locals.user) {
+    if (req.method === 'POST' && req.body.action === 'setupPayment') {
+      return res.status(401).json({ message: 'Please sign in again to update your payment method' });
+    }
     return res.redirect('/');
   }
 
   const token = jwt.sign(String(req.user._id), config.auth.jwtSecret);
+
+  // Create a SetupIntent only when the owner submits the card form.
+  if (req.method === 'POST' && req.body.action === 'setupPayment') {
+    res.set('Cache-Control', 'no-store');
+    try {
+      const response = await axios({
+        url: `${api}/api/payment/method/setup/${locals.user._id}`,
+        method: 'POST',
+        headers: { Authorization: token },
+        validateStatus: () => true,
+      });
+      if (response.status >= 400) {
+        return res.status(response.status).json({ message: response.data?.message || 'Failed to prepare payment method update' });
+      }
+      if (!response.data?.clientSecret) throw new Error('Missing SetupIntent client secret');
+      return res.json({ clientSecret: response.data.clientSecret });
+    } catch (err) {
+      log.error({ err }, 'failed to prepare payment method update');
+      return res.status(502).json({ message: 'Failed to prepare payment method update' });
+    }
+  }
+
   const { supportExpires } = locals.user.attrs;
   if (supportExpires && isAfter(new Date(supportExpires), new Date())) {
     locals.supportExpires = format(new Date(supportExpires), "yyyy-MM-dd'T'HH:mm:ssxxx");
   }
 
-  try {
-    locals.subscription = await getSubscription(locals.user._id);
-    log.debug({ subscription: locals.subscription });
-  } catch (err) {
-    log.fatal({ err }, 'error fetching subscription');
-    locals.error = 'Error fetching subscription';
+  locals.subscription = null;
+  if (locals.supportEnabled !== false) {
+    try {
+      locals.subscription = await getSubscription(locals.user._id);
+      log.debug({ subscription: locals.subscription });
+    } catch (err) {
+      log.fatal({ err }, 'error fetching subscription');
+      locals.error = 'Error fetching subscription';
+    }
   }
 
   // POST: account (change password)
@@ -220,12 +250,17 @@ export default async function accountSettings(req, res) {
   // POST: updatePayment
   if (req.method === 'POST' && req.body.action === 'updatePayment') {
     locals.error = null;
+    const { setupIntentId } = req.body;
+    if (typeof setupIntentId !== 'string' || !/^seti_[a-zA-Z0-9]+$/.test(setupIntentId)) {
+      locals.error = 'Invalid payment method confirmation';
+      return res.status(400).render('settings/account');
+    }
 
     try {
       const response = await axios({
-        url: `${api}/api/payment/source/update/${locals.user._id}`,
+        url: `${api}/api/payment/method/${locals.user._id}`,
         method: 'PUT',
-        data: req.body,
+        data: { setupIntentId },
         headers: {
           Authorization: token,
         },
@@ -241,8 +276,7 @@ export default async function accountSettings(req, res) {
           locals.error = 'Failed to update payment method';
         }
       } else {
-        locals.subscription = null;
-        locals.success = 'Payment method succesfully updated';
+        return res.redirect('/settings/account?success=Payment%20method%20successfully%20updated');
       }
     } catch (err) {
       log.fatal({ err }, 'failed to update payment source');

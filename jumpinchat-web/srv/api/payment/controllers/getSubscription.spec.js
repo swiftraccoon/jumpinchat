@@ -1,168 +1,64 @@
-import { expect } from 'chai';
+import assert from 'node:assert/strict';
 import sinon from 'sinon';
 import esmock from 'esmock';
+import { logger, response, accountPayment } from './paymentTestHelpers.js';
 
-describe('getSubscription controller', () => {
-  let req;
-  let res;
-  let resSend;
-  let resStatus;
-
-  const createController = async (overrides = {}) => {
-    const pricesRetrieve = overrides.pricesRetrieve || sinon.stub().resolves({
-      id: 'price_1',
-      nickname: 'Monthly',
-      unit_amount: 500,
-      recurring: { interval: 'month' },
-    });
-
-    const paymentMethodsRetrieve = overrides.paymentMethodsRetrieve || sinon.stub().resolves({
-      card: {
-        last4: '4242',
-        exp_month: 12,
-        exp_year: 2030,
-        brand: 'visa',
-      },
-    });
-
-    const mocks = {
-      stripe: function StripeMock() {
-        return {
-          prices: { retrieve: pricesRetrieve },
-          paymentMethods: { retrieve: paymentMethodsRetrieve },
-        };
-      },
-      '../../../utils/logger.util.js': { default: () => ({ debug: () => {}, info: () => {}, warn: () => {}, error: () => {}, fatal: () => {} }) },
-      '../../../config/env/index.js': {
-        default: {
-          payment: { stripe: { secretKey: 'sk_test' } },
-        },
-      },
-      '../../../config/constants/errors.js': {
-        default: {
-          ERR_SRV: { code: 'ERR_SRV', message: 'server error' },
-        },
-      },
-      '../payment.utils.js': {
-        getPaymentByUserId: overrides.getPaymentByUserId || sinon.stub().resolves({
-          _id: 'pay_1',
-          customerId: 'cust_1',
-          subscription: { planId: 'price_1' },
-          createdAt: '2024-01-01',
-        }),
-        getCustomerByUserId: overrides.getCustomerByUserId || sinon.stub().resolves({
-          id: 'cust_1',
-          sources: { data: [{ card: { last4: '4242', exp_month: 12, exp_year: 2030, brand: 'visa' } }] },
-          subscriptions: { data: [] },
-        }),
-      },
-    };
-
-    const mod = await esmock('./getSubscription.controller.js', mocks);
-    return mod.default;
-  };
-
-  beforeEach(() => {
-    resSend = sinon.stub();
-    resStatus = sinon.stub().returns({ send: resSend });
-    req = {
-      params: { userId: 'user_1' },
-      user: { _id: 'user_1' },
-    };
-    res = { status: resStatus };
+describe('current subscription details', () => {
+  let req, res, stripe, getPaymentByUserId, controller, subscription;
+  beforeEach(async () => {
+    req = { user: { _id: 'user_1' }, params: { userId: 'user_1' } };
+    res = response();
+    subscription = { id: 'sub_1', status: 'active', customer: 'cus_1', default_payment_method: {
+      id: 'pm_1', card: { last4: '4242', brand: 'visa', exp_month: 1, exp_year: 2030 },
+    }, items: { data: [{ price: { id: 'price_1', unit_amount: 500, nickname: 'Monthly', recurring: { interval: 'month' } } }] } };
+    stripe = { subscriptions: { retrieve: sinon.stub().resolves(subscription) },
+      customers: { retrieve: sinon.stub().resolves({ id: 'cus_1', invoice_settings: {} }) },
+      paymentMethods: { retrieve: sinon.stub().resolves(subscription.default_payment_method) },
+      prices: { retrieve: sinon.stub() } };
+    getPaymentByUserId = sinon.stub().resolves(accountPayment);
+    controller = (await esmock('./getSubscription.controller.js', {
+      '../stripe.client.js': { default: stripe }, '../payment.utils.js': { getPaymentByUserId },
+      '../../../utils/logger.util.js': logger,
+    })).default;
   });
-
-  it('should return 403 if user._id does not match params.userId', async () => {
-    const controller = await createController();
-    req.user._id = 'other_user';
+  it('returns the expanded subscription price and PaymentMethod card without customer arrays', async () => {
     await controller(req, res);
-    expect(resStatus.calledWith(403)).to.equal(true);
+    assert.equal(res.status.firstCall.args[0], 200);
+    assert.equal(res.send.firstCall.args[0].source.last4, '4242');
+    assert.equal(res.send.firstCall.args[0].plan.interval, 'month');
+    sinon.assert.notCalled(stripe.customers.retrieve);
   });
-
-  it('should return 500 if getPaymentByUserId throws', async () => {
-    const getPaymentByUserId = sinon.stub().rejects(new Error('db err'));
-    const controller = await createController({ getPaymentByUserId });
+  it('falls back to the customer invoice default PaymentMethod', async () => {
+    subscription.default_payment_method = null;
+    stripe.customers.retrieve.resolves({ invoice_settings: { default_payment_method: 'pm_1' } });
     await controller(req, res);
-    expect(resStatus.calledWith(500)).to.equal(true);
+    sinon.assert.calledWith(stripe.paymentMethods.retrieve, 'pm_1');
+    assert.equal(res.status.firstCall.args[0], 200);
   });
-
-  it('should return 404 if no payment found', async () => {
-    const getPaymentByUserId = sinon.stub().resolves(null);
-    const controller = await createController({ getPaymentByUserId });
+  it('keeps subscriptions manageable when there is no modern saved card', async () => {
+    subscription.default_payment_method = null;
     await controller(req, res);
-    expect(resStatus.calledWith(404)).to.equal(true);
+    assert.equal(res.status.firstCall.args[0], 200);
+    assert.equal(res.send.firstCall.args[0].source, null);
   });
-
-  it('should return 404 if payment has no customerId', async () => {
-    const getPaymentByUserId = sinon.stub().resolves({ _id: 'pay_1', customerId: null });
-    const controller = await createController({ getPaymentByUserId });
+  it('rejects another account before querying payment data', async () => {
+    req.params.userId = 'other';
     await controller(req, res);
-    expect(resStatus.calledWith(404)).to.equal(true);
+    assert.equal(res.status.firstCall.args[0], 403);
+    sinon.assert.notCalled(getPaymentByUserId);
   });
-
-  it('should return 500 if getCustomerByUserId throws', async () => {
-    const getCustomerByUserId = sinon.stub().rejects(new Error('stripe err'));
-    const controller = await createController({ getCustomerByUserId });
+  it('returns 404 for missing and canceled subscriptions', async () => {
+    getPaymentByUserId.resolves(null);
     await controller(req, res);
-    expect(resStatus.calledWith(500)).to.equal(true);
+    assert.equal(res.status.lastCall.args[0], 404);
+    getPaymentByUserId.resolves(accountPayment);
+    subscription.status = 'canceled';
+    await controller(req, res);
+    assert.equal(res.status.lastCall.args[0], 404);
   });
-
-  it('should return 404 if customer not found', async () => {
-    const getCustomerByUserId = sinon.stub().resolves(null);
-    const controller = await createController({ getCustomerByUserId });
+  it('does not return details from a mismatched customer', async () => {
+    subscription.customer = 'cus_other';
     await controller(req, res);
-    expect(resStatus.calledWith(404)).to.equal(true);
-  });
-
-  it('should return 200 with subscription details using sources', async () => {
-    const controller = await createController();
-    await controller(req, res);
-    expect(resStatus.calledWith(200)).to.equal(true);
-    const body = resSend.firstCall.args[0];
-    expect(body.paymentId).to.equal('pay_1');
-    expect(body.plan.id).to.equal('price_1');
-    expect(body.plan.name).to.equal('Monthly');
-    expect(body.plan.amount).to.equal(500);
-    expect(body.plan.interval).to.equal('month');
-    expect(body.source.last4).to.equal('4242');
-    expect(body.source.brand).to.equal('visa');
-  });
-
-  it('should fall back to subscriptions.default_payment_method if no sources', async () => {
-    const getCustomerByUserId = sinon.stub().resolves({
-      id: 'cust_1',
-      sources: { data: [] },
-      subscriptions: {
-        data: [{
-          default_payment_method: 'pm_1',
-        }],
-      },
-    });
-    const paymentMethodsRetrieve = sinon.stub().resolves({
-      card: {
-        last4: '1234',
-        exp_month: 6,
-        exp_year: 2028,
-        brand: 'mastercard',
-      },
-    });
-    const controller = await createController({ getCustomerByUserId, paymentMethodsRetrieve });
-    await controller(req, res);
-    expect(paymentMethodsRetrieve.calledWith('pm_1')).to.equal(true);
-    expect(resStatus.calledWith(200)).to.equal(true);
-    const body = resSend.firstCall.args[0];
-    expect(body.source.last4).to.equal('1234');
-    expect(body.source.brand).to.equal('mastercard');
-  });
-
-  it('should return 404 if no card found', async () => {
-    const getCustomerByUserId = sinon.stub().resolves({
-      id: 'cust_1',
-      sources: { data: [] },
-      subscriptions: { data: [] },
-    });
-    const controller = await createController({ getCustomerByUserId });
-    await controller(req, res);
-    expect(resStatus.calledWith(404)).to.equal(true);
+    assert.equal(res.status.firstCall.args[0], 500);
   });
 });

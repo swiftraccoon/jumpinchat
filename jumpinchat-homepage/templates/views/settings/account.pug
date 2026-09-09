@@ -146,15 +146,18 @@ block content
 
             if subscription
               +modal('update-payment', 'Update payment method')
-                form#update-source-form(method="post")
+                form#update-source-form(method="post", data-stripe-key=stripeKey, data-email=user.auth.email_is_verified ? user.auth.email : null)
                   input(type='hidden', name='action', value='updatePayment')
 
-                  h3
-                  span.form__Label Current payment information
-                  div.payment__Source
-                    img.payment__SourceLogo(src=`/images/card-${brandMap[subscription.source.brand]}.svg`, alt="")
-                    span.payment__SourceNum= `${subscription.source.brand} ending in ${subscription.source.last4}`
-                    span.payment__SourceDate= `Exp. ${subscription.source.expiry.month}/${subscription.source.expiry.year}`
+                  if subscription.source
+                    span.form__Label Current payment information
+                    div.payment__Source
+                      if brandMap[subscription.source.brand]
+                        img.payment__SourceLogo(src=`/images/card-${brandMap[subscription.source.brand]}.svg`, alt="")
+                      span.payment__SourceNum= `${subscription.source.brand} ending in ${subscription.source.last4}`
+                      span.payment__SourceDate= `Exp. ${subscription.source.expiry.month}/${subscription.source.expiry.year}`
+                  else
+                    p No card details are available for your current payment method.
 
                   div.payment__Form
                     div.form__InputContainer
@@ -180,77 +183,3 @@ block content
                     button.modal-btn-close.button.modal__Action(type="button") Cancel
                     button#update-source-confirm.button.button--blue.modal__Action(type="submit") Update
                     img#loading.loading.u-hidden(src="/images/loading.svg", alt='loading indicator')
-
-block js
-  script.
-    const stripe = Stripe('#{stripeKey}');
-    const elements = stripe.elements();
-    const form = document.getElementById('update-source-form');
-
-    const card = elements.create('card');
-    card.mount('#card-element');
-
-    function stripeTokenHandler(token) {
-      // Insert the token ID into the form so it gets submitted to the server
-      const hiddenInput = document.createElement('input');
-      hiddenInput.setAttribute('type', 'hidden');
-      hiddenInput.setAttribute('name', 'stripeToken');
-      hiddenInput.setAttribute('value', token.id);
-      form.appendChild(hiddenInput);
-
-      // Submit the form
-      form.submit();
-    }
-
-    card.addEventListener('change', (event) => {
-      const displayError = document.getElementById('card-errors');
-      if (event.error) {
-        displayError.textContent = event.error.message;
-      } else {
-        displayError.textContent = '';
-      }
-    });
-
-    form.addEventListener('submit', (event) => {
-      event.preventDefault();
-
-      let tokenPromise;
-      let tokenType;
-      let email;
-
-      const submitButton = document.getElementById('update-source-confirm');
-      const cardholderName = document.getElementById('card-name').value;
-      const emailInput = document.getElementById('card-email');
-      const loading = document.getElementById('loading');
-
-      submitButton.disabled = true;
-      loading.classList.remove('u-hidden');
-      submitButton.classList.add('u-hidden');
-
-      if (emailInput) {
-        email = emailInput.value;
-      }
-
-      const owner = {
-        name: cardholderName,
-        email,
-      };
-
-      tokenPromise = stripe.createSource(card, { owner });
-      tokenType = 'source';
-
-      tokenPromise.then((result) => {
-        if (result.error) {
-          // Inform the customer that there was an error.
-          var errorElement = document.getElementById('card-errors');
-          errorElement.textContent = result.error.message;
-          submitButton.disabled = false;
-          loading.classList.add('u-hidden');
-          submitButton.classList.remove('u-hidden');
-        } else {
-          // Send the token to your server.
-          stripeTokenHandler(result[tokenType]);
-        }
-      });
-    });
-

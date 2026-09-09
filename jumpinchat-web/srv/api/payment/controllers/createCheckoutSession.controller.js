@@ -1,155 +1,71 @@
-import Stripe from 'stripe';
 import logFactory from '../../../utils/logger.util.js';
 import { getHostDomain } from '../../../utils/utils.js';
 import errors from '../../../config/constants/errors.js';
-import config from '../../../config/env/index.js';
 import { getUserById } from '../../user/user.utils.js';
 import paymentUtils from '../payment.utils.js';
-const log = logFactory({ name: 'createCheckoutSession.controller' });
+import stripe from '../stripe.client.js';
 import { productIds, productTypes, products } from '../payment.constants.js';
 
+const log = logFactory({ name: 'createCheckoutSession.controller' });
+
 export default async function createCheckoutSession(req, res) {
-  const { product, amount, beneficiary } = req.body;
-  const stripeClient = new Stripe(config.payment.stripe.secretKey);
-  const domain = getHostDomain(req);
-  const successUrl = `${domain}/support/payment/success?amount=${amount / 100}`;
-  const cancelUrl = `${domain}/support`;
-
-  let user;
-  let userEmail;
-  let existingPayment;
-  let customer;
-
-  if (!product) {
-    return res.status(400).send({
-      error: 'ERR_NO_PRODUCT',
-      message: 'Product is missing',
-    });
+  const { product, beneficiary } = req.body;
+  const amount = Number(req.body.amount);
+  if (!product) return res.status(400).send({ error: 'ERR_NO_PRODUCT', message: 'Product is missing' });
+  if (!Object.hasOwn(products, product)) {
+    return res.status(400).send({ error: 'ERR_INVALID_PRODUCT', message: 'Invalid product' });
   }
-
-  if (amount && amount < 300) {
-    return res.status(400).send({
-      error: 'ERR_INVALID_AMOUNT',
-      message: 'Minimum amount is $3.00',
-    });
+  const isSubscription = products[product].type === productTypes.TYPE_PLAN;
+  if (product === productIds.SUPPORT_ONE_TIME && req.body.amount == null) {
+    return res.status(400).send({ error: 'ERR_NO_AMOUNT', message: 'An amount is required for a one-time payment' });
   }
-
-  if (amount && amount > 5000) {
-    return res.status(400).send({
-      error: 'ERR_INVALID_AMOUNT',
-      message: 'Maximum amount is $50.00',
-    });
+  if ((!isSubscription || req.body.amount != null)
+    && (!Number.isInteger(amount) || amount < 300 || amount > 5000)) {
+    return res.status(400).send({ error: 'ERR_INVALID_AMOUNT', message: 'Amount must be between $3.00 and $50.00 in whole cents' });
   }
-
-  if (product === productIds.SUPPORT_ONE_TIME && !amount) {
-    return res.status(400).send({
-      error: 'ERR_NO_AMOUNT',
-      message: 'An amount is required for a one-time payment',
-    });
-  }
-
-  const productDetail = products[product];
-  try {
-    existingPayment = await paymentUtils.getPaymentByUserId(req.user._id);
-  } catch (err) {
-    log.fatal({ err }, 'failed to fetch payment');
-    return res.status(500).send(errors.ERR_SRV);
-  }
-
-  if (existingPayment && existingPayment.customerId) {
-    customer = existingPayment.customerId;
+  if (beneficiary && isSubscription) {
+    return res.status(400).send({ error: 'ERR_INVALID_BENEFICIARY', message: 'Only one-time support can be gifted' });
   }
 
   try {
-    user = await getUserById(req.user._id, { lean: false });
-  } catch (err) {
-    log.fatal({ err }, 'failed to get user');
-    return res.status(500).send(errors.ERR_SRV);
-  }
-
-  if (!user) {
-    log.error({ userId: req.user._id }, 'no user');
-    return res.status(500).send(errors.ERR_NO_USER);
-  }
-
-  if (user.auth.email_is_verified) {
-    userEmail = user.auth.email;
-  }
-
-  if (productDetail.type === productTypes.TYPE_PLAN) {
-    if (existingPayment && user.attrs.isGold) {
-      return res.status(422).send({
-        error: 'ERR_SUBSCRIPTION_EXISTS',
-        message: 'You are already subscribed, check your account settings for more information',
-      });
+    const user = await getUserById(req.user._id, { lean: true });
+    if (!user) return res.status(500).send(errors.ERR_NO_USER);
+    if (beneficiary && !await getUserById(beneficiary, { lean: true })) {
+      return res.status(400).send({ error: 'ERR_NO_USER', message: 'Gift recipient does not exist' });
     }
-
-    try {
-      const sessionOpts = {
-        mode: 'subscription',
-        line_items: [{
-          price: productDetail.id,
-          quantity: 1,
-        }],
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-      };
-
-      if (customer) {
-        sessionOpts.customer = customer;
-      }
-
-      const session = await stripeClient.checkout.sessions.create(sessionOpts);
-
-      try {
-        await paymentUtils.saveCheckoutSession(user._id, session.id);
-        return res.status(201).send(session.id);
-      } catch (err) {
-        log.fatal({ err }, 'failed to save checkout session');
-        return res.status(500).send(errors.ERR_SRV);
-      }
-    } catch (err) {
-      log.fatal({ err }, 'failed to create checkout client');
-      return res.status(500).send(errors.ERR_SRV);
+    const existingPayment = await paymentUtils.getPaymentByUserId(user._id);
+    const existingSubscription = isSubscription
+      ? await paymentUtils.getPaymentByUserId(user._id, { isSubscription: true }) : null;
+    if (isSubscription && (existingSubscription || user.attrs.isGold)) {
+      return res.status(422).send({ error: 'ERR_SUBSCRIPTION_EXISTS', message: 'You are already subscribed, check your account settings for more information' });
     }
-  }
-
-  if (productDetail.type === productTypes.TYPE_CHARGE) {
-    const sessionOpts = {
-      mode: 'payment',
-      line_items: [{
+    const domain = getHostDomain(req);
+    const options = {
+      mode: isSubscription ? 'subscription' : 'payment',
+      line_items: isSubscription ? [{ price: products[product].id, quantity: 1 }] : [{
         price_data: {
           currency: 'usd',
-          product_data: {
-            name: 'Site Supporter',
-            description: `One-off supporter payment of $${amount / 100}`,
-          },
+          product_data: { name: 'Site Supporter', description: `One-off supporter payment of $${amount / 100}` },
           unit_amount: amount,
         },
         quantity: 1,
       }],
-      success_url: successUrl,
-      cancel_url: cancelUrl,
+      success_url: `${domain}/support/payment/success?productId=${product}`,
+      cancel_url: `${domain}/support`,
+      client_reference_id: String(user._id),
+      metadata: { userId: String(user._id), product },
     };
-
-    if (customer) {
-      sessionOpts.customer = customer;
+    if (existingPayment?.customerId) options.customer = existingPayment.customerId;
+    else {
+      if (!isSubscription) options.customer_creation = 'always';
+      if (user.auth.email_is_verified) options.customer_email = user.auth.email;
     }
-
-    try {
-      const session = await stripeClient.checkout.sessions.create(sessionOpts);
-
-      try {
-        log.debug({ userId: user._id, beneficiary }, 'creating new session');
-        await paymentUtils.saveCheckoutSession(user._id, session.id, beneficiary);
-        return res.status(201).send(session.id);
-      } catch (err) {
-        log.fatal({ err }, 'failed to save checkout session');
-        return res.status(500).send(errors.ERR_SRV);
-      }
-    } catch (err) {
-      log.fatal({ err }, 'failed to create checkout client');
-      return res.status(500).send(errors.ERR_SRV);
-    }
+    const session = await stripe.checkout.sessions.create(options);
+    if (!session.url) throw new Error('Checkout URL missing');
+    await paymentUtils.saveCheckoutSession(user._id, session.id, beneficiary);
+    return res.status(201).send({ id: session.id, url: session.url });
+  } catch (err) {
+    log.error({ err }, 'failed to create checkout session');
+    return res.status(500).send(errors.ERR_SRV);
   }
-};
+}

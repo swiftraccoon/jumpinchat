@@ -1,176 +1,79 @@
-import { expect } from 'chai';
+import assert from 'node:assert/strict';
 import sinon from 'sinon';
 import esmock from 'esmock';
-import { stripeEvents } from '../payment.constants.js';
+import Stripe from 'stripe';
+import { logger, response } from './paymentTestHelpers.js';
 
-describe('stripeHook controller', () => {
-  let req;
-  let res;
-  let resSend;
-  let resStatus;
+const signatureClient = new Stripe('sk_test_local_fixture');
+const signingSecret = 'whsec_local_fixture_only';
+function signedRequest(type, object = { id: 'cs_1' }, timestamp = Math.floor(Date.now() / 1000)) {
+  const payload = JSON.stringify({ id: 'evt_fixture', object: 'event', type, data: { object } });
+  return { body: Buffer.from(payload), headers: { 'stripe-signature':
+    signatureClient.webhooks.generateTestHeaderString({ payload, secret: signingSecret, timestamp }) } };
+}
 
-  const createController = async (overrides = {}) => {
-    const constructEventStub = overrides.constructEvent
-      || sinon.stub().returns({
-        type: stripeEvents.SESSION_COMPLETED,
-        data: { object: { customer: 'cust_123' } },
-      });
-
-    const mocks = {
-      stripe: function StripeMock() {
-        return {
-          webhooks: {
-            constructEvent: constructEventStub,
-          },
-        };
-      },
-      '../../../config/env/index.js': {
-        default: {
-          payment: {
-            stripe: {
-              secretKey: 'sk_test',
-              whKey: 'whsec_test',
-            },
-          },
-        },
-      },
-      '../../../utils/logger.util.js': { default: () => ({ debug: () => {}, info: () => {}, warn: () => {}, error: () => {}, fatal: () => {} }) },
-      './fulfillPayment.controller.js': {
-        default: overrides.fulfillPayment || sinon.stub().resolves(),
-      },
-      '../payment.utils.js': {
-        deletePayment: overrides.deletePayment || sinon.stub().resolves(),
-        getPaymentByCustomerId: overrides.getPaymentByCustomerId || sinon.stub().resolves({ _id: 'pay_1' }),
-        updateExpire: overrides.updateExpire || sinon.stub().resolves(),
-      },
-    };
-
-    const mod = await esmock('./stripeHook.controller.js', mocks);
-    return mod.default;
-  };
-
-  beforeEach(() => {
-    resSend = sinon.stub();
-    resStatus = sinon.stub().returns({ send: resSend });
-    req = {
-      body: 'raw_body',
-      headers: { 'stripe-signature': 'sig_test' },
-    };
-    res = { status: resStatus };
+describe('signed Stripe webhook delivery', () => {
+  let res, fulfill, utils, stripe, hook, config;
+  beforeEach(async () => {
+    res = response();
+    fulfill = sinon.stub().resolves(true);
+    utils = { handleSubscriptionDeleted: sinon.stub().resolves(), renewSubscription: sinon.stub().resolves() };
+    stripe = { webhooks: signatureClient.webhooks, invoices: { retrieve: sinon.stub().resolves({ id: 'in_1', status: 'paid' }) } };
+    config = { payment: { stripe: { whKey: signingSecret } } };
+    hook = (await esmock('./stripeHook.controller.js', {
+      '../stripe.client.js': { default: stripe }, '../payment.utils.js': utils,
+      './fulfillPayment.controller.js': { default: fulfill },
+      '../../../config/env/index.js': { default: config }, '../../../utils/logger.util.js': logger,
+    })).default;
   });
-
-  it('should return 400 if constructEvent throws', async () => {
-    const constructEvent = sinon.stub().throws(new Error('bad sig'));
-    const controller = await createController({ constructEvent });
-    await controller(req, res);
-    expect(resStatus.calledWith(400)).to.equal(true);
+  for (const type of ['checkout.session.completed', 'checkout.session.async_payment_succeeded']) {
+    it(`accepts a real SDK signature for ${type}`, async () => {
+      await hook(signedRequest(type), res);
+      assert.equal(res.status.firstCall.args[0], 200);
+      sinon.assert.calledWith(fulfill, { id: 'cs_1' });
+    });
+  }
+  it('rejects changed, missing, expired and pre-parsed signatures without processing', async () => {
+    const changed = signedRequest('checkout.session.completed');
+    changed.body = Buffer.from('{}');
+    const missing = signedRequest('checkout.session.completed');
+    delete missing.headers['stripe-signature'];
+    const parsed = signedRequest('checkout.session.completed');
+    parsed.body = JSON.parse(parsed.body.toString());
+    for (const req of [changed, missing, parsed, signedRequest('checkout.session.completed', {}, Math.floor(Date.now() / 1000) - 600)]) {
+      await hook(req, res);
+      assert.equal(res.status.lastCall.args[0], 400);
+    }
+    sinon.assert.notCalled(fulfill);
   });
-
-  describe('SUBSCRIPTION_DELETE event', () => {
-    it('should delete payment when payment exists', async () => {
-      const deletePayment = sinon.stub().resolves();
-      const getPaymentByCustomerId = sinon.stub().resolves({ _id: 'pay_1' });
-      const constructEvent = sinon.stub().returns({
-        type: stripeEvents.SUBSCRIPTION_DELETE,
-        data: { object: { customer: 'cust_123' } },
-      });
-      const controller = await createController({
-        constructEvent,
-        deletePayment,
-        getPaymentByCustomerId,
-      });
-      await controller(req, res);
-      expect(getPaymentByCustomerId.calledWith('cust_123')).to.equal(true);
-      expect(deletePayment.calledWith('pay_1')).to.equal(true);
-      expect(resStatus.calledWith(200)).to.equal(true);
-    });
-
-    it('should not call deletePayment when no payment found', async () => {
-      const deletePayment = sinon.stub().resolves();
-      const getPaymentByCustomerId = sinon.stub().resolves(null);
-      const constructEvent = sinon.stub().returns({
-        type: stripeEvents.SUBSCRIPTION_DELETE,
-        data: { object: { customer: 'cust_123' } },
-      });
-      const controller = await createController({
-        constructEvent,
-        deletePayment,
-        getPaymentByCustomerId,
-      });
-      await controller(req, res);
-      expect(deletePayment.called).to.equal(false);
-      expect(resStatus.calledWith(200)).to.equal(true);
-    });
+  it('returns a retriable failure for fulfillment errors', async () => {
+    fulfill.rejects(new Error('private database details'));
+    await hook(signedRequest('checkout.session.completed'), res);
+    assert.equal(res.status.firstCall.args[0], 500);
+    assert.deepEqual(res.send.firstCall.args[0], { message: 'Payment event could not be processed' });
   });
-
-  describe('INVOICE_PAID event', () => {
-    it('should update expiry when payment exists', async () => {
-      const updateExpire = sinon.stub().resolves();
-      const getPaymentByCustomerId = sinon.stub().resolves({ _id: 'pay_1', userId: 'user_1' });
-      const constructEvent = sinon.stub().returns({
-        type: stripeEvents.INVOICE_PAID,
-        data: { object: { customer: 'cust_123' } },
-      });
-      const controller = await createController({
-        constructEvent,
-        updateExpire,
-        getPaymentByCustomerId,
-      });
-      await controller(req, res);
-      expect(updateExpire.calledWith('pay_1', 'user_1')).to.equal(true);
-      expect(resStatus.calledWith(200)).to.equal(true);
-    });
-
-    it('should not update expiry when no payment exists', async () => {
-      const updateExpire = sinon.stub().resolves();
-      const getPaymentByCustomerId = sinon.stub().resolves(null);
-      const constructEvent = sinon.stub().returns({
-        type: stripeEvents.INVOICE_PAID,
-        data: { object: { customer: 'cust_123' } },
-      });
-      const controller = await createController({
-        constructEvent,
-        updateExpire,
-        getPaymentByCustomerId,
-      });
-      await controller(req, res);
-      expect(updateExpire.called).to.equal(false);
-      expect(resStatus.calledWith(200)).to.equal(true);
-    });
+  it('rehydrates invoice objects through the pinned API before renewal', async () => {
+    await hook(signedRequest('invoice.payment_succeeded', { id: 'in_1' }), res);
+    sinon.assert.calledWith(stripe.invoices.retrieve, 'in_1');
+    sinon.assert.calledWith(utils.renewSubscription, { id: 'in_1', status: 'paid' });
+    assert.equal(res.status.firstCall.args[0], 200);
   });
-
-  describe('SESSION_COMPLETED event', () => {
-    it('should fulfill payment and return 200 on success', async () => {
-      const fulfillPayment = sinon.stub().resolves();
-      const constructEvent = sinon.stub().returns({
-        type: stripeEvents.SESSION_COMPLETED,
-        data: { object: { id: 'sess_1', customer: 'cust_1' } },
-      });
-      const controller = await createController({ constructEvent, fulfillPayment });
-      await controller(req, res);
-      expect(fulfillPayment.calledWith({ id: 'sess_1', customer: 'cust_1' })).to.equal(true);
-      expect(resStatus.calledWith(200)).to.equal(true);
-    });
-
-    it('should return 500 when fulfillPayment throws', async () => {
-      const fulfillPayment = sinon.stub().rejects(new Error('fail'));
-      const constructEvent = sinon.stub().returns({
-        type: stripeEvents.SESSION_COMPLETED,
-        data: { object: { id: 'sess_1', customer: 'cust_1' } },
-      });
-      const controller = await createController({ constructEvent, fulfillPayment });
-      await controller(req, res);
-      expect(resStatus.calledWith(500)).to.equal(true);
-    });
+  it('returns a retriable failure for renewal and cancellation database failures', async () => {
+    utils.renewSubscription.rejects(new Error('retry invoice'));
+    await hook(signedRequest('invoice.payment_succeeded', { id: 'in_1' }), res);
+    assert.equal(res.status.lastCall.args[0], 500);
+    utils.handleSubscriptionDeleted.rejects(new Error('retry deletion'));
+    await hook(signedRequest('customer.subscription.deleted', { id: 'sub_1' }), res);
+    assert.equal(res.status.lastCall.args[0], 500);
   });
-
-  it('should return 200 for unknown event types', async () => {
-    const constructEvent = sinon.stub().returns({
-      type: 'unknown.event',
-      data: { object: {} },
-    });
-    const controller = await createController({ constructEvent });
-    await controller(req, res);
-    expect(resStatus.calledWith(200)).to.equal(true);
+  it('acknowledges irrelevant signed event types', async () => {
+    await hook(signedRequest('customer.created'), res);
+    assert.equal(res.status.firstCall.args[0], 200);
+    sinon.assert.notCalled(fulfill);
+  });
+  it('returns 503 without attempting verification when the webhook is disabled', async () => {
+    config.payment.stripe.whKey = '';
+    await hook({ headers: {}, body: Buffer.from('{}') }, res);
+    assert.equal(res.status.firstCall.args[0], 503);
   });
 });

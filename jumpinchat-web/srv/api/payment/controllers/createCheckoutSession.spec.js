@@ -1,175 +1,88 @@
-import { expect } from 'chai';
+import assert from 'node:assert/strict';
 import sinon from 'sinon';
 import esmock from 'esmock';
-import { productIds, productTypes, products } from '../payment.constants.js';
+import { logger, response, user } from './paymentTestHelpers.js';
 
-describe('createCheckoutSession controller', () => {
-  let req;
-  let res;
-  let resSend;
-  let resStatus;
-
-  const createController = async (overrides = {}) => {
-    const sessionsCreate = overrides.sessionsCreate
-      || sinon.stub().resolves({ id: 'cs_test_session' });
-
-    const mocks = {
-      stripe: function StripeMock() {
-        return {
-          checkout: {
-            sessions: {
-              create: sessionsCreate,
-            },
-          },
-        };
-      },
-      '../../../utils/logger.util.js': { default: () => ({ debug: () => {}, info: () => {}, warn: () => {}, error: () => {}, fatal: () => {} }) },
-      '../../../utils/utils.js': {
-        getHostDomain: sinon.stub().returns('https://example.com'),
-      },
-      '../../../config/constants/errors.js': {
-        default: {
-          ERR_SRV: { code: 'ERR_SRV', message: 'server error' },
-          ERR_NO_USER: { code: 'ERR_NO_USER', message: 'no user found' },
-        },
-      },
-      '../../../config/env/index.js': {
-        default: {
-          payment: {
-            stripe: { secretKey: 'sk_test' },
-          },
-        },
-      },
-      '../../user/user.utils.js': {
-        getUserById: overrides.getUserById || sinon.stub().resolves({
-          _id: 'user_1',
-          auth: { email: 'test@test.com', email_is_verified: true },
-          attrs: { isGold: false },
-        }),
-      },
-      '../payment.utils.js': {
-        default: {
-          getPaymentByUserId: overrides.getPaymentByUserId || sinon.stub().resolves(null),
-          saveCheckoutSession: overrides.saveCheckoutSession || sinon.stub().resolves(),
-        },
-      },
-    };
-
-    const mod = await esmock('./createCheckoutSession.controller.js', mocks);
-    return mod.default;
-  };
-
-  beforeEach(() => {
-    resSend = sinon.stub();
-    resStatus = sinon.stub().returns({ send: resSend });
-    req = {
-      body: {
-        product: productIds.SUPPORT_MONTHLY,
-        amount: 500,
-      },
-      user: { _id: 'user_1' },
-    };
-    res = { status: resStatus };
+describe('hosted Checkout creation', () => {
+  let req, res, stripe, utils, getUserById, controller;
+  beforeEach(async () => {
+    req = { user: { _id: 'user_1' }, body: { product: 'onetime', amount: '600' } };
+    res = response();
+    stripe = { checkout: { sessions: { create: sinon.stub().resolves({ id: 'cs_1', url: 'https://checkout.stripe.com/c/pay/cs_1' }) } } };
+    utils = { getPaymentByUserId: sinon.stub().resolves(null), saveCheckoutSession: sinon.stub().resolves() };
+    getUserById = sinon.stub().resolves(user);
+    controller = (await esmock('./createCheckoutSession.controller.js', {
+      '../stripe.client.js': { default: stripe },
+      '../payment.utils.js': { default: utils },
+      '../../user/user.utils.js': { getUserById },
+      '../../../utils/logger.util.js': logger,
+      '../../../utils/utils.js': { getHostDomain: () => 'https://example.test' },
+    })).default;
   });
-
-  it('should return 400 if product is missing', async () => {
-    const controller = await createController();
-    req.body.product = undefined;
+  it('returns hosted URL and persists the local session before returning success', async () => {
     await controller(req, res);
-    expect(resStatus.calledWith(400)).to.equal(true);
-    expect(resSend.firstCall.args[0].error).to.equal('ERR_NO_PRODUCT');
+    assert.equal(res.status.firstCall.args[0], 201);
+    assert.deepEqual(res.send.firstCall.args[0], { id: 'cs_1', url: 'https://checkout.stripe.com/c/pay/cs_1' });
+    const options = stripe.checkout.sessions.create.firstCall.args[0];
+    assert.equal(options.line_items[0].price_data.unit_amount, 600);
+    assert.equal(options.customer_creation, 'always');
+    assert.equal(options.customer_email, user.auth.email);
+    sinon.assert.calledWith(utils.saveCheckoutSession, 'user_1', 'cs_1', undefined);
+    sinon.assert.callOrder(utils.saveCheckoutSession, res.send);
   });
-
-  it('should return 400 if amount is below 300', async () => {
-    const controller = await createController();
-    req.body.amount = 100;
-    await controller(req, res);
-    expect(resStatus.calledWith(400)).to.equal(true);
-    expect(resSend.firstCall.args[0].error).to.equal('ERR_INVALID_AMOUNT');
-  });
-
-  it('should return 400 if amount is above 5000', async () => {
-    const controller = await createController();
-    req.body.amount = 10000;
-    await controller(req, res);
-    expect(resStatus.calledWith(400)).to.equal(true);
-    expect(resSend.firstCall.args[0].error).to.equal('ERR_INVALID_AMOUNT');
-  });
-
-  it('should return 400 if one-time product with no amount', async () => {
-    const controller = await createController();
-    req.body.product = productIds.SUPPORT_ONE_TIME;
-    req.body.amount = undefined;
-    await controller(req, res);
-    expect(resStatus.calledWith(400)).to.equal(true);
-    expect(resSend.firstCall.args[0].error).to.equal('ERR_NO_AMOUNT');
-  });
-
-  it('should return 500 if getPaymentByUserId throws', async () => {
-    const getPaymentByUserId = sinon.stub().rejects(new Error('db error'));
-    const controller = await createController({ getPaymentByUserId });
-    await controller(req, res);
-    expect(resStatus.calledWith(500)).to.equal(true);
-  });
-
-  it('should return 500 if getUserById returns null', async () => {
-    const getUserById = sinon.stub().resolves(null);
-    const controller = await createController({ getUserById });
-    await controller(req, res);
-    expect(resStatus.calledWith(500)).to.equal(true);
-  });
-
-  it('should return 422 if user is already gold on plan product', async () => {
-    const getPaymentByUserId = sinon.stub().resolves({ customerId: 'cust_1' });
-    const getUserById = sinon.stub().resolves({
-      _id: 'user_1',
-      auth: { email: 'test@test.com', email_is_verified: true },
-      attrs: { isGold: true },
+  for (const amount of [299, 5001, 300.5, 'invalid', '', null, undefined]) {
+    it(`rejects invalid one-off amount ${String(amount)}`, async () => {
+      req.body.amount = amount;
+      await controller(req, res);
+      assert.equal(res.status.firstCall.args[0], 400);
+      sinon.assert.notCalled(stripe.checkout.sessions.create);
     });
-    const controller = await createController({ getPaymentByUserId, getUserById });
-    await controller(req, res);
-    expect(resStatus.calledWith(422)).to.equal(true);
-    expect(resSend.firstCall.args[0].error).to.equal('ERR_SUBSCRIPTION_EXISTS');
+  }
+  it('rejects unknown and inherited product names', async () => {
+    for (const product of ['missing', 'constructor', undefined]) {
+      req.body.product = product;
+      await controller(req, res);
+      assert.equal(res.status.lastCall.args[0], 400);
+    }
+    sinon.assert.notCalled(stripe.checkout.sessions.create);
   });
-
-  it('should create subscription checkout session for plan product', async () => {
-    const saveCheckoutSession = sinon.stub().resolves();
-    const sessionsCreate = sinon.stub().resolves({ id: 'cs_test' });
-    const controller = await createController({ saveCheckoutSession, sessionsCreate });
+  it('uses the subscription price without caller amount and reuses a customer', async () => {
+    req.body = { product: 'annual' };
+    utils.getPaymentByUserId.onFirstCall().resolves({ customerId: 'cus_existing' });
     await controller(req, res);
-    expect(sessionsCreate.called).to.equal(true);
-    const opts = sessionsCreate.firstCall.args[0];
-    expect(opts.mode).to.equal('subscription');
-    expect(resStatus.calledWith(201)).to.equal(true);
-    expect(resSend.firstCall.args[0]).to.equal('cs_test');
+    const options = stripe.checkout.sessions.create.firstCall.args[0];
+    assert.equal(options.mode, 'subscription');
+    assert.equal(options.line_items[0].price, 'plan_DioVHqZfPGjykw');
+    assert.equal(options.customer, 'cus_existing');
+    assert.equal(options.customer_creation, undefined);
+    assert.equal(options.customer_email, undefined);
   });
-
-  it('should create payment checkout session for one-time product', async () => {
-    req.body.product = productIds.SUPPORT_ONE_TIME;
-    req.body.amount = 500;
-    const saveCheckoutSession = sinon.stub().resolves();
-    const sessionsCreate = sinon.stub().resolves({ id: 'cs_onetime' });
-    const controller = await createController({ saveCheckoutSession, sessionsCreate });
+  it('blocks a second subscription even if the gold attribute is stale', async () => {
+    req.body = { product: 'monthly' };
+    utils.getPaymentByUserId.onSecondCall().resolves({ subscription: { id: 'sub_existing' } });
     await controller(req, res);
-    expect(sessionsCreate.called).to.equal(true);
-    const opts = sessionsCreate.firstCall.args[0];
-    expect(opts.mode).to.equal('payment');
-    expect(resStatus.calledWith(201)).to.equal(true);
-    expect(resSend.firstCall.args[0]).to.equal('cs_onetime');
+    assert.equal(res.status.firstCall.args[0], 422);
+    sinon.assert.notCalled(stripe.checkout.sessions.create);
   });
-
-  it('should include existing customer id if payment exists', async () => {
-    const getPaymentByUserId = sinon.stub().resolves({ customerId: 'cust_existing' });
-    const sessionsCreate = sinon.stub().resolves({ id: 'cs_test' });
-    const saveCheckoutSession = sinon.stub().resolves();
-    const controller = await createController({
-      getPaymentByUserId,
-      sessionsCreate,
-      saveCheckoutSession,
-    });
+  it('rejects subscription gifts and missing recipients', async () => {
+    req.body = { product: 'monthly', beneficiary: 'recipient' };
     await controller(req, res);
-    expect(sessionsCreate.called).to.equal(true);
-    const opts = sessionsCreate.firstCall.args[0];
-    expect(opts.customer).to.equal('cust_existing');
+    assert.equal(res.status.lastCall.args[0], 400);
+    req.body = { product: 'onetime', amount: 300, beneficiary: 'recipient' };
+    getUserById.onSecondCall().resolves(null);
+    await controller(req, res);
+    assert.equal(res.status.lastCall.args[0], 400);
+    sinon.assert.notCalled(stripe.checkout.sessions.create);
+  });
+  it('fails closed when the session cannot be saved', async () => {
+    utils.saveCheckoutSession.rejects(new Error('database unavailable'));
+    await controller(req, res);
+    assert.equal(res.status.firstCall.args[0], 500);
+  });
+  it('fails closed when Stripe omits its hosted URL', async () => {
+    stripe.checkout.sessions.create.resolves({ id: 'cs_1', url: null });
+    await controller(req, res);
+    assert.equal(res.status.firstCall.args[0], 500);
+    sinon.assert.notCalled(utils.saveCheckoutSession);
   });
 });

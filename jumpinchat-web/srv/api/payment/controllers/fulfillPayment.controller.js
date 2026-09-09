@@ -1,217 +1,73 @@
-import { isAfter } from 'date-fns';
-import logFactory from '../../../utils/logger.util.js';
-import { getUserById } from '../../user/user.utils.js';
+import stripe from '../stripe.client.js';
 import paymentUtils from '../payment.utils.js';
+import logFactory from '../../../utils/logger.util.js';
 import metaSendMessage from '../../message/utils/metaSendMessage.util.js';
-const log = logFactory({ name: 'fulfillPayment.controller' });
 import { PAYMENT_ONETIME, PAYMENT_GIFT_SENDER } from '../../message/message.constants.js';
 
-export default async function fulfillPayment({
-  id,
-  customer,
-  display_items: displayItems,
-  subscription,
-}) {
-  const {
-    plan,
-    custom,
-    amount,
-  } = displayItems[0];
+const log = logFactory({ name: 'fulfillPayment.controller' });
+const resourceId = value => typeof value === 'string' ? value : value?.id;
 
-  let session;
-  let payment;
+export default async function fulfillPayment(eventSession) {
+  // Retrieve the current object: webhook endpoint versions are configured separately.
+  const checkout = await stripe.checkout.sessions.retrieve(eventSession.id);
+  if (!['payment', 'subscription'].includes(checkout.mode)) throw new Error('Unsupported checkout mode');
+  if (!['paid', 'no_payment_required'].includes(checkout.payment_status)) return false;
+  const session = await paymentUtils.getSessionById(checkout.id);
+  if (!session?.userId) throw new Error('Checkout session or payer no longer exists');
+  if (session.fulfilledAt) return true;
+  if (session.fulfillmentVersion !== 2) throw new Error('Legacy checkout requires operator reconciliation before fulfillment');
+  const token = await paymentUtils.claimCheckoutSession(session);
+  if (!token) return true;
 
+  let price;
+  const isSubscription = checkout.mode === 'subscription';
+  let isGold = isSubscription;
+  const recipient = session.beneficiary || session.userId;
   try {
-    session = await paymentUtils.getSessionById(id);
+    if (checkout.client_reference_id && checkout.client_reference_id !== String(session.userId._id)) {
+      throw new Error('Checkout payer mismatch');
+    }
+    if (isSubscription && session.beneficiary) throw new Error('Subscription gifts are unsupported');
+    let expiresAt;
+    let duration;
+    if (isSubscription) {
+      const subscription = await stripe.subscriptions.retrieve(resourceId(checkout.subscription));
+      const currentSession = await paymentUtils.getSessionById(checkout.id);
+      isGold = !currentSession.subscriptionCanceledAt && !['canceled', 'incomplete_expired'].includes(subscription.status);
+      if (resourceId(subscription.customer) !== resourceId(checkout.customer)) throw new Error('Subscription customer mismatch');
+      const items = await stripe.checkout.sessions.listLineItems(checkout.id, { limit: 2 });
+      if (items.data.length !== 1 || items.has_more) throw new Error('Unexpected checkout line items');
+      price = items.data[0].price;
+      const invoice = await stripe.invoices.retrieve(resourceId(checkout.invoice));
+      if (resourceId(invoice.customer) !== resourceId(checkout.customer)) throw new Error('Invoice customer mismatch');
+      expiresAt = await paymentUtils.getPaidInvoicePeriod(invoice, subscription.id);
+    } else {
+      if (checkout.currency !== 'usd' || !Number.isInteger(checkout.amount_total)
+        || checkout.amount_total < 300 || checkout.amount_total > 5000) throw new Error('Invalid paid checkout amount');
+      duration = 1000 * 60 * 60 * 24 * 14 * (checkout.amount_total / 300);
+    }
+    await paymentUtils.applyCheckoutSupport(recipient._id, checkout.id, { duration, expiresAt, isGold });
+    await paymentUtils.saveCheckoutPayment(session, checkout, resourceId(price), { subscriptionActive: isGold });
+    await paymentUtils.finishCheckoutSession(session._id, token);
   } catch (err) {
-    log.fatal({ err }, 'failed to fetch existing payment');
-    return err;
+    try { await paymentUtils.releaseCheckoutSession(session._id, token); }
+    catch (releaseError) { log.error({ err: releaseError }, 'failed to release fulfillment lease; it will expire'); }
+    throw err;
   }
 
-  if (!session) {
-    log.error({ sessionId: id }, 'session does not exist');
-    return new Error('NoSessionError');
-  }
-
-
+  // Grants and payment records are durable before best-effort notifications.
+  // A crashed notification is not replayed with a second financial grant.
   try {
-    payment = await paymentUtils.getPaymentByCustomerId(customer);
-  } catch (err) {
-    log.fatal({ err, customerId: customer }, 'failed to fetch existing payment');
-    return err;
-  }
-
-  log.debug({ payment, sessionId: id }, 'got payment');
-
-  if (plan) {
-    let user;
-
-    try {
-      user = await getUserById(session.userId._id, { lean: false });
-    } catch (err) {
-      log.fatal({ err }, 'failed to get user');
-      return err;
-    }
-
-    if (payment && payment.subscription.id && user.attrs.isGold) {
-      log.error('subscriber attempted to re-subscribe');
-      return new Error('SubscriptionExistsError');
-    }
-
-    if (payment) {
-      payment.subscription.id = subscription;
-      payment.subscription.planId = plan.id;
-      payment.customerId = customer;
-
-      try {
-        await payment.save();
-        log.debug('saved existing payment');
-      } catch (err) {
-        log.fatal({ err }, 'failed to save existing payment');
-      }
-    } else {
-      try {
-        await paymentUtils.savePayment(user._id, customer, subscription, plan.id);
-        log.debug('payment saved');
-      } catch (err) {
-        log.fatal({ err }, 'failed to save payment');
-        return err;
-      }
-    }
-
-    log.info('payment successful');
-
-    user.attrs.isSupporter = true;
-    user.attrs.isGold = true;
-
-    const supportDuration = (1000 * 60 * 60 * 24 * 31);
-    const currentExpire = user.attrs.supportExpires;
-    log.debug({ supportDuration, currentExpire }, 'adding support exipiry to user');
-
-    if (currentExpire && isAfter(new Date(currentExpire), new Date())) {
-      log.debug('adding time to existing support');
-      user.attrs.supportExpires = new Date(new Date(currentExpire).getTime() + supportDuration);
-    } else {
-      log.debug('setting new support expire time');
-      user.attrs.supportExpires = new Date(Date.now() + supportDuration);
-    }
-
-    try {
-      const updatedUser = await user.save();
-      paymentUtils.applySupporterTrophy(updatedUser._id, true);
-    } catch (err) {
-      log.fatal({ err }, 'failed to save user');
-      return err;
-    }
-
-    try {
-      await metaSendMessage(session.userId._id, PAYMENT_ONETIME);
-    } catch (err) {
-      log.fatal({ err }, 'failed to send message');
-    }
-
-    try {
-      const stripePlan = await paymentUtils.getPlan(plan.id);
-      paymentUtils.notifySlack(user, stripePlan);
-    } catch (err) {
-      log.fatal({ err, plan: plan.id }, 'failed to fetch stripe plan');
-    }
-
-    return true;
-  }
-
-  // charge
-  if (custom) {
-    let userId;
+    paymentUtils.applySupporterTrophy(recipient._id, isGold);
     if (session.beneficiary) {
-      userId = session.beneficiary._id;
-    } else {
-      userId = session.userId._id;
-    }
-
-    let user;
-    try {
-      user = await getUserById(userId, { lean: false });
-    } catch (err) {
-      log.fatal({ err, userId }, 'failed to fetch user');
-      return err;
-    }
-
-    user.attrs.isSupporter = true;
-    const supportDuration = (1000 * 60 * 60 * 24 * 14) * (amount / 300);
-    const currentExpire = user.attrs.supportExpires;
-    log.debug({ supportDuration, currentExpire }, 'adding support exipiry to user');
-
-    if (currentExpire && isAfter(new Date(currentExpire), new Date())) {
-      user.attrs.supportExpires = new Date(new Date(currentExpire).getTime() + supportDuration);
-    } else {
-      user.attrs.supportExpires = new Date(Date.now() + supportDuration);
-    }
-
-    log.debug({ supportExpires: user.attrs.supportExpires });
-
-    log.info({ charge: custom }, 'Stripe charge created');
-
-    let updatedUser;
-    try {
-      updatedUser = await user.save();
-    } catch (err) {
-      log.fatal({ err }, 'failed to save user');
-      return err;
-    }
-
-    const newPayment = {
-      userId: session.userId._id,
-      customerId: customer,
-    };
-
-    try {
-      payment = await paymentUtils.savePayment(newPayment.userId, newPayment.customerId);
-    } catch (err) {
-      log.fatal({ err }, 'failed to save charge payment');
-      return err;
-    }
-
-
-    paymentUtils.applySupporterTrophy(updatedUser._id, false);
-
-    const slackMsg = session.beneficiary
-      ? `single gift donation of $${amount / 100} to ${user.username}`
-      : `single donation of $${amount / 100}`;
-
-    paymentUtils.notifySlack(session.userId, {
-      nickname: slackMsg,
-    });
-
-
-    try {
-      if (session.beneficiary) {
-        const {
-          beneficiary,
-          userId: sender,
-        } = session;
-
-        log.debug({
-          beneficiary: beneficiary._id,
-          userId: sender._id,
-        }, 'handle gift payment');
-
-        const profileUri = `/profile/${beneficiary.username}`;
-        const recipientMessage = `[${sender.username}](${profileUri}) has gifted you $${amount / 100} worth of site supporter status`;
-
-        paymentUtils.applyGiftTrophies(sender._id, beneficiary._id);
-        await metaSendMessage(beneficiary._id, recipientMessage);
-        await metaSendMessage(sender._id, PAYMENT_GIFT_SENDER);
-      } else {
-        await metaSendMessage(userId, PAYMENT_ONETIME);
-      }
-    } catch (messageErr) {
-      log.fatal({ err: messageErr }, 'failed to deliver message');
-    }
-
-    return true;
+      paymentUtils.applyGiftTrophies(session.userId._id, recipient._id);
+      await metaSendMessage(recipient._id,
+        `[${session.userId.username}](/profile/${session.userId.username}) has gifted you $${checkout.amount_total / 100} worth of site supporter status`);
+      await metaSendMessage(session.userId._id, PAYMENT_GIFT_SENDER);
+    } else await metaSendMessage(recipient._id, PAYMENT_ONETIME);
+    await paymentUtils.notifySlack(session.userId, { nickname: price?.nickname || `single donation of $${checkout.amount_total / 100}` });
+  } catch (err) {
+    log.error({ err, checkoutSessionId: checkout.id }, 'failed to send payment notification');
   }
-
-  log.error('Invalid fulfullment: missing type');
-  return new Error('InvalidSessionError');
-};
+  return true;
+}
