@@ -2,7 +2,7 @@ import url from 'url';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
 import Joi from 'joi';
-import { marked } from 'marked';
+import { renderMarkdown } from '../../../utils/markdown.js';
 import logFactory from '../../../utils/logger.js';
 import config from '../../../config/index.js';
 import { getUserByUsername } from '../../../utils/userUtils.js';
@@ -62,7 +62,7 @@ export default async function messageCompose(req, res) {
       ...conversation,
       messages: conversation.messages.map(m => ({
         ...m,
-        message: m.message && marked(m.message),
+        message: m.message && renderMarkdown(m.message),
       })),
     };
 

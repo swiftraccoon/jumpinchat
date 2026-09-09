@@ -12,14 +12,14 @@ API server and React client for JumpInChat video chat rooms.
 
 ## Requirements
 
-- Node.js >= 22.0.0
-- MongoDB (replica set)
+- Node 24 LTS (`nvm use`)
+- MongoDB 8.3 (replica set; migrate existing data before upgrading)
 - Redis
 
 ## Installation
 
 ```bash
-npm ci --legacy-peer-deps
+npm ci
 ```
 
 Copy `example.env` to `.env` and fill in the required values.
@@ -38,25 +38,26 @@ podman-compose up -d
 
 To run just the web server for development:
 
-1. Start MongoDB (replica set) and Redis
+1. Start MongoDB 8.3 (replica set; migrate existing data before upgrading) and Redis
 2. Start a Janus WebRTC gateway instance
 3. Run the dev server:
 
 ```bash
-npx nodemon | npx bunyan
+npx nodemon
 ```
 
-Local environment variables are set in `nodemon.json`.
+Set local environment variables in `.env`; Node loads them before importing the
+server. `nodemon.json` watches server source changes.
 
 ### Client development
 
-The client is a React 18 application under [./react-client](./react-client),
+The client is a React 19 application under [./react-client](./react-client),
 bundled with webpack.
 
 Watch mode (auto-rebuild on changes):
 
 ```bash
-./node_modules/.bin/gulp watchify
+npm run dev
 ```
 
 ## Building
@@ -64,7 +65,7 @@ Watch mode (auto-rebuild on changes):
 Production build (compiles JS, SCSS, revisions assets, generates service worker):
 
 ```bash
-./node_modules/.bin/gulp build
+npm run build
 ```
 
 ## Testing
@@ -76,13 +77,18 @@ npm test
 ```
 
 Tests use ESM via esmock for module mocking. Run `npm run test:client` for the
-focused media regression suite. See [TESTING.md](../TESTING.md) for the shared
-command, CI checks, and historical frontend specs that still need migration.
+React Testing Library suite and media callback regressions. See
+[TESTING.md](../TESTING.md) for the shared command, CI checks, and the complete
+historical-spec migration inventory.
 
 ## Architecture
 
 - **Server**: Express 5, ESM modules, Mongoose 9, Socket.io 4
-- **Client**: React 18, Flux, webpack 5
+- **Client**: React 19, Zustand, webpack 5
 - **Auth**: Cookie-based sessions + JWT tokens
 - **Media**: Janus WebRTC gateway (VP8/VP9)
 - **Icons**: Font Awesome 7 (free, npm packages)
+
+Logs use Pino JSON. GitHub Actions runs the shared checks; obsolete Jenkins
+Node 10/Yarn jobs and Python 2/boto artifact publishers have been retired.
+Container builds are the supported deployment path; npm locks are authoritative.

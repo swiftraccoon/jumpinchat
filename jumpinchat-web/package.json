@@ -8,13 +8,13 @@
     "node": ">=24.11.0 <25 || >=26"
   },
   "scripts": {
-    "start": "node srv/index.js",
+    "start": "node --env-file-if-exists=.env srv/index.js",
     "test": "NODE_ENV=test ./node_modules/.bin/mocha --loader=esmock --exit -t 3000 'srv/**/*.spec.js'",
     "test:client": "vitest run --config vitest.config.js && npm run test:media",
     "test:media": "NODE_ENV=test mocha --exit -t 3000 'test/client/**/*.spec.js'",
     "build": "node build.js",
     "dev": "node build.js --watch",
-    "lint": "eslint srv react-client --quiet"
+    "lint": "eslint . --quiet"
   },
   "author": "vivaldi",
   "license": "ISC",

@@ -1,4 +1,4 @@
-import { marked } from 'marked';
+import { renderMarkdown } from '../../utils/markdown.js';
 import posts from '../../data/blog-posts.js';
 
 export default async function blog(req, res) {
@@ -22,7 +22,7 @@ export default async function blog(req, res) {
     locals.description = post.summary;
     locals.post = {
       ...post,
-      content: marked(post.content),
+      content: renderMarkdown(post.content),
     };
 
     return res.render('blogPost');

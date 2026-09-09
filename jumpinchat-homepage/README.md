@@ -5,14 +5,14 @@ room directory, user account settings, messaging, and admin functions.
 
 ## Requirements
 
-- Node.js >= 22.0.0
-- MongoDB (replica set)
+- Node 24 LTS (`nvm use`)
+- MongoDB 8.3 (replica set; migrate existing data before upgrading)
 - [jumpinchat-web](../jumpinchat-web) API server running
 
 ## Installation
 
 ```bash
-npm install --legacy-peer-deps
+npm ci
 ```
 
 ## Development
@@ -32,17 +32,18 @@ To run standalone:
 2. Run the dev server:
 
 ```bash
-npx nodemon | npx bunyan
+npm run dev
 ```
 
-Local environment variables are set in `nodemon.json`.
+Set local environment variables in `.env`; `npm start` and `npm run dev` load
+them before importing the application.
 
 ### Building assets
 
 The Docker build compiles SCSS and bundles JS automatically:
 
 - **SCSS**: `src/styles/site.scss` compiled with `sass`
-- **JS**: `src/js/app.js` bundled with esbuild (IIFE + ESM outputs)
+- **JS**: `src/js/app.js` bundled with esbuild (ESM output)
 - **Images**: copied from `src/images/`
 
 ### Testing
@@ -51,12 +52,15 @@ The Docker build compiles SCSS and bundles JS automatically:
 npm test
 ```
 
-Tests use ESM via esmock for module mocking. Covers route handlers
-(register, login, MFA) and middleware.
+Tests use ESM via esmock for module mocking. Covers route handlers, login/MFA, payments, Markdown/sitemaps, middleware,
+and Cropper, dates, fingerprints and card setup in jsdom.
 
 ### Compiling CSS manually
 
 ```bash
-npx sass src/styles/site.scss src/styles/site.css \
-  --load-path=node_modules/normalize-scss
+npx sass src/styles/site.scss src/styles/site.css
 ```
+
+Use `npm run build` for the complete hashed asset build. Logs use Pino JSON.
+Legacy Node 10/Yarn workflows and boto artifact publishing have been retired;
+use the root GitHub Actions checks and container deployment.

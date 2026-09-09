@@ -2,17 +2,13 @@
  * Created by Zaccary on 19/03/2017.
  */
 
-import { marked } from 'marked';
+import { renderMarkdown } from '../../utils/markdown.js';
 import logFactory from '../../utils/logger.js';
 import { errors, calMonths } from '../../constants/constants.js';
 import { ordinal } from '../../utils/numbers.js';
 import { User } from '../../models/index.js';
 
 const log = logFactory({ name: 'login view' });
-
-marked.setOptions({
-  sanitize: true,
-});
 
 const formatUserInfo = user => Object.assign({}, user, {
   attrs: Object.assign({}, user.attrs, {
@@ -28,7 +24,7 @@ const formatUserInfo = user => Object.assign({}, user, {
 
 const formatMarkdownBio = (user) => {
   if (user.profile.bio && user.profile.bio.length) {
-    return marked(user.profile.bio);
+    return renderMarkdown(user.profile.bio);
   }
 
   return '';

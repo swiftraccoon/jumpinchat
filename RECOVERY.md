@@ -166,6 +166,39 @@ Release procedures: [5.0](https://www.mongodb.com/docs/v5.0/release-notes/5.0-up
 [7.0](https://www.mongodb.com/docs/v7.0/release-notes/7.0-upgrade-replica-set/),
 [8.0](https://www.mongodb.com/docs/v8.0/release-notes/8.0-upgrade-replica-set/), and
 [8.0 to 8.3](https://www.mongodb.com/docs/manual/release-notes/8.3-upgrade-from-8.0-replica-set/).
+
+## Synthetic runtime and restore rehearsal
+
+After installing application dependencies and building the web/homepage assets,
+run this optional integration check from the repository root with Node 24 LTS,
+MongoDB 8.3, Redis 8.10.1 and Database Tools 100.18.0 binaries for the host:
+
+```bash
+node scripts/test-runtime.mjs \
+  --mongod /path/to/mongod \
+  --redis /path/to/redis-server \
+  --mongodump /path/to/mongodump \
+  --mongorestore /path/to/mongorestore
+```
+
+The script allocates random loopback ports and fresh temporary directories. It
+never accepts an existing database URI or Compose volume. It checks two web
+processes and the homepage against disposable data, including login, guest
+sessions, cross-process chat, Redis limits and Mongo-backed sessions. Payment
+grant/retry and cancellation-ordering checks use a separate temporary MongoDB
+database with Stripe responses doubled. For the restore rehearsal, the script
+stops its application writers, dumps the synthetic database, archives public
+and private upload fixtures, verifies the backup manifest, and restores into
+another fresh MongoDB process and upload directory. It compares account/room/
+session records, indexes including session TTL, password hashes and upload
+bytes. Its processes and data directories are removed when it finishes.
+
+Without the two Database Tools arguments, only runtime checks run. The optional
+`--browser-check` prints local browser URLs and a temporary completion-marker
+path; creating that marker ends the browser window, which lasts at most five
+minutes. Janus media and external email/payment services are disabled in this
+fixture. This test does not exercise Compose stop/start orchestration in
+`backup.py`, real operator backups, existing 4.4 data upgrades or live media.
 Review the current [versioning policy](https://www.mongodb.com/docs/manual/reference/versioning/)
 and compatibility changes before each migration. No script in this checkout runs
 that migration or deletes the prior data.

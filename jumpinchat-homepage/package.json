@@ -9,6 +9,7 @@
   "dependencies": {
     "@fingerprintjs/fingerprintjs": "^5.2.0",
     "@floating-ui/dom": "^1.8.0",
+    "@fortawesome/fontawesome-free": "^7.3.1",
     "axios": "^1.20.0",
     "bcrypt": "^6.0.0",
     "connect-mongo": "^6.0.0",
@@ -30,6 +31,7 @@
     "pino": "^10.3.1",
     "pug": "^3.0.4",
     "request-ip": "^3.3.0",
+    "sanitize-html": "^2.17.7",
     "sitemap": "^9.0.1"
   },
   "devDependencies": {
@@ -39,17 +41,17 @@
     "eslint": "^10.10.0",
     "esmock": "^2.7.6",
     "globals": "^17.12.0",
+    "jsdom": "^30.0.1",
     "mocha": "^12.0.0",
     "nodemon": "^3.1.14",
     "sass": "^1.104.0",
-    "sinon": "^22.1.0",
-    "jsdom": "^30.0.1"
+    "sinon": "^22.1.0"
   },
   "scripts": {
-    "start": "node app.js",
-    "dev": "npx nodemon app.js",
+    "start": "node --env-file-if-exists=.env app.js",
+    "dev": "nodemon --exec \"node --env-file-if-exists=.env\" app.js",
     "build": "node build.js",
     "test": "NODE_ENV=test mocha --loader=esmock --exit -t 3000 'routes/**/*.spec.js' 'utils/**/*.spec.js' 'src/**/*.spec.js'",
-    "lint": "npx eslint ."
+    "lint": "eslint ."
   }
 }

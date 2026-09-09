@@ -1,6 +1,7 @@
 /* global describe,it,beforeEach */
 
 import { expect } from 'chai';
+import { Jimp } from 'jimp';
 import sinon from 'sinon';
 import jwt from 'jsonwebtoken';
 import config from '../config/env/index.js';
@@ -111,4 +112,27 @@ describe('utils', () => {
       });
     });
   });
+  describe('image conversion with Jimp 1.6', () => {
+    for (const mime of ['image/png', 'image/jpeg']) {
+      it(`decodes and resizes ${mime} uploads to the requested dimensions`, async () => {
+        const original = new Jimp({ width: 16, height: 8, color: 0xff0000ff });
+        const input = await original.getBuffer(mime);
+        const output = await new Promise((resolve, reject) => {
+          controller.convertImages(input, { width: 32, height: 32 },
+            (err, buffer) => err ? reject(err) : resolve(buffer));
+        });
+        const converted = await Jimp.read(output);
+        expect(converted.bitmap.width).to.equal(32);
+        expect(converted.bitmap.height).to.equal(32);
+        expect(converted.mime).to.equal(mime);
+      });
+    }
+    it('returns a decode error for non-image input', async () => {
+      const result = await new Promise(resolve => controller.convertImages(Buffer.from('ordinary text'),
+        { width: 32, height: 32 }, (err, buffer) => resolve({ err, buffer })));
+      expect(result.err).to.be.instanceOf(Error);
+      expect(result.buffer).to.equal(undefined);
+    });
+  });
+
 });

@@ -165,6 +165,11 @@ python3 ../scripts/test_mongo_guard.py
 python3 nginx/test_config.py
 ```
 
+The optional [runtime and restore rehearsal](../RECOVERY.md#synthetic-runtime-and-restore-rehearsal)
+checks real MongoDB/Redis clients, session persistence, rendering, cross-process
+chat and a synthetic dump/restore on fresh host processes. It is useful when the
+container engine is unavailable and does not access existing deployment data.
+
 The Janus image can report its version without network access using
 `podman run --rm --network=none --entrypoint /opt/janus/bin/janus IMAGE --version`.
 Also test real publication/subscription, reconnects and TURN relay media with two

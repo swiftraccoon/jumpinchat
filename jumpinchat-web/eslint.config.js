@@ -8,7 +8,7 @@ export default [
   { ignores: ['dist/**', '.tmp/**', 'coverage/**'] },
   js.configs.recommended,
   {
-    files: ['**/*.js', '**/*.cjs'],
+    files: ['**/*.js', '**/*.cjs', '**/*.mjs'],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
     linterOptions: { reportUnusedDisableDirectives: false },
     rules: {

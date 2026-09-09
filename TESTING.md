@@ -8,7 +8,7 @@ npm --prefix jumpinchat-web ci
 npm --prefix jumpinchat-homepage ci
 npm --prefix jumpinchat-email ci
 ./scripts/test.sh
-npm --prefix jumpinchat-web run lint:critical
+./scripts/lint.sh
 ./scripts/build.sh
 npm --prefix jumpinchat-homepage run build
 python3 scripts/generate-compose.py --check
@@ -16,7 +16,7 @@ python3 -m unittest discover -s scripts -p 'test_*.py'
 ```
 
 The root test command runs server Mocha/esmock tests, frontend Vitest/React Testing
-Library tests, the controlled Mocha media callback suite, and homepage tests.
+Library tests, the controlled Mocha media callback suite, homepage tests, and email HTTP/SMTP tests.
 Arguments to the root script select server tests; other suites still run in full.
 
 ```bash
@@ -35,7 +35,7 @@ Its include pattern is `react-client/**/*.spec.js`; Mocha explicitly selects
 harness compiles the real CamUtil module to CommonJS with esbuild before executing
 it against controlled Janus/browser callbacks; it does not load a React adapter.
 
-At migration validation, all 50 Vitest files passed (125 tests), and all 9 media
+At migration validation, all 52 Vitest files passed (129 tests), and all 9 media
 callback/recovery cases passed. The latter preserve denial/unreadable/unknown
 camera failures, retry bounds, cancellation, and stale session callback behavior.
 
@@ -108,16 +108,28 @@ React rendering, and ordinary store state transitions execute for real.
 
 ## Remaining limits
 
-Three server cases remain explicitly pending:
+The three formerly pending server cases now execute: private-message cache misses
+for guests and registered users, and reusing the existing Janus room during join
+(room creation owns Janus room allocation). The server suite has no pending cases.
 
-- `srv/api/room/tests/controllers/room.privateMessage.spec.js`: socket ID cache
-  misses for a guest recipient and a registered recipient (two cases).
-- `srv/api/room/tests/controllers/room.join.spec.js`: creating a new Janus room.
+Most frontend tests use jsdom. Real Chrome 152 checks during this migration also
+covered login, account navigation, mounting the built React room, nickname entry,
+chat send/echo and Emoji Mart autocomplete. The room-read response used a seeded
+fixture because the isolated runtime has no live Janus media; Socket.IO chat and
+application authentication ran against real processes. Provider doubles establish
+local application contracts, not live Stripe/SMTP or media compatibility.
 
-These are existing `xit` cases, not verified behavior. Frontend tests use jsdom;
-they do not exercise browser layout, actual camera permissions, remote Janus
-transport, Stripe, or real email delivery. External-provider doubles establish
-local application contracts, not live integration compatibility.
+The email suite also uses real Nodemailer 10 against a disposable loopback SMTP
+peer. It verifies envelope/MIME delivery, waiting for final DATA acceptance, and
+HTTP 502 responses for recipient or DATA rejection. Provider TLS/authentication
+and actual inbox delivery still require the configured SMTP service.
+
+On the development ARM64 host, native image checks passed for Janus 1.4.1,
+nginx, HAProxy, coturn 4.18 and a fresh MongoDB 8.3 instance. Completing the
+Compose build was blocked by a local Podman storage failure (`readlink` under
+`overlay/l`: `invalid argument`), including the email image's base-image pull.
+The runtime/restore harness uses independent local binaries; it does not replace
+the remaining Compose, deployment-architecture and live media checks.
 
 Before deployment, build all images and verify cold startup, readiness during
 database/Redis loss, termination and reconnect, and a two-browser call including
@@ -137,4 +149,48 @@ The homepage `src/js/browserMigrations.spec.js` covers Cropper 2 API boundaries,
 256×256 avatar and 320×240 room-image export, image replacement races, single
 submission, failures and retry, date-fns calendar wording, and versioned
 Fingerprint 5 registration. Cropper's image decoding/canvas export is doubled;
-actual image layout and crop geometry still require browser verification.
+the separate Chrome 152 migration check rendered the real upload Pug mixin and
+Cropper 2.2 source, decoded an image, and exported both crop dimensions with opaque
+pixels. It verified valid image panning and prevented drag/zoom from exposing
+empty pixels outside the image. This check used a local fixture page and no
+upload/provider service; broader device and browser coverage remains manual.
+
+
+## Runtime and production artifact checks
+
+`scripts/test-runtime.mjs` uses explicit MongoDB/Redis binary paths, random
+loopback ports and fresh temporary databases. It verifies real account login,
+Mongo/Redis sessions and TTL, EJS/Pug rendering, two-process chat and rate limits.
+It also runs the payment integration suite against real MongoDB with automatic
+index creation disabled: concurrent deliveries and gifts, failure recovery,
+lease fencing, cancellation ordering, billing periods and private replay markers.
+Stripe responses in this suite are provider doubles; no charges are made.
+Supplying Database Tools paths also rehearses synthetic database and local-upload
+restoration. See [RECOVERY.md](RECOVERY.md#synthetic-runtime-and-restore-rehearsal)
+for invocation and its boundary from production data and Compose orchestration.
+
+After a production web build, run `node scripts/check-web-build.mjs`. The checker
+verifies referenced assets, source maps, fonts, media and the service-worker
+manifest; `npm run dev` uses unversioned development assets with no precache.
+
+CI runs clean installs, validates peers and audits dependencies, then runs all
+application tests, blocking lint, production builds, Compose generation and
+operational tests. `./scripts/lint.sh` reports correctness errors; running ESLint
+without `--quiet` also shows the historical unused-variable and cleanup warnings.
+
+## Stripe migration validation
+
+The server payment suite has 54 passing cases, including locally generated real
+Stripe SDK signatures, SetupIntent account/customer/confirmation checks, hosted
+URL responses, paid/delayed/gift/annual fulfillment and retry handling. The
+homepage has 22 focused payment route/browser cases. All Stripe and notification
+network calls are doubled; no real payment or external account was changed.
+
+The shared runtime harness also runs
+`jumpinchat-web/test/payment/fulfillment.mongo.spec.js`: 14 cases against disposable
+MongoDB 8.3 databases for actual atomic date pipelines, same/different checkout
+concurrency, post-grant failure recovery, expiring/fenced leases, unique index
+creation/enforcement with autoIndex disabled, marker privacy, paid invoice periods
+and cancellation races. See the [payment migration runbook](jumpinchat-web/srv/api/payment/MIGRATION.md)
+for standalone invocation, required historical checkout reconciliation and the
+subscription/gift duration behavior change before production cutover.

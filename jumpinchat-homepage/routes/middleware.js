@@ -16,7 +16,9 @@ import config from '../config/index.js';
 
 const log = logFactory({ name: 'middleware' });
 const require = createRequire(import.meta.url);
-const manifest = require('../public/rev-manifest.json');
+const manifest = process.env.NODE_ENV === 'production'
+  ? require('../public/rev-manifest.json')
+  : {};
 
 /**
  Initialises the standard view locals

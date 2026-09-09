@@ -45,7 +45,7 @@ describe('browser dependency migrations', () => {
     readiness = [];
     class Cropper {
       constructor() {
-        this.image = { $ready: () => readiness.shift()?.promise || Promise.resolve(), $center: sandbox.spy() };
+        this.image = { $ready: () => readiness.shift()?.promise || Promise.resolve(), $center: sandbox.spy(), addEventListener: sandbox.spy() };
         this.selection = {
           $change: sandbox.spy(),
           $toCanvas: sandbox.stub().resolves({ toBlob: callback => callback(new dom.window.Blob(['png'], { type: 'image/png' })) }),
@@ -145,6 +145,7 @@ describe('browser dependency migrations', () => {
     await selected;
     expect(uploader.submitButton.disabled).to.equal(true);
     expect(uploader.error.textContent).to.include('could not be opened');
+    expect(uploader.targetElement.querySelector('.imageUpload__Label').classList.contains('imageUpload__Label--hasImage')).to.equal(false);
   });
 
   it('keeps calendar wording and falls back to an absolute date outside the current week', async () => {

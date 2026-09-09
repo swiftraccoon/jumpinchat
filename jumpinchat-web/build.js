@@ -66,16 +66,26 @@ async function build() {
   for (const [original, revised] of Object.entries(manifest)) template = template.replaceAll(`/${original}`, `/${revised}`);
   await fs.writeFile(path.join(outputPath, 'index.ejs'), template);
   await fs.writeFile(path.join(outputPath, 'asset-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+  const revision = process.env.BUILD_REVISION || process.env.GITHUB_SHA || 'local';
+  await fs.writeFile(path.join(outputPath, 'version.js'), `window.BUILD_NUM=${JSON.stringify(revision)};\n`);
   await fs.cp(path.join(source, 'sw'), path.join(outputPath, 'js'), { recursive: true });
   // Cache only public static assets. Session-dependent HTML and APIs must stay on the network.
   const { count, warnings } = await generateSW({
     cacheId: 'jumpinchat', swDest: path.join(outputPath, 'service-worker.js'),
     globDirectory: outputPath,
-    globPatterns: ['img/**/*', 'sounds/*.{mp3,ogg}', '**/*.{js,mjs,css,woff2}'],
-    globIgnores: ['js/push-manager.js', '**/*.map'],
+    // Watch rebuilds use stable filenames: always fetch them together from the
+    // network so a cached application cannot run with a newer vendor bundle.
+    globPatterns: production ? ['img/**/*', 'sounds/*.{mp3,ogg}', '**/*.{js,mjs,css,woff2}'] : [],
+    globIgnores: ['js/push-manager.js', 'version.js', '**/*.map'],
     maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
     importScripts: ['/js/push-manager.js'],
     cleanupOutdatedCaches: true,
+    skipWaiting: !production,
+    clientsClaim: !production,
+    runtimeCaching: production ? [] : [{
+      urlPattern: ({ sameOrigin }) => sameOrigin,
+      handler: 'NetworkOnly',
+    }],
   });
   for (const warning of warnings) console.warn(warning);
   console.log(`Built ${production ? 'production' : 'development'} assets in ${((Date.now() - started) / 1000).toFixed(1)}s; precached ${count} files.`);

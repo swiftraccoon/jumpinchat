@@ -59,7 +59,7 @@ describe('safeSocketHandler', () => {
     expect(logErrorStub.calledOnce).to.equal(true);
   });
 
-  it('should log errors with the event name via bunyan', async () => {
+  it('should log errors with the event name as structured fields', async () => {
     const err = new Error('handler failed');
     const handler = sinon.stub().throws(err);
     const wrapped = safeHandler(handler, 'chat:message');

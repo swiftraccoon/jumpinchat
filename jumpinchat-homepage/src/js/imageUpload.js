@@ -5,6 +5,15 @@ const dimensionsByType = {
   roomdisplay: { width: 320, height: 240 },
 };
 
+// The crop area fills the original fixed viewport; drag and zoom the image.
+const cropTemplate = '<cropper-canvas background>'
+  + '<cropper-image scalable translatable></cropper-image>'
+  + '<cropper-handle action="move" plain></cropper-handle>'
+  + '<cropper-selection initial-coverage="1">'
+  + '<cropper-grid role="grid" bordered covered></cropper-grid>'
+  + '<cropper-crosshair centered></cropper-crosshair>'
+  + '</cropper-selection></cropper-canvas>';
+
 export default class ImageUpload {
   constructor(elemSelector = '.imageUpload__Form') {
     this.targetElement = document.querySelector(elemSelector);
@@ -64,23 +73,38 @@ export default class ImageUpload {
     this.submitButton.disabled = true;
     this.targetElement.querySelector('.imageUpload__Label').classList.add('imageUpload__Label--hasImage');
     try {
-      const cropper = new Cropper(this.preview, { container: this.container });
+      const cropper = new Cropper(this.preview, { container: this.container, template: cropTemplate });
       this.cropper = cropper;
       const image = cropper.getCropperImage();
       const selection = cropper.getCropperSelection();
       image.rotatable = false;
       image.skewable = false;
+      image.initialFit = 'cover';
       selection.aspectRatio = this.dimensions.width / this.dimensions.height;
       selection.initialCoverage = 1;
       await image.$ready();
       if (generation !== this.generation) return;
       image.$center('cover');
       selection.$change(0, 0, this.dimensions.width, this.dimensions.height, selection.aspectRatio);
+      // Cropper 2.2 exposes the proposed image bounds before each transform.
+      // Keep all four sides covering the viewport, matching the old viewMode 3.
+      image.addEventListener('change', (event) => {
+        const { x, y, width, height } = event.detail;
+        const tolerance = 0.5;
+        if (x > tolerance || y > tolerance
+          || x + width < this.dimensions.width - tolerance
+          || y + height < this.dimensions.height - tolerance) event.preventDefault();
+      });
       this.submitButton.classList.add('imageUpload__UploadButton--visible');
       this.ready = true;
       this.submitButton.disabled = this.uploading;
     } catch (error) {
-      if (generation === this.generation) this.showError('This image could not be opened. Choose another file.');
+      if (generation === this.generation) {
+        this.cropper?.getCropperCanvas()?.remove();
+        this.cropper = null;
+        this.targetElement.querySelector('.imageUpload__Label').classList.remove('imageUpload__Label--hasImage');
+        this.showError('This image could not be opened. Choose another file.');
+      }
     }
   }
 

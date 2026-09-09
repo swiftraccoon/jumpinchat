@@ -58,21 +58,21 @@ function createSendController({ transport = transporter } = {}) {
       to,
       subject,
       replyTo,
-  };
+    };
 
-  if (html) {
-    mailOpts.html = html;
-  } else {
-    mailOpts.text = text;
-  }
+    if (html) {
+      mailOpts.html = html;
+    } else {
+      mailOpts.text = text;
+    }
 
-  try {
-    await transport.sendMail(mailOpts);
-    return res.status(200).send();
-  } catch (err) {
-    log.error({ err }, 'SMTP delivery failed');
-    return res.status(502).send('Email delivery failed');
-  }
+    try {
+      await transport.sendMail(mailOpts);
+      return res.status(200).send();
+    } catch (err) {
+      log.error({ err }, 'SMTP delivery failed');
+      return res.status(502).send('Email delivery failed');
+    }
   };
 }
 

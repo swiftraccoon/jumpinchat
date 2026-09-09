@@ -31,6 +31,14 @@ fs.writeFileSync(path.join(outdir, 'styles', 'site.css'), cssResult.css);
 console.log('Copying images...');
 fs.cpSync('src/images', path.join(outdir, 'images'), { recursive: true });
 
+// Serve icon styles and their relative font files from the same release.
+const iconOutput = path.join(outdir, 'fontawesome');
+fs.rmSync(iconOutput, { recursive: true, force: true });
+for (const dir of ['css', 'webfonts']) {
+  fs.cpSync(path.join('node_modules/@fortawesome/fontawesome-free', dir),
+    path.join(iconOutput, dir), { recursive: true });
+}
+
 // Generate rev-manifest with content hashes
 function hashFile(filepath) {
   const content = fs.readFileSync(filepath);

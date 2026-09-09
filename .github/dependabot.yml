@@ -1,0 +1,53 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directories:
+      - /jumpinchat-web
+      - /jumpinchat-homepage
+      - /jumpinchat-email
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      react:
+        patterns: ["react", "react-dom", "@types/react*", "@testing-library/*", "zustand"]
+      babel:
+        patterns: ["@babel/*", "babel-loader", "babel-plugin-*"]
+      redis:
+        patterns: ["redis", "@redis/*", "ioredis", "connect-redis", "rate-limit-redis", "@socket.io/redis-adapter"]
+      aws:
+        patterns: ["@aws-sdk/*", "@smithy/*"]
+      lint:
+        patterns: ["eslint*", "@eslint/*", "@eslint-react/*", "globals"]
+  - package-ecosystem: docker
+    directories:
+      - /jumpinchat-email
+      - /jumpinchat-turn
+      - /jumpinchat-deploy/home
+      - /jumpinchat-deploy/srv
+      - /jumpinchat-deploy/janus
+      - /jumpinchat-deploy/nginx
+      - /jumpinchat-deploy/haproxy
+    schedule:
+      interval: weekly
+    groups:
+      node-runtime:
+        patterns: ["*node*"]
+      media:
+        patterns: ["*ubuntu*", "*coturn*"]
+  - package-ecosystem: docker-compose
+    directory: /jumpinchat-deploy
+    # Update canonical services, then regenerate the aggregate and image lock.
+    exclude-paths: ["docker-compose.yml"]
+    schedule:
+      interval: weekly
+    groups:
+      data-services:
+        patterns: ["*mongo*", "*redis*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
