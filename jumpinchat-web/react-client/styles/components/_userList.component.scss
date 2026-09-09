@@ -1,12 +1,15 @@
+@use "sass:meta";
+@use "../variables";
+
 @use "sass:color";
 $userListItemHeight: 30px;
 
 .dark {
-  @import './userList.dark';
+  @include meta.load-css('userList.dark');
 }
 
 .layout--horizontal {
-  @import './userList/layoutHorizontal.scss';
+  @include meta.load-css('userList/layoutHorizontal.scss');
 }
 
 .chat {
@@ -16,7 +19,7 @@ $userListItemHeight: 30px;
     height: 260px;
     padding: 0.25em;
     box-sizing: border-box;
-    background: $white;
+    background: variables.$white;
     overflow-y: scroll;
     flex-shrink: 0;
 
@@ -25,7 +28,7 @@ $userListItemHeight: 30px;
     box-shadow: -2px 0 2px rgba(0, 0, 0, 0.25);
     touch-action: none;
 
-    &.scrollarea {
+    &.scroll-area {
       position: absolute;
       z-index: 1000;
     }
@@ -34,12 +37,12 @@ $userListItemHeight: 30px;
       transform: translateX(-$width);
     }
 
-    @media screen and (min-width: $bp-02) {
+    @media screen and (min-width: variables.$bp-02) {
       right: auto;
       box-shadow: none;
       transform: none;
 
-      &.scrollarea {
+      &.scroll-area {
         position: static;
       }
 
@@ -58,11 +61,11 @@ $userListItemHeight: 30px;
     cursor: pointer;
 
     & + & {
-      border-top: 1px solid $black-09;
+      border-top: 1px solid variables.$black-09;
     }
 
     &--disabled {
-      color: $black-05;
+      color: variables.$black-05;
     }
   }
 }
@@ -79,9 +82,9 @@ $userListItemHeight: 30px;
       font: {
         size: 1em;
       }
-      color: $yellow-03;
+      color: variables.$yellow-03;
 
-      text-shadow: 0 1px $yellow-02;
+      text-shadow: 0 1px variables.$yellow-02;
     }
 
     &-role {
@@ -92,83 +95,83 @@ $userListItemHeight: 30px;
       text-shadow: 0 1px rgba(0, 0, 0, 0.5);
 
       &.red {
-        color: $theme-red;
-        text-shadow: 0 1px darken($theme-red, 30%);
+        color: variables.$theme-red;
+        text-shadow: 0 1px color.adjust(variables.$theme-red, $lightness: -30%);
       }
 
       &.green {
-        color: $theme-green;
-        text-shadow: 0 1px darken($theme-green, 30%);
+        color: variables.$theme-green;
+        text-shadow: 0 1px color.adjust(variables.$theme-green, $lightness: -30%);
       }
 
       &.yellow {
-        color: $theme-yellow;
-        text-shadow: 0 1px darken($theme-yellow, 30%);
+        color: variables.$theme-yellow;
+        text-shadow: 0 1px color.adjust(variables.$theme-yellow, $lightness: -30%);
       }
 
       &.blue {
-        color: $theme-blue;
-        text-shadow: 0 1px darken($theme-blue, 30%);
+        color: variables.$theme-blue;
+        text-shadow: 0 1px color.adjust(variables.$theme-blue, $lightness: -30%);
       }
 
       &.purple {
-        color: $theme-purple;
-        text-shadow: 0 1px darken($theme-purple, 30%);
+        color: variables.$theme-purple;
+        text-shadow: 0 1px color.adjust(variables.$theme-purple, $lightness: -30%);
       }
 
       &.aqua {
-        color: $theme-aqua;
-        text-shadow: 0 1px darken($theme-aqua, 30%);
+        color: variables.$theme-aqua;
+        text-shadow: 0 1px color.adjust(variables.$theme-aqua, $lightness: -30%);
       }
 
       &.orange {
-        color: $theme-orange;
-        text-shadow: 0 1px darken($theme-orange, 30%);
+        color: variables.$theme-orange;
+        text-shadow: 0 1px color.adjust(variables.$theme-orange, $lightness: -30%);
       }
 
       &.grey {
-        color: $black-05;
-        text-shadow: 0 1px darken($black-05, 30%);
+        color: variables.$black-05;
+        text-shadow: 0 1px color.adjust(variables.$black-05, $lightness: -30%);
       }
 
       &.greyalt {
-        color: $black-02;
-        text-shadow: 0 1px darken($black-02, 30%);
+        color: variables.$black-02;
+        text-shadow: 0 1px color.adjust(variables.$black-02, $lightness: -30%);
       }
 
       &.redalt {
-        color: $theme-faded-red;
-        text-shadow: 0 1px darken($theme-faded-red, 30%);
+        color: variables.$theme-faded-red;
+        text-shadow: 0 1px color.adjust(variables.$theme-faded-red, $lightness: -30%);
       }
 
       &.greenalt {
-        color: $theme-faded-green;
-        text-shadow: 0 1px darken($theme-faded-green, 30%);
+        color: variables.$theme-faded-green;
+        text-shadow: 0 1px color.adjust(variables.$theme-faded-green, $lightness: -30%);
       }
 
       &.yellowalt {
-        color: $theme-faded-yellow;
-        text-shadow: 0 1px darken($theme-faded-yellow, 30%);
+        color: variables.$theme-faded-yellow;
+        text-shadow: 0 1px color.adjust(variables.$theme-faded-yellow, $lightness: -30%);
       }
 
       &.bluealt {
-        color: $theme-faded-blue;
-        text-shadow: 0 1px darken($theme-faded-blue, 30%);
+        color: variables.$theme-faded-blue;
+        text-shadow: 0 1px color.adjust(variables.$theme-faded-blue, $lightness: -30%);
       }
 
       &.purplealt {
-        color: $theme-faded-purple;
-        text-shadow: 0 1px darken($theme-faded-purple, 30%);
+        color: variables.$theme-faded-purple;
+        text-shadow: 0 1px color.adjust(variables.$theme-faded-purple, $lightness: -30%);
       }
 
       &.aquaalt {
-        color: $theme-faded-aqua;
-        text-shadow: 0 1px darken($theme-faded-aqua, 30%);
+        color: variables.$theme-faded-aqua;
+        text-shadow: 0 1px color.adjust(variables.$theme-faded-aqua, $lightness: -30%);
       }
 
       &.orangealt {
-        color: $theme-faded-orange;
-        text-shadow: 0 1px darken($theme-faded-orange, 30%);
+        color: variables.$theme-faded-orange;
+        text-shadow: 0 1px color.adjust(variables.$theme-faded-orange, $lightness: -30%);
       }
     }
 
@@ -189,11 +192,11 @@ $userListItemHeight: 30px;
   &__UserIconType {
 
     &-guest {
-      color: $black-06;
+      color: variables.$black-06;
     }
 
     &-supporter {
-      color: $red-01;
+      color: variables.$red-01;
     }
   }
 
@@ -216,7 +219,7 @@ $userListItemHeight: 30px;
     border: none;
 
     &:hover {
-      background: $black-08;
+      background: variables.$black-08;
     }
   }
 }

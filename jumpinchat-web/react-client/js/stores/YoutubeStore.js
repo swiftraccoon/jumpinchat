@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import Store from './Store';
 import { YoutubeDispatcher } from '../dispatcher/AppDispatcher';
 import { get, set } from '../utils/localStorage';
 import {
@@ -19,7 +19,7 @@ import {
 
 const storageKey = 'youtube';
 
-export class YoutubeStore extends EventEmitter {
+export class YoutubeStore extends Store {
   constructor() {
     super();
     const state = get(storageKey);
@@ -106,19 +106,10 @@ export class YoutubeStore extends EventEmitter {
   }
 
   // Emit Change event
-  emitChange() {
-    this.emit('change');
-  }
 
   // Add change listener
-  addChangeListener(callback) {
-    this.on('change', callback);
-  }
 
   // Remove change listener
-  removeChangeListener(callback) {
-    this.removeListener('change', callback);
-  }
 }
 
 const youtubeStore = new YoutubeStore();

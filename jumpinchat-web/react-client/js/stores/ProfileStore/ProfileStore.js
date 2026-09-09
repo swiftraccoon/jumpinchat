@@ -1,8 +1,8 @@
-import { EventEmitter } from 'events';
+import Store from '../Store';
 import { ProfileDispatcher } from '../../dispatcher/AppDispatcher';
 import * as actionTypes from '../../constants/ActionTypes';
 
-export class ProfileStore extends EventEmitter {
+export class ProfileStore extends Store {
   constructor() {
     super();
     this.state = {
@@ -47,17 +47,8 @@ export class ProfileStore extends EventEmitter {
     };
   }
 
-  emitChange() {
-    this.emit('change');
-  }
 
-  addChangeListener(callback) {
-    this.on('change', callback);
-  }
 
-  removeChangeListener(callback) {
-    this.removeListener('change', callback);
-  }
 }
 
 const profileStore = new ProfileStore();

@@ -4,7 +4,7 @@
 
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import TetherComponent from 'react-tether';
+import FloatingLayer from '../elements/FloatingLayer.react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import WrappedListItems from '../elements/ListItems.react';
 
@@ -139,7 +139,7 @@ class RoomHeader extends PureComponent {
           )}
 
           {userIsLoggedIn && (
-            <TetherComponent
+            <FloatingLayer
               attachment="top center"
               constraints={[{
                 to: 'window',
@@ -167,7 +167,7 @@ class RoomHeader extends PureComponent {
                   onClickOutside={this.handleClickOutside}
                 />
               )}
-            </TetherComponent>
+            </FloatingLayer>
           )}
         </div>
       </div>

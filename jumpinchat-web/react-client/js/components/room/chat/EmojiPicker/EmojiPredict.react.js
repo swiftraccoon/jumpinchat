@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Emoji } from 'emoji-mart';
+import Emoji from '../../../elements/Emoji.react';
 import cx from 'classnames';
 
 const EmojiPredict = ({

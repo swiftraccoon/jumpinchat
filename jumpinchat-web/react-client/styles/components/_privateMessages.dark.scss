@@ -1,10 +1,12 @@
+@use "../variables";
+
 .layout--horizontal {
   .privateMessages {
     &__ListWrapper {
       width: 200px;
       border-left: 1px solid;
       border: {
-        color: $color-dark2;
+        color: variables.$color-dark2;
       };
     }
   }
@@ -13,15 +15,15 @@
 .privateMessages {
   &__Empty {
     border: {
-      color: $color-dark2;
+      color: variables.$color-dark2;
     }
 
-    background-color: $color-dark1;
+    background-color: variables.$color-dark1;
   }
 
   &__ListWrapper {
     border: {
-      color: $color-dark2;
+      color: variables.$color-dark2;
     };
   }
 }

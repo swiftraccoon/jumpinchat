@@ -1,9 +1,11 @@
+@use "../utils/variables";
+
 .figure {
   &__Set {
     display: flex;
     flex-wrap: wrap;
 
-    @media screen and (min-width: $bp-tablet) {
+    @media screen and (min-width: variables.$bp-tablet) {
       flex-wrap: nowrap;
     }
   }
@@ -15,7 +17,7 @@
   }
 
   &__Caption {
-    color: $color-black-05;
+    color: variables.$color-black-05;
     font: {
       size: 0.85em;
     }

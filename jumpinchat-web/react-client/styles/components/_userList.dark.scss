@@ -1,7 +1,10 @@
+@use "sass:color";
+@use "../variables";
+
 .layout--horizontal {
   .chat {
     &__UserList {
-      border-inline-start-color: $color-dark2;
+      border-inline-start-color: variables.$color-dark2;
     }
   }
 }
@@ -9,13 +12,13 @@
 .chat {
   &__UserList {
     background: {
-      color: $color-dark1;
+      color: variables.$color-dark1;
     }
   }
 
   &__UserListItem {
     & + .chat__UserListItem {
-      border-top-color: $color-dark2;
+      border-top-color: variables.$color-dark2;
     }
   }
 
@@ -25,61 +28,61 @@
   &__UserIcon {
     &-role {
       &.redlt {
-        color: $theme-bright-red;
-        text-shadow: 0 1px darken($theme-bright-red, 30%);
+        color: variables.$theme-bright-red;
+        text-shadow: 0 1px color.adjust(variables.$theme-bright-red, $lightness: -30%);
       }
 
       &.greenalt {
-        color: $theme-bright-green;
-        text-shadow: 0 1px darken($theme-bright-green, 30%);
+        color: variables.$theme-bright-green;
+        text-shadow: 0 1px color.adjust(variables.$theme-bright-green, $lightness: -30%);
       }
 
       &.yellowalt {
-        color: $theme-bright-yellow;
-        text-shadow: 0 1px darken($theme-bright-yellow, 30%);
+        color: variables.$theme-bright-yellow;
+        text-shadow: 0 1px color.adjust(variables.$theme-bright-yellow, $lightness: -30%);
       }
 
       &.bluealt {
-        color: $theme-bright-blue;
-        text-shadow: 0 1px darken($theme-bright-blue, 30%);
+        color: variables.$theme-bright-blue;
+        text-shadow: 0 1px color.adjust(variables.$theme-bright-blue, $lightness: -30%);
       }
 
       &.purplealt {
-        color: $theme-bright-purple;
-        text-shadow: 0 1px darken($theme-bright-purple, 30%);
+        color: variables.$theme-bright-purple;
+        text-shadow: 0 1px color.adjust(variables.$theme-bright-purple, $lightness: -30%);
       }
 
       &.aquaalt {
-        color: $theme-bright-aqua;
-        text-shadow: 0 1px darken($theme-bright-aqua, 30%);
+        color: variables.$theme-bright-aqua;
+        text-shadow: 0 1px color.adjust(variables.$theme-bright-aqua, $lightness: -30%);
       }
 
       &.orangealt {
-        color: $theme-bright-orange;
-        text-shadow: 0 1px darken($theme-bright-orange, 30%);
+        color: variables.$theme-bright-orange;
+        text-shadow: 0 1px color.adjust(variables.$theme-bright-orange, $lightness: -30%);
       }
 
       &.grey {
-        color: $black-07;
-        text-shadow: 0 1px darken($black-07, 30%);
+        color: variables.$black-07;
+        text-shadow: 0 1px color.adjust(variables.$black-07, $lightness: -30%);
       }
 
       &.greyalt {
-        color: $black-09;
-        text-shadow: 0 1px darken($black-09, 30%);
+        color: variables.$black-09;
+        text-shadow: 0 1px color.adjust(variables.$black-09, $lightness: -30%);
       }
     }
   }
 
   &__UserIconType {
     &-guest {
-      color: $color-light4;
+      color: variables.$color-light4;
     }
   }
 
   &__Action {
     &:hover {
-      background-color: $color-dark2;
+      background-color: variables.$color-dark2;
     }
   }
 }

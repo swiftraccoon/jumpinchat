@@ -1,3 +1,6 @@
 .scroll-area {
-  touch-action: none;
+  touch-action: auto;
+  overscroll-behavior: contain;
+  min-height: 0;
+  scrollbar-width: thin;
 }

@@ -1,5 +1,7 @@
+@use "../variables";
+
 .box {
-	background: $white;
-	border: 1px solid $black-09;
+	background: variables.$white;
+	border: 1px solid variables.$black-09;
 	border-radius: 3px;
 }

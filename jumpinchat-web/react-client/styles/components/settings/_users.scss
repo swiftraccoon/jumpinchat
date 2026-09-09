@@ -1,8 +1,10 @@
+@use "../../variables";
+
 .dark {
   .roomUserSettings {
     &__RoleListDropdown {
-      --dropdown-bg: #{$color-dark0};
-      --border-color: #{$color-dark2};
+      --dropdown-bg: #{variables.$color-dark0};
+      --border-color: #{variables.$color-dark2};
     }
   }
 }
@@ -90,8 +92,8 @@
   }
 
   &__RoleListDropdown {
-    --dropdown-bg: #{$black-10};
-    --border-color: #{$black-08};
+    --dropdown-bg: #{variables.$black-10};
+    --border-color: #{variables.$black-08};
 
     position: relative;
     max-height: 160px;

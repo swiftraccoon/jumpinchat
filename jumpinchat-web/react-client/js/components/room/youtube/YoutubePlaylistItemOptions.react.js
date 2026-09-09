@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import TetherComponent from 'react-tether';
+import FloatingLayer from '../../elements/FloatingLayer.react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import WrappedListItems from '../../elements/ListItems.react';
 import { setPlaylistItemOptions } from '../../../actions/YoutubeActions';
@@ -58,7 +58,7 @@ class YoutubePlaylistItemOptions extends Component {
   render() {
     const { open } = this.props;
     return (
-      <TetherComponent
+      <FloatingLayer
         attachment="bottom center"
         constraints={[{
           to: 'scrollParent',
@@ -82,7 +82,7 @@ class YoutubePlaylistItemOptions extends Component {
             />
           )
         }
-      </TetherComponent>
+      </FloatingLayer>
     );
   }
 }

@@ -1,107 +1,34 @@
-/* global window, navigator, expect, it, beforeEach, describe */
-
 import React from 'react';
-import { shallow } from 'enzyme';
-import sinon from 'sinon';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import RoomBroadcastButton from './RoomBroadcastButton.react';
+import { checkCanBroadcast } from '../../../utils/UserAPI';
+import { unpublishOwnFeed } from '../../../utils/CamUtil';
+import { setMediaSelectionModal, setMediaSelectionModalLoading } from '../../../actions/ModalActions';
+import { setCanBroadcast } from '../../../actions/CamActions';
+vi.mock('../../../utils/UserAPI', () => ({ checkCanBroadcast: vi.fn() }));
+vi.mock('../../../utils/CamUtil', () => ({ unpublishOwnFeed: vi.fn() }));
+vi.mock('../../../actions/ModalActions', () => ({ setMediaSelectionModal: vi.fn(), setMediaSelectionModalLoading: vi.fn(), setModalError: vi.fn() }));
+vi.mock('../../../actions/CamActions', () => ({ setCanBroadcast: vi.fn() }));
 
-describe('<RoomBroadcastButton />', () => {
-  let roomBroadcastButton;
-  let props;
-
-  beforeEach(() => {
-    roomBroadcastButton = new RoomBroadcastButton();
+describe('broadcast controls', () => {
+  it('releases the permission probe and offers deduplicated devices', async () => {
+    const stop = vi.fn(); navigator.mediaDevices.getUserMedia.mockResolvedValue({ getAudioTracks: () => [], getVideoTracks: () => [{ stop }] });
+    const device = { deviceId: 'cam', kind: 'videoinput' }; navigator.mediaDevices.enumerateDevices.mockResolvedValue([device, device]);
+    checkCanBroadcast.mockImplementation((room, done) => done(null, true));
+    render(<RoomBroadcastButton roomName="room" feedCount={1} canBroadcast />); fireEvent.click(screen.getByRole('button', { name: /Start Broadcasting/ }));
+    await waitFor(() => expect(setMediaSelectionModal).toHaveBeenLastCalledWith(true, [device])); expect(stop).toHaveBeenCalledOnce(); expect(setMediaSelectionModalLoading).toHaveBeenLastCalledWith(false);
   });
-
-  describe('startLocalStream', () => {
-    it('should list Janus devices', () => {
-      navigator.mediaDevices = {
-        enumerateDevices: sinon.spy(),
-      };
-
-      roomBroadcastButton.props = { roomName: 'foo' };
-      roomBroadcastButton.checkCanBroadcast = (n, cb) => cb(null, true);
-      roomBroadcastButton._startLocalStream();
-      expect(navigator.mediaDevices.enumerateDevices.called).toEqual(true);
-    });
-
-    it('should not list devices if user can not broadcast', () => {
-      window.Janus = {
-        listDevices: sinon.spy(),
-      };
-
-      roomBroadcastButton.props = { roomName: 'foo' };
-      roomBroadcastButton.checkCanBroadcast = (n, cb) => cb(null, false);
-      roomBroadcastButton._startLocalStream();
-      expect(window.Janus.listDevices.called).toEqual(false);
-    });
+  it('closes selection when broadcast permission is rejected', async () => {
+    checkCanBroadcast.mockImplementation((room, done) => done(null, false)); render(<RoomBroadcastButton roomName="room" feedCount={1} canBroadcast />);
+    fireEvent.click(screen.getByRole('button', { name: /Start Broadcasting/ })); await waitFor(() => expect(setMediaSelectionModal).toHaveBeenLastCalledWith(false));
   });
-
-  describe('stopLocalStream', () => {
-    beforeEach(() => {
-      roomBroadcastButton.unpublishOwnFeed = sinon.spy();
-      roomBroadcastButton.setCanBroadcast = sinon.spy();
-      window.setTimeout = sinon.spy();
-    });
-
-    it('should unpublish feed', () => {
-      roomBroadcastButton._stopLocalStream();
-      expect(roomBroadcastButton.unpublishOwnFeed.called).toEqual(true);
-    });
-
-    it('should set can broadcast to false', () => {
-      roomBroadcastButton._stopLocalStream();
-      expect(roomBroadcastButton.setCanBroadcast.firstCall.args[0]).toEqual(false);
-    });
-
-    it('should run a timeout before allowing user to broadcast again', () => {
-      roomBroadcastButton._stopLocalStream();
-      expect(window.setTimeout.called).toEqual(true);
-      expect(window.setTimeout.firstCall.args[1]).toEqual(2000);
-    });
+  it('stops broadcasting and allows another attempt after the cooldown', () => {
+    vi.useFakeTimers(); render(<RoomBroadcastButton roomName="room" feedCount={1} canBroadcast localStream={{}} />);
+    fireEvent.click(screen.getByRole('button', { name: /Stop Broadcasting/ })); expect(unpublishOwnFeed).toHaveBeenCalledOnce(); expect(setCanBroadcast).toHaveBeenLastCalledWith(false);
+    act(() => vi.advanceTimersByTime(2000)); expect(setCanBroadcast).toHaveBeenLastCalledWith(true);
   });
-
-  describe('render', () => {
-    beforeEach(() => {
-      props = {
-        canBroadcast: true,
-        localStream: null,
-        feedCount: 0,
-        roomName: 'foo',
-      };
-    });
-
-    it('should show start broadcasting button if no local stream', () => {
-      const wrapper = shallow(<RoomBroadcastButton {...props} />);
-      expect(wrapper.props().className).toEqual('cams__Action button button-floating button-blue');
-    });
-
-    it('should be disabled if `canBroadcast` is false', () => {
-      props = { canBroadcast: false };
-      const wrapper = shallow(<RoomBroadcastButton {...props} />);
-      expect(wrapper.props().disabled).toEqual(true);
-    });
-
-    /**
-     * This is the case because Janus requires a 2 second delay before destroying
-     * or creating a stream.
-     */
-    it('should be disabled if `canBroadcast` is false and user has stream', () => {
-      props = { canBroadcast: false, localStream: {} };
-      const wrapper = shallow(<RoomBroadcastButton {...props} />);
-      expect(wrapper.props().disabled).toEqual(true);
-    });
-
-    it('should show stop broadcasting button if local stream active', () => {
-      props = { canBroadcast: true, localStream: {} };
-      const wrapper = shallow(<RoomBroadcastButton {...props} />);
-      expect(wrapper.props().className).toEqual('cams__Action button button-floating button-default');
-    });
-
-    it('should disable button when feed count is 12', () => {
-      props = { canBroadcast: true, feedCount: 12 };
-      const wrapper = shallow(<RoomBroadcastButton {...props} />);
-      expect(wrapper.props().disabled).toEqual(true);
-    });
+  it('disables starting when broadcast slots are full', () => {
+    render(<RoomBroadcastButton roomName="room" feedCount={12} canBroadcast />); expect(screen.getByRole('button', { name: /Broadcast Slots Full/ })).toBeDisabled();
   });
 });

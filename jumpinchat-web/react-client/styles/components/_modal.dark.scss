@@ -1,20 +1,22 @@
+@use "../variables";
+
 .modal {
-  --bg-color: #{$color-dark2};
+  --bg-color: #{variables.$color-dark2};
 
   &__Header {
     background: {
-      color: $color-dark4;
+      color: variables.$color-dark4;
     }
   }
 
   &__Footer {
     background: {
-      color: $color-dark2;
+      color: variables.$color-dark2;
     }
   }
 
   &__SubText {
-    color: $color-light4;
+    color: variables.$color-light4;
   }
 }
 

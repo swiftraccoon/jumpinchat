@@ -1,6 +1,6 @@
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import TetherComponent from 'react-tether';
+import FloatingLayer from '../../elements/FloatingLayer.react';
 import { seekVideo } from '../../../utils/YoutubeAPI';
 import formatDuration from '../../../utils/formatDuration';
 
@@ -77,7 +77,7 @@ class YoutubeProgress extends PureComponent {
             />
           </div>
           {!!seekX && (
-            <TetherComponent
+            <FloatingLayer
               attachment="top center"
               constraints={[{
                 to: 'scrollParent',
@@ -91,7 +91,7 @@ class YoutubeProgress extends PureComponent {
               <div className="youtube__ProgressBarSeekTooltip">
                 {formattedTime}
               </div>
-            </TetherComponent>
+            </FloatingLayer>
           )}
         </div>
 

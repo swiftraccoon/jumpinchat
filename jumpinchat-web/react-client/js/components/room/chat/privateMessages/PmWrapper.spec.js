@@ -1,105 +1,29 @@
-/* global jest, expect, describe, it, beforeEach */
-
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import PmWrapper from './PmWrapper.react';
+import chatStore from '../../../../stores/ChatStore/ChatStore';
+import { sendPrivateMessage } from '../../../../utils/RoomAPI';
+import { setChatInputValue } from '../../../../actions/ChatActions';
+import { setConversationRead } from '../../../../actions/PmActions';
+vi.mock('../../../../utils/RoomAPI', () => ({ sendPrivateMessage: vi.fn() }));
+vi.mock('../../../../actions/ChatActions', () => ({ setChatInputValue: vi.fn(), setScroll: vi.fn(), setScrollFixed: vi.fn() }));
+vi.mock('../../../../actions/PmActions', () => ({ setConversationRead: vi.fn(), pmSelectConversation: vi.fn(), openMenu: vi.fn(), closeConversation: vi.fn() }));
+const props = { roomName: 'room', fixScroll: false, selectedConversation: 'bob', privateMessages: [{ user: { userListId: 'bob' }, messages: [], unreadMessages: 1 }] };
+beforeEach(() => chatStore.setUsers([{ _id: 'bob', handle: 'Bob' }]));
 
-describe('<PmWrapper />', () => {
-  let props;
-  const event = {
-    preventDefault: jest.fn(),
-  };
-
-  beforeEach(() => {
-    props = {
-      selectedConversation: 'convo',
-      chatInputValue: '',
-      privateMessages: [],
-      roomName: 'room',
-    };
+describe('private message interactions', () => {
+  it('sends to the selected participant and clears the input', () => {
+    render(<PmWrapper {...props} chatInputValue="Hello Bob" />); const input = screen.getByRole('textbox');
+    fireEvent.submit(input.closest('form')); expect(sendPrivateMessage).toHaveBeenCalledWith('Hello Bob', 'room', 'bob');
+    expect(setChatInputValue).toHaveBeenCalledWith('');
   });
-
-  describe('handleChange', () => {
-    it('should call setChatInputValue with event target value', () => {
-      const wrapper = shallow(<PmWrapper {...props} />);
-      wrapper.instance().setChatInputValue = jest.fn();
-      wrapper.instance().handleChange({ target: { value: 'foo' } });
-      expect(wrapper.instance().setChatInputValue).toHaveBeenCalledWith('foo');
-    });
+  it('marks the conversation read on focus and ignores an empty submission', () => {
+    render(<PmWrapper {...props} />); const input = screen.getByRole('textbox'); fireEvent.focus(input);
+    expect(setConversationRead).toHaveBeenCalledWith('bob'); fireEvent.submit(input.closest('form')); expect(sendPrivateMessage).not.toHaveBeenCalled();
+    fireEvent.change(input, { target: { value: 'Draft' } }); expect(setChatInputValue).toHaveBeenCalledWith('Draft');
   });
-
-  describe('handleSendMessage', () => {
-    it('should not call anything if there is no input value', () => {
-      const wrapper = shallow(<PmWrapper {...props} />);
-      wrapper.instance().handleSendMessage(event);
-      wrapper.instance().sendPrivateMessage = jest.fn();
-
-      expect(wrapper.instance().sendPrivateMessage).not.toHaveBeenCalled();
-    });
-
-    it('should call sendPrivateMessage', () => {
-      props.chatInputValue = 'foo';
-      const wrapper = shallow(<PmWrapper {...props} />);
-      wrapper.instance().setChatInputValue = jest.fn();
-      wrapper.instance().sendPrivateMessage = jest.fn();
-      wrapper.instance().handleSendMessage(event);
-
-      expect(wrapper.instance().sendPrivateMessage).toHaveBeenCalledWith('foo', 'room', 'convo');
-    });
-
-    it('should clear the chat input when a message is sent', () => {
-      props.chatInputValue = 'foo';
-      const wrapper = shallow(<PmWrapper {...props} />);
-      wrapper.instance().setChatInputValue = jest.fn();
-      wrapper.instance().sendPrivateMessage = jest.fn();
-      wrapper.instance().handleSendMessage(event);
-
-      expect(wrapper.instance().setChatInputValue).toHaveBeenCalledWith('');
-    });
-  });
-
-  describe('render', () => {
-    it('should show conversation wrapper if no conversation selected', () => {
-      props.privateMessages = [
-        {
-          user: {
-            userListId: 'foo',
-          },
-          messages: [],
-          unreadMessages: 0,
-        },
-      ];
-      props.selectedConversation = null;
-      const wrapper = shallow(<PmWrapper {...props} />);
-      expect(wrapper.getElement()).toMatchSnapshot();
-    });
-
-    it('should not show conversation wrapper if conversation selected', () => {
-      props.privateMessages = [
-        {
-          user: {
-            userListId: 'foo',
-          },
-          messages: [],
-        },
-      ];
-      const wrapper = shallow(<PmWrapper {...props} />);
-      expect(wrapper.getElement()).toMatchSnapshot();
-    });
-
-    it('should show conversation list if there are conversations', () => {
-      props.privateMessages = [
-        {
-          user: {
-            userListId: 'foo',
-          },
-          messages: [],
-        },
-      ];
-
-      const wrapper = shallow(<PmWrapper {...props} />);
-
-      expect(wrapper.find('PmConversationList').length).toEqual(1);
-    });
+  it('explains the empty state', () => {
+    render(<PmWrapper {...props} privateMessages={[]} />); expect(screen.getByText('No conversations yet')).toBeVisible();
   });
 });

@@ -1,9 +1,11 @@
+@use "../utils/variables";
+
 .wrapper {
-	max-width: $bp-desktop;
+	max-width: variables.$bp-desktop;
 	margin: 0 auto;
 	padding: 0 1rem;
 
-	@media screen and (min-width: $bp-tablet) {
+	@media screen and (min-width: variables.$bp-tablet) {
 		padding: 0 2rem;
 	}
 }

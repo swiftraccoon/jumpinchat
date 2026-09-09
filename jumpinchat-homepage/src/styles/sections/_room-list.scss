@@ -1,3 +1,5 @@
+@use "../utils/variables";
+
 .rooms {
   &__Wrapper {
     display: flex;
@@ -21,7 +23,7 @@
   &__Item {
     flex-basis: 320px;
     margin: 1em 0.5em 0;
-    background: $color-white;
+    background: variables.$color-white;
     border-radius: 3px;
     overflow: hidden;
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
@@ -58,7 +60,7 @@
     width: 100%;
     box-sizing: border-box;
     padding: 0 1em;
-    color: $color-white;
+    color: variables.$color-white;
   }
 
   &__DetailsHeader {
@@ -72,7 +74,7 @@
     padding: {
       bottom: 0.5em;
     }
-    color: $color-black-02;
+    color: variables.$color-black-02;
     line-height: 1.3;
   }
 
@@ -90,7 +92,7 @@
     flex-grow: 1;
     margin: 0;
     border-radius: 3px;
-    color: $color-black-02;
+    color: variables.$color-black-02;
     font: {
       family: inherit;
       size: 1.15em;
@@ -112,7 +114,7 @@
     padding: 0 0.35em;
     border-radius: 3px;
     text-align: center;
-    color: $color-black-02;
+    color: variables.$color-black-02;
     font-weight: 600;
   }
 }

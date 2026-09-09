@@ -33,6 +33,7 @@ const SortItem = ({
 
       // Determine mouse position
       const clientOffset = monitor.getClientOffset();
+      if (!clientOffset) return;
 
       // Get pixels to the top
 

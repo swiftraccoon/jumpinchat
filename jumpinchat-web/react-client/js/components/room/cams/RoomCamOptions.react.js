@@ -4,7 +4,7 @@
 
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import TetherComponent from 'react-tether';
+import FloatingLayer from '../../elements/FloatingLayer.react';
 import {
   setStreamOptionsState,
   resumeRemoteStream,
@@ -167,7 +167,7 @@ export class RoomCamOptions extends Component {
     const options = this.getOptions();
 
     return (
-      <TetherComponent
+      <FloatingLayer
         attachment="top center"
         constraints={[{
           to: 'scrollParent',
@@ -187,7 +187,7 @@ export class RoomCamOptions extends Component {
             onClickOutside={this.handleClickOutside}
           />
         )}
-      </TetherComponent>
+      </FloatingLayer>
 
     );
   }

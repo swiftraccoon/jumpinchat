@@ -1,3 +1,5 @@
+@use "../utils/variables";
+
 
 .hero {
   padding: 1.6rem 0;
@@ -6,7 +8,7 @@
     background: transparent;
   }
 
-  @media screen and (min-width: $bp-tablet) {
+  @media screen and (min-width: variables.$bp-tablet) {
     position: relative;
     height: 500px;
     padding: {
@@ -18,7 +20,7 @@
     background-size: cover;
   }
 
-  @media screen and (min-width: $bp-desktop) {
+  @media screen and (min-width: variables.$bp-desktop) {
     height: 700px;
     background-position-x: center;
     background-position-y: center;
@@ -30,7 +32,7 @@
     width: 280px;
     margin: 6.4rem auto 0;
 
-    @media screen and (min-width: $bp-tablet) {
+    @media screen and (min-width: variables.$bp-tablet) {
       position: absolute;
       bottom: 12.8rem;
       left: 50%;
@@ -57,7 +59,7 @@
       left: 1em;
     }
 
-    border: 1px solid $color-black-05;
+    border: 1px solid variables.$color-black-05;
 
     box-sizing: border-box;
     border-right: none;
@@ -65,10 +67,10 @@
     outline: none;
 
     &:focus {
-      border-color: $color-black-01;
+      border-color: variables.$color-black-01;
     }
 
-    @media screen and (min-width: $bp-tablet) {
+    @media screen and (min-width: variables.$bp-tablet) {
       flex-grow: 1;
       height: 4.2rem;
       margin: {
@@ -85,7 +87,7 @@
     height: inherit;
     margin: 0 auto;
 
-    @media screen and (min-width: $bp-tablet) {
+    @media screen and (min-width: variables.$bp-tablet) {
       flex-shrink: 0;
       width: auto;
       padding: {
@@ -103,9 +105,9 @@
       top: 32px;
     }
     text-align: center;
-    color: $color-white;
+    color: variables.$color-white;
 
-    @media screen and (min-width: $bp-tablet) {
+    @media screen and (min-width: variables.$bp-tablet) {
       padding: {
         top: 19rem;
       }
@@ -121,7 +123,7 @@
   &__MessagePrimary {
     margin: 0;
 
-    @media screen and (min-width: $bp-tablet) {
+    @media screen and (min-width: variables.$bp-tablet) {
       font: {
         size: 4.2rem;
       }
@@ -129,7 +131,7 @@
   }
 
   &__MessageSecondary {
-    @media screen and (min-width: $bp-tablet) {
+    @media screen and (min-width: variables.$bp-tablet) {
       opacity: 0.8;
     }
   }

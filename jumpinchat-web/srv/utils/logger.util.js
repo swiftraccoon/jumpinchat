@@ -1,24 +1,10 @@
+import pino from 'pino';
 
-import bunyan from 'bunyan';
 export default function createLogger(opts = {}) {
-  if (!opts.name) {
-    throw new Error('Logger requires a `name` parameter');
-  }
-
-  if (process.env.NODE_ENV === 'test') {
-    return {
-      debug: () => {},
-      info: () => {},
-      warn: () => {},
-      error: () => {},
-      fatal: () => {},
-    };
-  }
-
-  const defaultOpts = {
-    level: process.env.TEST ? 100 : 'debug',
-    serializers: bunyan.stdSerializers,
-  };
-
-  return bunyan.createLogger({ ...defaultOpts, ...opts });
-};
+  if (!opts.name) throw new Error('Logger requires a name');
+  return pino({
+    level: process.env.NODE_ENV === 'test' || process.env.TEST ? 'silent' : (process.env.LOG_LEVEL || 'info'),
+    serializers: pino.stdSerializers,
+    ...opts,
+  });
+}

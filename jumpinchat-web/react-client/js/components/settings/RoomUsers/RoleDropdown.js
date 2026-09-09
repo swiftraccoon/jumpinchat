@@ -1,7 +1,8 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import PropTypes from 'prop-types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ScrollArea from '../../elements/ScrollArea.react';
+import { useOutsideDismiss } from '../../elements/FloatingLayer.react';
 
 const RoleDropdown = ({
   roles,
@@ -13,25 +14,7 @@ const RoleDropdown = ({
 }) => {
   const node = useRef();
 
-  const handleClickOutside = (e) => {
-    if (node.current.contains(e.target)) {
-      return false;
-    }
-
-    return onClose();
-  };
-
-  useEffect(() => {
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
+  useOutsideDismiss(node, onClose);
 
   const hasRole = tag => enrollments.some(e => e.tag === tag);
 

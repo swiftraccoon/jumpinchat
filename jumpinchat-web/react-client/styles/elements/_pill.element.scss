@@ -1,3 +1,5 @@
+@use "../variables";
+
 @keyframes pill-pulse {
   0% {
     transform: scale(1);
@@ -20,10 +22,10 @@
   height: 20px;
   min-width: 20px;
   padding: 0 0.25em;
-  background: $black-07;
+  background: variables.$black-07;
   border-radius: 10px;
   box-sizing: border-box;
-  color: $black-03;
+  color: variables.$black-03;
   font: {
     weight: 700;
     size: 1.2rem;
@@ -32,23 +34,23 @@
 
 
   &--default {
-    background: $black-04;
-    color: $white;
+    background: variables.$black-04;
+    color: variables.$white;
   }
 
   &--blue {
-    background: $color-blue-02;
-    color: $white;
+    background: variables.$color-blue-02;
+    color: variables.$white;
   }
 
   &--red {
-    background: $red-02;
-    color: $white;
+    background: variables.$red-02;
+    color: variables.$white;
   }
 
   &--white {
-    background: $white;
-    color: $color-blue-02;
+    background: variables.$white;
+    color: variables.$color-blue-02;
   }
 
   &--animated {

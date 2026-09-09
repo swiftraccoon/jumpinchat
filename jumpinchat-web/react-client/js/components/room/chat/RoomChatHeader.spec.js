@@ -1,106 +1,21 @@
-/* global it, beforeEach, describe */
-
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { RoomChatHeader } from './RoomChatHeader.react';
+import { selectChatTab, setUserlist } from '../../../actions/ChatActions';
 import { chatTabs, layouts } from '../../../constants/RoomConstants';
+vi.mock('../../../actions/ChatActions', () => ({ selectChatTab: vi.fn(), setUserlist: vi.fn(), setRoomMessageSounds: vi.fn(), setSettingsMenu: vi.fn() }));
+vi.mock('../RoomCamOptions.react', () => ({ default: () => null }));
+vi.mock('./RoomChatShare.react', () => ({ default: () => null }));
+const props = { room: { name: 'room' }, chatColors: [], playYoutubeVideos: true, chatTab: chatTabs.CHAT_FEED, onToggleChat: vi.fn(), chatOpen: true, unreadConversations: 2, feedsHighDef: true, layout: layouts.HORIZONTAL, globalVolume: 100 };
 
-describe('<RoomChatHeader />', () => {
-  let roomChatHeader;
-  beforeEach(() => {
-    roomChatHeader = new RoomChatHeader();
+describe('chat navigation', () => {
+  it('switches between public chat and private conversations and displays unread count', () => {
+    render(<RoomChatHeader {...props} />); fireEvent.click(screen.getByRole('button', { name: /PMs\s+2/ })); expect(selectChatTab).toHaveBeenLastCalledWith(chatTabs.CHAT_PM);
+    fireEvent.click(screen.getByRole('button', { name: 'Chat' })); expect(selectChatTab).toHaveBeenLastCalledWith(chatTabs.CHAT_FEED);
   });
-
-  describe('onMessageSoundChange', () => {
-    beforeEach(() => {
-      roomChatHeader.setRoomMessageSounds = jest.fn();
-    });
-
-    it('should set message sounds to false if enabled', () => {
-      roomChatHeader.props = { messageSounds: true };
-      roomChatHeader.onMessageSoundChange();
-      expect(roomChatHeader.setRoomMessageSounds).toHaveBeenCalledWith(false);
-    });
-
-    it('should set message sounds to true if disabled', () => {
-      roomChatHeader.props = { messageSounds: false };
-      roomChatHeader.onMessageSoundChange();
-      expect(roomChatHeader.setRoomMessageSounds).toHaveBeenCalledWith(true);
-    });
-  });
-
-  describe('onToggleUserlist', () => {
-    beforeEach(() => {
-      roomChatHeader.setUserlist = jest.fn();
-    });
-
-    it('should set user list to false if enabled', () => {
-      roomChatHeader.props = { showUserList: true };
-      roomChatHeader.onToggleUserlist();
-      expect(roomChatHeader.setUserlist).toHaveBeenCalledWith(false);
-    });
-
-    it('should set user list to true if disabled', () => {
-      roomChatHeader.props = { showUserlist: false };
-      roomChatHeader.onToggleUserlist();
-      expect(roomChatHeader.setUserlist).toHaveBeenCalledWith(true);
-    });
-  });
-
-  describe('selectFeedTab', () => {
-    it('should call selectChatTab with `CHAT_FEED`', () => {
-      roomChatHeader.selectChatTab = jest.fn();
-      roomChatHeader.selectFeedTab();
-      expect(roomChatHeader.selectChatTab).toHaveBeenCalledWith('CHAT_FEED');
-    });
-  });
-
-  describe('selectPmTab', () => {
-    it('should call selectChatTab with `CHAT_PM`', () => {
-      roomChatHeader.selectChatTab = jest.fn();
-      roomChatHeader.selectPrivateMessageTab();
-      expect(roomChatHeader.selectChatTab).toHaveBeenCalledWith('CHAT_PM');
-    });
-  });
-
-  describe('render', () => {
-    let props;
-    beforeEach(() => {
-      props = {
-        onToggleChat: jest.fn(),
-        chatTab: chatTabs.CHAT_FEED,
-        feedsMuted: false,
-        messageSounds: true,
-        camsDisabled: false,
-        chatColors: ['foo'],
-        room: {
-          name: 'room',
-          attrs: {
-            owner: 'foo',
-          },
-          settings: {
-            modOnlyPlayMedia: false,
-          },
-        },
-        user: {
-          user_id: 'foo',
-          settings: {
-            darkTheme: false,
-          },
-        },
-        playYoutubeVideos: true,
-        unreadConversations: 123,
-        chatOpen: true,
-        feedsHighDef: false,
-        layout: layouts.VERTICAL,
-        globalVolume: 0,
-      };
-    });
-
-    it('should show unread conversation count in pm tab', () => {
-      props.unreadConversations = 2;
-      const wrapper = shallow(<RoomChatHeader {...props} />);
-      expect(wrapper.getElement()).toMatchSnapshot();
-    });
+  it('toggles the participant list', () => {
+    const { container } = render(<RoomChatHeader {...props} showUserList />);
+    fireEvent.click(container.querySelector('.chat__HeaderOption--toggleUserlist')); expect(setUserlist).toHaveBeenCalledWith(false);
   });
 });

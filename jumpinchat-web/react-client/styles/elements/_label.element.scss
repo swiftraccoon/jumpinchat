@@ -1,11 +1,13 @@
+@use "../variables";
+
 .label {
 
 	display: inline-block;
 	padding: 0.15em 0.25em;
 
-	background: $muted;
+	background: variables.$muted;
 
-	color: $white;
+	color: variables.$white;
 	font-style: normal;
 	line-height: 1;
 
@@ -14,10 +16,10 @@
 	border-radius: 2px;
 
 	&-orange {
-		background: $orange-02;
+		background: variables.$orange-02;
 	}
 
 	&-green {
-		background: $green-02;
+		background: variables.$green-02;
 	}
 }

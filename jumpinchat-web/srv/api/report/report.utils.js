@@ -60,98 +60,94 @@ export function getTimeLeft(ttl) {
   return formatDistance(0, ttl * 1000, { includeSeconds: true });
 };
 
-export function sendReportMessages(body, roomName) {
-  return new Promise(async (resolve, reject) => {
-    const queue = new Queue(email.sendMail, 100);
+export async function sendReportMessages(body, roomName) {
+  const queue = new Queue(email.sendMail, 100);
 
-    queue.on('done', () => {
-      log.debug('email send queue complete');
-    });
-
-    let mods;
-    try {
-      mods = await userUtils.getSiteMods();
-    } catch (err) {
-      log.fatal({ err }, 'failed to get site mods');
-      return reject(err);
-    }
-
-    mods.forEach((mod) => {
-      const cb = (err) => {
-        if (err) {
-          log.error({ err, username: mod.username }, 'error sending email');
-          return;
-        }
-      };
-
-      let html;
-      if (mod.attrs.userLevel === 30) {
-        html = reportTemplate(body);
-      }
-
-      if (mod.attrs.userLevel === 20) {
-        html = siteModReportTemplate(body);
-      }
-
-      const emailOpts = {
-        to: mod.auth.email,
-        subject: `User report: ${roomName} - ${String(body._id)}`,
-        html,
-      };
-
-      const args = [emailOpts, cb];
-      queue.addToQueue(args);
-    });
-
-    return resolve();
+  queue.on('done', () => {
+    log.debug('email send queue complete');
   });
-};
 
-export function resolveReport(reportId, user, outcome) {
-  return new Promise(async (resolve, reject) => {
-    let report;
-    try {
-      report = await reportModel.findOne({ _id: reportId }).exec();
-    } catch (err) {
-      log.fatal({ err }, 'failed to get report');
-      return reject(err);
-    }
+  let mods;
+  try {
+    mods = await userUtils.getSiteMods();
+  } catch (err) {
+    log.fatal({ err }, 'failed to get site mods');
+    throw err;
+  }
 
-    if (!report) {
-      const error = new Error();
-      error.name = 'MissingValueError';
-      error.message = 'Report not found';
-      return reject(error);
-    }
-
-    report.resolution = {
-      resolved: true,
-      resolvedBy: user,
-      resolvedAt: Date.now(),
-      outcome,
+  mods.forEach((mod) => {
+    const cb = (err) => {
+      if (err) {
+        log.error({ err, username: mod.username }, 'error sending email');
+        return;
+      }
     };
 
-    let updatedReport;
-    try {
-      updatedReport = await report.save();
-    } catch (err) {
-      return reject(err);
+    let html;
+    if (mod.attrs.userLevel === 30) {
+      html = reportTemplate(body);
     }
 
-    try {
-      const action = {
-        type: adminConstants.activity.REPORT_RESOLUTION,
-        id: String(updatedReport._id),
-      };
-
-      await adminUtils.addModActivity(user, action);
-    } catch (err) {
-      log.fatal({ err }, 'error adding acitivity entry');
-      return reject(err);
+    if (mod.attrs.userLevel === 20) {
+      html = siteModReportTemplate(body);
     }
 
-    return resolve(updatedReport);
+    const emailOpts = {
+      to: mod.auth.email,
+      subject: `User report: ${roomName} - ${String(body._id)}`,
+      html,
+    };
+
+    const args = [emailOpts, cb];
+    queue.addToQueue(args);
   });
+
+  return;
+};
+
+export async function resolveReport(reportId, user, outcome) {
+  let report;
+  try {
+    report = await reportModel.findOne({ _id: reportId }).exec();
+  } catch (err) {
+    log.fatal({ err }, 'failed to get report');
+    throw err;
+  }
+
+  if (!report) {
+    const error = new Error();
+    error.name = 'MissingValueError';
+    error.message = 'Report not found';
+    throw error;
+  }
+
+  report.resolution = {
+    resolved: true,
+    resolvedBy: user,
+    resolvedAt: Date.now(),
+    outcome,
+  };
+
+  let updatedReport;
+  try {
+    updatedReport = await report.save();
+  } catch (err) {
+    throw err;
+  }
+
+  try {
+    const action = {
+      type: adminConstants.activity.REPORT_RESOLUTION,
+      id: String(updatedReport._id),
+    };
+
+    await adminUtils.addModActivity(user, action);
+  } catch (err) {
+    log.fatal({ err }, 'error adding acitivity entry');
+    throw err;
+  }
+
+  return updatedReport;
 };
 
 export default { getReportById, incrementReport, getTimeLeft, sendReportMessages, resolveReport };

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 
@@ -11,12 +11,15 @@ const SelectInput = React.forwardRef(({
   onChange = () => {},
   error = null,
   id,
-}, ref) => (
+}, ref) => {
+  const generatedId = useId();
+  const inputId = id || generatedId;
+  return (
   <div className={classNames('settings__TextInputGroup', className)}>
     <div className="settings__TextInputLabelWrapper">
       <label
         className="settings__Title settings__TextInputLabel"
-        htmlFor={id}
+        htmlFor={inputId}
       >
         {label}
       </label>
@@ -26,7 +29,7 @@ const SelectInput = React.forwardRef(({
     </div>
     <div className="settings__TextInputWrapper">
       <select
-        id={id}
+        id={inputId}
         className={classNames('input form__Input', 'settings__TextInput')}
         value={value}
         ref={ref}
@@ -41,7 +44,8 @@ const SelectInput = React.forwardRef(({
       <span className="text-red settings__TextInputError">{error}</span>
     )}
   </div>
-));
+  );
+});
 
 SelectInput.propTypes = {
   className: PropTypes.string,
@@ -50,7 +54,7 @@ SelectInput.propTypes = {
   subTitle: PropTypes.string,
   value: PropTypes.string,
   error: PropTypes.string,
-  id: PropTypes.string.isRequired,
+  id: PropTypes.string,
   options: PropTypes.arrayOf(PropTypes.shape({
     label: PropTypes.string.isRequired,
     value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,

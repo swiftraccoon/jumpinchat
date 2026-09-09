@@ -1,77 +1,24 @@
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import ReportModal from './ReportModal.react';
+import { sendReport } from '../../../utils/RoomAPI';
+import { setReportModal } from '../../../actions/ModalActions';
+vi.mock('../../../utils/RoomAPI', () => ({ sendReport: vi.fn() }));
+vi.mock('../../../actions/ModalActions', () => ({ setReportModal: vi.fn() }));
+vi.mock('../../../utils/AnalyticsUtil', () => ({ trackEvent: vi.fn() }));
+const props = { isOpen: true, room: 'room', reporterId: 'me', targetId: 'bob', messages: [{ message: 'Evidence' }] };
 
-describe('<ReportModal />', () => {
-  let props;
-  beforeEach(() => {
-    props = {
-      isOpen: false,
-      reporterId: 'foo',
-      room: 'room',
-      messages: [{ message: 'bar' }],
-    };
+describe('report form', () => {
+  it('requires a reason before sending the visible conversation', () => {
+    render(<ReportModal {...props} />); fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    expect(screen.getByText('Select a reason')).toBeVisible(); expect(sendReport).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('Reason'), { target: { value: 'harassment' } });
+    fireEvent.change(screen.getByLabelText('More information (optional)'), { target: { value: 'Details' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    expect(sendReport).toHaveBeenCalledWith('room', 'me', 'bob', 'harassment', 'Details', props.messages); expect(setReportModal).toHaveBeenCalledWith(false);
   });
-
-  describe('dismissModal', () => {
-    it('should clear error from state', () => {
-      const wrapper = shallow(<ReportModal {...props} />);
-      wrapper.instance().setState = jest.fn();
-      wrapper.instance().dismissModal();
-      expect(wrapper.instance().setState).toHaveBeenCalledWith({ error: null });
-    });
-
-    it('should set report modal state to false', () => {
-      const wrapper = shallow(<ReportModal {...props} />);
-      wrapper.instance().setReportModal = jest.fn();
-      wrapper.instance().dismissModal();
-      expect(wrapper.instance().setReportModal).toHaveBeenCalledWith(false);
-    });
-  });
-
-  describe('submit', () => {
-    let event;
-    beforeEach(() => {
-      event = { preventDefault: jest.fn() };
-    });
-
-    it('should set error state to null', () => {
-      const wrapper = shallow(<ReportModal {...props} />);
-      wrapper.instance().setState = jest.fn();
-      wrapper.instance().reason = { value: false };
-      wrapper.instance().description = { value: false };
-      wrapper.instance().submit(event);
-      expect(wrapper.instance().setState).toHaveBeenCalledWith({ error: null });
-    });
-
-    it('should set error if no reason selected', () => {
-      const wrapper = shallow(<ReportModal {...props} />);
-      wrapper.instance().setState = jest.fn();
-      wrapper.instance().reason = { value: false };
-      wrapper.instance().description = { value: false };
-      wrapper.instance().submit(event);
-      expect(wrapper.instance().setState)
-        .toHaveBeenCalledWith({ error: 'Select a reason' });
-    });
-
-    it('should send a report', () => {
-      props.targetId = 'target';
-      const wrapper = shallow(<ReportModal {...props} />);
-      wrapper.instance().sendReport = jest.fn();
-      wrapper.instance().reason = { value: 'foo' };
-      wrapper.instance().description = { value: 'bar' };
-      wrapper.instance().submit(event);
-      expect(wrapper.instance().sendReport)
-        .toHaveBeenCalledWith('room', 'foo', 'target', 'foo', 'bar', [{ message: 'bar' }]);
-    });
-  });
-
-  describe('render', () => {
-    it('should show error message', () => {
-      const wrapper = shallow(<ReportModal {...props} />);
-      wrapper.setState({ error: 'err' });
-
-      expect(wrapper.getElement()).toMatchSnapshot();
-    });
+  it('cancels without sending a report', () => {
+    render(<ReportModal {...props} />); fireEvent.click(screen.getByRole('button', { name: 'Cancel' })); expect(setReportModal).toHaveBeenCalledWith(false); expect(sendReport).not.toHaveBeenCalled();
   });
 });

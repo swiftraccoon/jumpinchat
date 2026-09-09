@@ -1,7 +1,9 @@
+@use "../utils/variables";
+
 .mfa {
   &__BackupCodes {
     column-count: 4;
-    background-color: $color-white;
+    background-color: variables.$color-white;
     text-transform: uppercase;
 
     & > span {
@@ -13,8 +15,8 @@
     text-align: center;
 
     & > img {
-      background-color: $color-white;
-      border: 1px solid $color-black-07;
+      background-color: variables.$color-white;
+      border: 1px solid variables.$color-black-07;
       border-radius: 3px;
       overflow: hidden;
     }

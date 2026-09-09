@@ -2,7 +2,6 @@
 
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Helmet } from 'react-helmet';
 import classnames from 'classnames';
 import { destroy as destroyMedia } from '../../utils/CamUtil';
 import { connectToRoom } from '../../utils/RoomUtils';
@@ -205,9 +204,7 @@ class Room extends Component {
           })}
           onClick={this.handleWindowClick}
         >
-          <Helmet>
-            <title>{roomTitle}</title>
-          </Helmet>
+          <title>{roomTitle}</title>
           <RoomHeader
             room={room}
             user={userState.user}

@@ -1,3 +1,5 @@
+@use "../utils/variables";
+
 .imageUpload {
   &__Container {
     display: flex;
@@ -6,11 +8,11 @@
     width: 256px;
     height: 256px;
     box-sizing: border-box;
-    background-color: $color-blue-06;
-    outline: 2px dashed $color-blue-03;
+    background-color: variables.$color-blue-06;
+    outline: 2px dashed variables.$color-blue-03;
 
     &--dragover {
-      background-color: $color-blue-05;
+      background-color: variables.$color-blue-05;
     }
   }
 
@@ -43,7 +45,7 @@
     cursor: pointer;
 
     &:hover {
-      color: $color-blue-02;
+      color: variables.$color-blue-02;
     }
 
     &--hasImage {

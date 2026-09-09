@@ -289,54 +289,53 @@ export function getCookie(name, cookieString) {
   }
 };
 
-function verifyUserLevel(userId, authorization, level = 30) {
-  return new Promise(async (resolve, reject) => {
-    if (!userId) {
-      log.debug('no cookie, attempting auth header');
-      try {
-        ({ userId } = await jwt.verify(authorization, config.auth.jwt_secret));
-      } catch (err) {
-        log.error({ err }, 'error verifying token');
-        return reject(err);
-      }
+async function verifyUserLevel(userId, authorization, level = 30) {
+  if (!userId) {
+    log.debug('no cookie, attempting auth header');
+    try {
+      ({ userId } = await jwt.verify(authorization, config.auth.jwt_secret));
+    } catch (err) {
+      log.error({ err }, 'error verifying token');
+      throw err;
     }
+  }
 
-    log.debug({ userId }, 'user id');
+  log.debug({ userId }, 'user id');
 
-    if (userId) {
-      try {
-        const user = await userUtils.getUserById(userId, { lean: false });
-        if (!user) {
-          log.error('user not found');
-          const error = new Error();
-          error.name = 'NoUserError';
-          error.message = 'User not found';
-        }
-
-        if (user.attrs.userLevel < level) {
-          log.warn({
-            level,
-            userLevel: user.attrs.level,
-          }, 'user not permitted to perform admin action');
-          const error = new Error();
-          error.name = 'PermissionDeniedError';
-          error.message = 'User not permitted to perform admin action';
-          return reject(error);
-        }
-
-        return resolve(user);
-      } catch (err) {
-        log.fatal({ err }, 'failed to get user');
-        return reject(err);
+  if (userId) {
+    try {
+      const user = await userUtils.getUserById(userId, { lean: false });
+      if (!user) {
+        log.error('user not found');
+        const error = new Error();
+        error.name = 'NoUserError';
+        error.message = 'User not found';
+      throw error;
       }
-    } else {
-      log.error('invalid token');
-      const error = new Error();
-      error.name = 'InvalidTokenError';
-      error.message = 'Token is invalid';
-      return reject(error);
+
+      if (user.attrs.userLevel < level) {
+        log.warn({
+          level,
+          userLevel: user.attrs.level,
+        }, 'user not permitted to perform admin action');
+        const error = new Error();
+        error.name = 'PermissionDeniedError';
+        error.message = 'User not permitted to perform admin action';
+        throw error;
+      }
+
+      return user;
+    } catch (err) {
+      log.fatal({ err }, 'failed to get user');
+      throw err;
     }
-  });
+  } else {
+    log.error('invalid token');
+    const error = new Error();
+    error.name = 'InvalidTokenError';
+    error.message = 'Token is invalid';
+    throw error;
+  }
 }
 
 export async function verifyAdmin(req, res, next) {

@@ -1,7 +1,10 @@
+@use "sass:meta";
+@use "../variables";
+
 $height: 24px;
 
 .dark {
-  @import './input.dark';
+  @include meta.load-css('input.dark');
 }
 
 .input {
@@ -12,14 +15,14 @@ $height: 24px;
     bottom: 0;
     left: 0.25em;
   };
-  background: $white;
+  background: variables.$white;
   border-radius: 0;
   font: inherit;
-  color: $black-02;
+  color: variables.$black-02;
   outline: none;
 
   &:focus {
-    border-color: $black-03;
+    border-color: variables.$black-03;
   }
 
   &:disabled {

@@ -1,6 +1,6 @@
 /* global document */
 
-import { EventEmitter } from 'events';
+import Store from '../Store';
 import debounce from 'lodash/debounce';
 import { formatRelative } from 'date-fns';
 import * as uuid from 'uuid';
@@ -53,7 +53,7 @@ function handleRetrieveMessages(room) {
 
 const debouncedSaveMessages = debounce(saveMessages, 250, { maxWait: 1000 });
 
-export class ChatStore extends EventEmitter {
+export class ChatStore extends Store {
   constructor() {
     super();
     const state = get(storageKey);
@@ -513,19 +513,10 @@ export class ChatStore extends EventEmitter {
   }
 
   // Emit Change event
-  emitChange() {
-    this.emit('change');
-  }
 
   // Add change listener
-  addChangeListener(callback) {
-    this.on('change', callback);
-  }
 
   // Remove change listener
-  removeChangeListener(callback) {
-    this.removeListener('change', callback);
-  }
 }
 
 

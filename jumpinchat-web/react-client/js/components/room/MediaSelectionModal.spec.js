@@ -1,207 +1,37 @@
-/* global jest, window, it, beforeEach, describe */
-
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import MediaSelectionModal from './MediaSelectionModal.react';
+import * as modalActions from '../../actions/ModalActions';
+import { publish } from '../../utils/CamUtil';
+vi.mock('../../utils/CamUtil', () => ({ publish: vi.fn() }));
+vi.mock('../../actions/ModalActions', () => ({ setMediaSelectionModal: vi.fn(), setMediaSelectionModalType: vi.fn(), setMediaDeviceId: vi.fn(), setMediaSelectionModalLoading: vi.fn() }));
+vi.mock('../../actions/CamActions', () => ({ setClientAudioPtt: vi.fn(), setDefaultAudioPtt: vi.fn() }));
+vi.mock('../../utils/UserAPI', () => ({ saveBroadcastQuality: vi.fn() }));
+vi.mock('../../utils/AnalyticsUtil', () => ({ trackEvent: vi.fn() }));
+vi.mock('./MediaSource.react', () => ({ default: ({ device, type, onSelectDevice }) => <button onClick={() => onSelectDevice(device.deviceId, type)}>{device.label}</button> }));
+const modal = { open: true, loading: false, mediaType: 'video', selectedDevices: { video: null, audio: null }, deviceList: { video: [{ deviceId: 'cam', label: 'Camera' }], audio: [{ deviceId: 'mic', label: 'Microphone' }] } };
+const props = { modal, audioPtt: false, forcePtt: false };
 
-describe('<MediaSelectionModal />', () => {
-  let mediaSelectionModal;
-  let props;
-  beforeEach(() => {
-    window.Janus = {
-      attachMediaStream: jest.fn(),
-    };
-
-    window.ga = jest.fn();
-    navigator.mediaDevices = {
-      getDisplayMedia: jest.fn(() => Promise.resolve()),
-    };
-
-    props = {
-      forcePtt: false,
-      isGold: false,
-      modal: {
-        selectedDevices: {
-          audio: 'foo',
-          video: 'foo',
-        },
-        onSelectDevice: jest.fn(),
-      },
-      videoQuality: {
-        id: 'foo',
-        dimensions: {
-          width: 1,
-          height: 2,
-        },
-        frameRate: 69,
-      },
-      audioPtt: true,
-    };
-
-    mediaSelectionModal = new MediaSelectionModal(props);
-
-    mediaSelectionModal.props = props;
+describe('media selection dialog', () => {
+  it('advances camera selection to the microphone step', () => {
+    render(<MediaSelectionModal {...props} />); fireEvent.click(screen.getByRole('button', { name: 'Camera' }));
+    expect(modalActions.setMediaDeviceId).toHaveBeenCalledWith('cam', 'video'); expect(modalActions.setMediaSelectionModalType).toHaveBeenCalledWith('audio');
   });
-
-  describe('componentDidUpdate', () => {
-    beforeEach(() => {
-      mediaSelectionModal.publish = jest.fn();
-    });
-
-    it('should publish when audio device has changed', () => {
-      const prevProps = {
-        modal: {
-          selectedDevices: {
-            audio: 'bar',
-            video: 'bar',
-          },
-        },
-        audioPtt: true,
-      };
-
-      mediaSelectionModal.componentDidUpdate(prevProps);
-      expect(mediaSelectionModal.publish)
-        .toHaveBeenCalledWith(props.videoQuality, 'foo', 'foo', false);
-    });
+  it('starts publishing only when the selected microphone changes', () => {
+    const { rerender } = render(<MediaSelectionModal {...props} />);
+    rerender(<MediaSelectionModal {...props} modal={{ ...modal, selectedDevices: { video: 'cam', audio: 'mic' } }} />);
+    expect(publish).toHaveBeenCalledWith(false, null, 'cam', 'mic', true);
+    expect(modalActions.setMediaSelectionModalLoading).toHaveBeenCalledWith(true);
+    rerender(<MediaSelectionModal {...props} modal={{ ...modal, loading: true, selectedDevices: { video: 'cam', audio: 'mic' } }} />);
+    expect(publish).toHaveBeenCalledOnce();
   });
-
-  describe('closeModal', () => {
-    it('should close the modal', () => {
-      mediaSelectionModal.setMediaSelectionModal = jest.fn();
-      mediaSelectionModal.closeModal();
-      expect(mediaSelectionModal.setMediaSelectionModal).toHaveBeenCalledWith(false);
-    });
+  it('dismisses with Escape and resets the next selection step', () => {
+    render(<MediaSelectionModal {...props} />); fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape', keyCode: 27 });
+    expect(modalActions.setMediaSelectionModal).toHaveBeenCalledWith(false); expect(modalActions.setMediaSelectionModalType).toHaveBeenCalledWith('video');
   });
-
-
-  describe('video', () => {
-    beforeEach(() => {
-      props = {
-        ...props,
-        modal: {
-          ...props.modal,
-          mediaType: 'video',
-          deviceList: {
-            audio: [],
-            video: [
-              {
-                deviceId: '123',
-                label: 'foo',
-              },
-              {
-                deviceId: '321',
-                label: 'bar',
-              },
-            ],
-          },
-        },
-      };
-    });
-
-    it('should have a close button', () => {
-      const wrapper = shallow(<MediaSelectionModal {...props} />);
-
-      expect(wrapper.find('.modal__Button-close').length).toEqual(1);
-    });
-
-    describe('video sources', () => {
-      it('should render available feeds', () => {
-        const wrapper = shallow(<MediaSelectionModal {...props} />);
-
-        // should have 4 as the screenshare source and
-        // 'no video' options are always shown in the list
-        expect(wrapper.find('MediaSource').length).toEqual(4);
-      });
-
-      it('should show error message if error is truthy', () => {
-        props = { ...props, error: { message: 'foo' } };
-        const wrapper = shallow(<MediaSelectionModal {...props} />);
-
-        expect(wrapper.find('.modal__Error').length).toEqual(1);
-        expect(wrapper.find('.modal__Error').text()).toEqual('foo');
-      });
-
-      it('should show an error if no available sources', () => {
-        props = {
-          ...props,
-          modal: {
-            ...props.modal,
-            deviceList: {
-              video: [],
-            },
-          },
-        };
-        const wrapper = shallow(<MediaSelectionModal {...props} />);
-
-        expect(wrapper.find('.modal__Error').length).toEqual(1);
-      });
-    });
-
-    describe('audio sources', () => {
-      beforeEach(() => {
-        props = {
-          ...props,
-          modal: {
-            ...props.modal,
-            mediaType: 'audio',
-            deviceList: {
-              audio: [
-                {
-                  deviceId: '123',
-                  label: 'foo',
-                },
-                {
-                  deviceId: '321',
-                  label: 'bar',
-                },
-              ],
-              video: [],
-            },
-          },
-        };
-      });
-
-      it('should render available feeds', () => {
-        const wrapper = shallow(<MediaSelectionModal {...props} />);
-
-        expect(wrapper.find('MediaSource').length).toEqual(2);
-      });
-
-      it('should show error message if error is truthy', () => {
-        props = { ...props, error: { message: 'foo' } };
-        const wrapper = shallow(<MediaSelectionModal {...props} />);
-
-        expect(wrapper.find('.modal__Error').length).toEqual(1);
-        expect(wrapper.find('.modal__Error').text()).toEqual('foo');
-      });
-
-      it('should show an error if no available sources', () => {
-        props = {
-          ...props,
-          modal: {
-            ...props.modal,
-            deviceList: {
-              audio: [],
-            },
-          },
-        };
-        const wrapper = shallow(<MediaSelectionModal {...props} />);
-
-        expect(wrapper.find('.modal__Error').length).toEqual(1);
-      });
-
-      it('should show PTT button if forcePtt is false', () => {
-        const wrapper = shallow(<MediaSelectionModal {...props} />);
-
-        expect(wrapper.getElement()).toMatchSnapshot();
-      });
-
-      it('should not show PTT button if forcePtt is true', () => {
-        props.forcePtt = true;
-        const wrapper = shallow(<MediaSelectionModal {...props} />);
-
-        expect(wrapper.getElement()).toMatchSnapshot();
-      });
-    });
+  it('shows missing sources and disables push-to-talk when the room forces it', () => {
+    render(<MediaSelectionModal {...props} forcePtt modal={{ ...modal, mediaType: 'audio', deviceList: { video: [], audio: [] } }} />);
+    expect(screen.getByText('No audio sources')).toBeVisible(); expect(screen.getByLabelText('Push to talk')).toBeDisabled();
   });
 });

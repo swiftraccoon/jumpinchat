@@ -1,97 +1,28 @@
-const fs = require('fs');
-const { ProgressPlugin } = require('webpack');
+const path = require('node:path');
 const TerserPlugin = require('terser-webpack-plugin');
 
-const root = fs.realpathSync(process.cwd());
-
-const isProduction = () => process.env.NODE_ENV === 'production';
-
-let optimization = {};
-const plugins = [];
-
-if (isProduction()) {
-  optimization = {
-    minimize: true,
-    minimizer: [
-      new TerserPlugin({
-        terserOptions: {
-          compress: {
-            drop_console: true,
-          },
-        },
-        extractComments: 'all',
-      }),
-    ],
-  };
-}
-
-if (!isProduction()) {
-  plugins.push(new ProgressPlugin());
-}
-
-module.exports = ({ esNext = true, watch }) => ({
-  mode: isProduction() ? 'production' : 'development',
-  devtool: isProduction() ? 'hidden-source-map' : 'inline-cheap-module-source-map',
-  watch,
-  entry: {
-    bundle: [
-      `${root}/react-client/js/app.js`,
-    ],
-  },
+module.exports = ({ esNext = true, production = false, outputPath }) => ({
+  mode: production ? 'production' : 'development',
+  target: ['web', 'es2020'],
+  devtool: production ? 'hidden-source-map' : 'inline-cheap-module-source-map',
+  entry: { bundle: path.resolve(__dirname, 'react-client/js/app.js') },
   output: {
-    filename: `[name].${esNext ? 'mjs' : 'js'}`,
-    path: `${root}/.tmp/js`,
+    filename: `[name]${production ? '.[contenthash:12]' : ''}.${esNext ? 'mjs' : 'js'}`,
+    chunkFilename: `[name]${production ? '.[contenthash:12]' : ''}.${esNext ? 'mjs' : 'js'}`,
+    path: path.resolve(outputPath, 'js'),
+    publicPath: '/js/',
+    uniqueName: `jumpinchat_${esNext ? 'module' : 'classic'}`,
   },
   optimization: {
-    ...optimization,
-    splitChunks: {
-      cacheGroups: {
-        commons: {
-          test: /[\\/]node_modules[\\/]/,
-          name: 'vendors',
-          chunks: 'all',
-        },
-      },
-    },
+    minimize: production,
+    minimizer: [new TerserPlugin({ extractComments: /@license|@preserve|^!/i })],
+    splitChunks: { cacheGroups: {
+      commons: { test: /[\\/]node_modules[\\/]/, name: 'vendors', chunks: 'all' },
+    } },
   },
-  resolve: {
-    extensions: ['.js', '.jsx', '.css', '.scss'],
-    modules: [
-      'node_modules',
-      `${root}/node_modules`,
-    ],
-  },
-  module: {
-    rules: [
-      {
-        test: /\.m?js$/,
-        resolve: {
-          fullySpecified: false,
-        },
-      },
-      {
-        enforce: 'post',
-        test: /\.m?js?$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: [
-              ['@babel/preset-env', {
-                corejs: 3,
-                modules: false,
-                useBuiltIns: 'usage',
-                shippedProposals: true,
-                targets: {
-                  esmodules: esNext,
-                },
-              }],
-              '@babel/preset-react',
-            ],
-          },
-        },
-      },
-    ],
-  },
-  plugins,
+  resolve: { extensions: ['.js', '.jsx'] },
+  module: { rules: [
+    { test: /\.m?js$/, resolve: { fullySpecified: false } },
+    { test: /\.jsx?$/, exclude: /node_modules/, use: 'babel-loader' },
+  ] },
 });

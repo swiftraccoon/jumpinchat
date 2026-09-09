@@ -1,18 +1,20 @@
+@use "../variables";
+
 .emojiPredict {
   &__Container {
-    background-color: $color-dark2;
-    border-color: $color-light4;
+    background-color: variables.$color-dark2;
+    border-color: variables.$color-light4;
   }
 
   &__Header {
-    background-color: $color-dark4;
-    border-color: $color-light4;
+    background-color: variables.$color-dark4;
+    border-color: variables.$color-light4;
   }
 
   &__Option {
     &:hover,
     &--selected {
-      background-color: $theme-blue;
+      background-color: variables.$theme-blue;
     }
   }
 }

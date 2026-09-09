@@ -2,6 +2,7 @@ import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import RoomChatMessage from './RoomChatMessage.react';
 import ScrollResume from '../../elements/ScrollResume.react';
+import { ScrollAreaContext } from '../../elements/ScrollArea.react';
 
 class RoomChatMessages extends Component {
   constructor(props) {
@@ -10,8 +11,8 @@ class RoomChatMessages extends Component {
   }
 
   componentDidMount() {
-    setTimeout(() => {
-      this.context.scrollArea.scrollBottom();
+    this.scrollTimer = setTimeout(() => {
+      this.context.scrollBottom();
     });
   }
 
@@ -22,15 +23,19 @@ class RoomChatMessages extends Component {
     const hasNewMessages = oldMessages !== newMessages;
 
     if (hasNewMessages && !fixScroll) {
-      setTimeout(() => {
-        this.context.scrollArea.scrollBottom();
+      this.scrollTimer = setTimeout(() => {
+        this.context.scrollBottom();
       });
     }
   }
 
+  componentWillUnmount() {
+    clearTimeout(this.scrollTimer);
+  }
+
   handleResumeScroll() {
     const { setScrollFixed } = this.props;
-    const { scrollBottom } = this.context.scrollArea;
+    const { scrollBottom } = this.context;
     setScrollFixed(false);
     scrollBottom();
   }
@@ -76,10 +81,6 @@ RoomChatMessages.propTypes = {
   setScrollFixed: PropTypes.func.isRequired,
 };
 
-RoomChatMessages.contextTypes = {
-  scrollArea: PropTypes.shape({
-    scrollBottom: PropTypes.func.isRequired,
-  }).isRequired,
-};
+RoomChatMessages.contextType = ScrollAreaContext;
 
 export default RoomChatMessages;

@@ -1,77 +1,18 @@
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import SettingsRoomUsers from './index';
+import { getRoomEnrollments } from '../../../actions/RoleActions';
+vi.mock('../../../actions/RoleActions', () => ({ getRoomEnrollments: vi.fn(), addRoomUserEnrollment: vi.fn(), enrollUser: vi.fn(), unenrollUser: vi.fn() }));
+vi.mock('./ListItem', () => ({ default: ({ enrollment }) => <li>{enrollment.username}</li> }));
+const settings = { roles: [{ tag: 'everyone', name: 'Everyone', isDefault: true }, { tag: 'host', name: 'Host' }], enrollments: [{ username: 'alice', userId: 'alice', roles: [{ tag: 'everyone' }] }, { username: 'bob', userId: 'bob', roles: [{ tag: 'host' }] }, { username: 'new-person', userId: 'new', roles: [], new: true }] };
 
-describe('<SettingsRoomUsers />', () => {
-  let props;
-
-  beforeEach(() => {
-    props = {
-      settings: {
-        roles: [
-          {
-            name: 'role',
-            tag: 'role_tag',
-          },
-          {
-            name: 'default',
-            tag: 'default',
-            isDefault: true,
-          },
-        ],
-        enrollments: [
-          {
-            username: 'user',
-            userId: 'user_id',
-            roles: [
-              {
-                name: 'default',
-                roleId: 'default_id',
-                tag: 'default',
-                enrollmentId: 'enrollment2',
-              },
-            ],
-          },
-        ],
-      },
-    };
+describe('room membership settings', () => {
+  it('loads memberships, filters roles, and keeps a newly added participant visible', () => {
+    render(<SettingsRoomUsers settings={settings} />); expect(getRoomEnrollments).toHaveBeenCalledOnce(); expect(screen.getByText('alice')).toBeVisible(); expect(screen.queryByText('bob')).not.toBeInTheDocument(); expect(screen.getByText('new-person')).toBeVisible();
+    fireEvent.change(screen.getByLabelText('Filter by roles'), { target: { value: 'host' } }); expect(screen.getByText('bob')).toBeVisible(); expect(screen.queryByText('alice')).not.toBeInTheDocument(); expect(screen.getByText('new-person')).toBeVisible();
   });
-
-  it('should show new user', () => {
-    props.settings.enrollments.push({
-      new: true,
-      roles: [],
-      username: 'username2',
-      userId: 'foo',
-    });
-
-    const wrapper = shallow(<SettingsRoomUsers {...props} />);
-    expect(wrapper.getElement()).toMatchSnapshot();
-  });
-
-  it('should filter by role tag', () => {
-    props.settings.enrollments.push({
-      username: 'user2',
-      userId: 'user_id2',
-      roles: [
-        {
-          name: 'role',
-          roleId: 'role_id',
-          tag: 'role_tag',
-          enrollmentId: 'enrollment',
-        },
-        {
-          name: 'default',
-          roleId: 'default_id',
-          tag: 'default',
-          enrollmentId: 'enrollment2',
-        },
-      ],
-    });
-
-
-    const wrapper = shallow(<SettingsRoomUsers {...props} />);
-    wrapper.instance().setState({ filter: 'role_tag' });
-    expect(wrapper.getElement()).toMatchSnapshot();
+  it('filters memberships using the search field', () => {
+    render(<SettingsRoomUsers settings={settings} />); fireEvent.change(screen.getByLabelText('Search users'), { target: { value: 'alice' } }); expect(screen.getByText('alice')).toBeVisible(); expect(screen.queryByText('new-person')).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,8 @@
+@use "sass:meta";
+@use "../variables";
+
 .dark {
-  @import './youtube.dark';
+  @include meta.load-css('youtube.dark');
 }
 
 .youtube {
@@ -24,14 +27,14 @@
     display: inline-block;
     max-width: 348px;
     padding: 1em;
-    background-color: $black-08;
-    border: 1px solid $black-06;
+    background-color: variables.$black-08;
+    border: 1px solid variables.$black-06;
     border-radius: 3px;
     text-align: center;
 
     &:hover {
-      border-color: $color-blue-04;
-      background-color: $color-blue-06;
+      border-color: variables.$color-blue-04;
+      background-color: variables.$color-blue-06;
     }
 
     & + & {
@@ -128,13 +131,13 @@
     position: relative;
     width: 100%;
     height: 6px;
-    background-color: rgba($white, 0.25);
+    background-color: rgba(variables.$white, 0.25);
     border-radius: 2px;
     overflow: hidden;
   }
 
   &__ProgressBar {
-    background: $white;
+    background: variables.$white;
     height: 100%;
     border-radius: 2px;
   }
@@ -147,7 +150,7 @@
     margin: {
       top: -4px;
     }
-    background-color: $white;
+    background-color: variables.$white;
     border-radius: 4px;
     pointer-events: none;
     cursor: pointer;
@@ -161,7 +164,7 @@
     background-color: rgba(0, 0, 0, 0.25);
     border-radius: 3px;
 
-    color: $white;
+    color: variables.$white;
     text-shadow: 0 -1px rgba(0, 0, 0, 1);
   }
 
@@ -169,7 +172,7 @@
     margin: {
       left: 0.5em;
     }
-    color: $white;
+    color: variables.$white;
   }
 
   // Playlist
@@ -272,6 +275,6 @@
     font: {
       size: 1.15em;
     }
-    color: $black-06;
+    color: variables.$black-06;
   }
 }

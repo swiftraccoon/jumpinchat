@@ -2,7 +2,7 @@
  * Created by vivaldi on 14/04/2015.
  */
 
-import { EventEmitter } from 'events';
+import Store from './Store';
 import * as uuid from 'uuid';
 import { NotificationDispatcher } from '../dispatcher/AppDispatcher';
 import {
@@ -12,7 +12,7 @@ import {
   RESUME_NOTIFICATION,
 } from '../constants/ActionTypes';
 
-export class NotificationStore extends EventEmitter {
+export class NotificationStore extends Store {
   constructor() {
     super();
     this.notifications = [];
@@ -23,17 +23,8 @@ export class NotificationStore extends EventEmitter {
     return this.notifications;
   }
 
-  emitChange() {
-    this.emit('change');
-  }
 
-  addChangeListener(callback) {
-    this.on('change', callback);
-  }
 
-  removeChangeListener(callback) {
-    this.removeListener('change', callback);
-  }
 
   /**
    * check the array to see if any of the notifications are

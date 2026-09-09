@@ -1,3 +1,5 @@
+@use "../variables";
+
 .dark {
   .banlist {
     &__Item {
@@ -30,7 +32,7 @@
     margin: {
       top: 1em;
     }
-    color: $black-05;
+    color: variables.$black-05;
   }
 
 
@@ -42,7 +44,7 @@
     align-items: center;
 
     & + & {
-      border-top: 1px solid $black-09;
+      border-top: 1px solid variables.$black-09;
     }
   }
 
@@ -58,7 +60,7 @@
   }
 
   &__Timestamp {
-    color: $black-05;
+    color: variables.$black-05;
   }
 
   &__Actions {

@@ -1,3 +1,5 @@
+@use "../utils/variables";
+
 .support {
   padding: {
     top: 6.4rem;
@@ -11,7 +13,7 @@
     grid-gap: 1em;
     grid-template-columns: repeat(1, auto);
 
-    @media screen and (min-width: $bp-tablet) {
+    @media screen and (min-width: variables.$bp-tablet) {
       grid-template-columns: repeat(3, 1fr);
     }
   }
@@ -22,8 +24,8 @@
     justify-content: space-between;
 
     padding: 1em;
-    background: $color-white;
-    border: 1px solid $color-black-08;
+    background: variables.$color-white;
+    border: 1px solid variables.$color-black-08;
     border-radius: 3px;
   }
 
@@ -60,7 +62,7 @@
       padding: {
         right: 0.5em;
       }
-      color: $color-red-02;
+      color: variables.$color-red-02;
       font: {
         family: 'Font Awesome 5 Pro';
         size: 0.85em;

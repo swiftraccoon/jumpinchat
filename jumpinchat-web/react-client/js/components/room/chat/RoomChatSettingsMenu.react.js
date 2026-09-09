@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import classnames from 'classnames';
-import TetherComponent from 'react-tether';
+import FloatingLayer from '../../elements/FloatingLayer.react';
 import { sendOperatorAction } from '../../../utils/RoomAPI';
 import WrappedListItems from '../../elements/ListItems.react';
 import Tooltip from '../../elements/Tooltip.react';
@@ -257,7 +257,7 @@ class RoomChatSettingsMenu extends Component {
     }
 
     return (
-      <TetherComponent
+      <FloatingLayer
         attachment="top center"
         constraints={[{
           to: 'scrollParent',
@@ -282,7 +282,7 @@ class RoomChatSettingsMenu extends Component {
             onClickOutside={this.closeSettingsMenu}
           />
         )}
-      </TetherComponent>
+      </FloatingLayer>
     );
   }
 }

@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import Store from '../Store';
 import * as uuid from 'uuid';
 import { PmDispatcher } from '../../dispatcher/AppDispatcher';
 import * as types from '../../constants/ActionTypes';
@@ -10,7 +10,7 @@ import chatStore from '../ChatStore/ChatStore';
 import userStore from '../UserStore';
 
 
-export class PmStore extends EventEmitter {
+export class PmStore extends Store {
   static getUnreadConversations(privateMessages) {
     return privateMessages.reduce((acc, { unreadMessages }) => {
       let val = acc;
@@ -319,19 +319,10 @@ export class PmStore extends EventEmitter {
   }
 
   // Emit Change event
-  emitChange() {
-    this.emit('change');
-  }
 
   // Add change listener
-  addChangeListener(callback) {
-    this.on('change', callback);
-  }
 
   // Remove change listener
-  removeChangeListener(callback) {
-    this.removeListener('change', callback);
-  }
 }
 
 const pmStore = new PmStore();

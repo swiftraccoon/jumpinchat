@@ -1,7 +1,9 @@
+@use "../utils/variables";
+
 .register {
   padding: 3.2rem 0;
 
-  @media screen and (min-width: $bp-tablet) {
+  @media screen and (min-width: variables.$bp-tablet) {
     padding: 6.4rem 0;
   }
 
@@ -15,7 +17,7 @@
     float: left;
     width: 100%;
 
-    @media screen and (min-width: $bp-tablet) {
+    @media screen and (min-width: variables.$bp-tablet) {
       float: none;
       width: 450px;
       margin: 0 auto;
@@ -37,6 +39,6 @@
     }
 
     font-size: 0.85em;
-    color: $color-black-05;
+    color: variables.$color-black-05;
   }
 }

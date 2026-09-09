@@ -1,11 +1,13 @@
+@use "../variables";
+
 .input {
-  color: $black-08;
-  border-color: $color-dark3;
+  color: variables.$black-08;
+  border-color: variables.$color-dark3;
   background: {
-    color: $color-dark1;
+    color: variables.$color-dark1;
   }
 
   &:focus {
-    border-color: $color-dark4;
+    border-color: variables.$color-dark4;
   }
 }

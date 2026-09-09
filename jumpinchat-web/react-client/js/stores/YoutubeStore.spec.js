@@ -1,48 +1,14 @@
-/* global window, document, describe, it, beforeEach */
-
+import { describe, it, expect } from 'vitest';
 import { YoutubeStore } from './YoutubeStore';
 
-jest.mock('../utils/localStorage');
-
-describe('YoutubeStore', () => {
-  let youtubeStore;
-  beforeEach(() => {
-    youtubeStore = new YoutubeStore();
-    jest.clearAllMocks();
+describe('shared video state', () => {
+  it('keeps search results separate from the currently playing video', () => {
+    const store = new YoutubeStore(); store.setCurrentlyPlaying({ mediaId: 'playing' }); store.setSearchResults([{ mediaId: 'found' }]);
+    expect(store.getState().currentlyPlaying).toEqual({ mediaId: 'playing' });
+    expect(store.getState().searchResults).toEqual([{ mediaId: 'found' }]);
   });
-
-  describe('setSearchModalState', () => {
-    it('should set modal state', () => {
-      youtubeStore.setSearchModalState(true);
-      expect(youtubeStore.state.searchModalOpen).toEqual(true);
-    });
-  });
-
-  describe('setSearchResults', () => {
-    it('should set the search results', () => {
-      youtubeStore.setSearchResults(['foo']);
-      expect(youtubeStore.state.searchResults).toEqual(['foo']);
-    });
-  });
-
-  describe('setCurrentlyPlaying', () => {
-    it('should currentlyPlaying', () => {
-      youtubeStore.setCurrentlyPlaying('foo');
-      expect(youtubeStore.state.currentlyPlaying).toEqual('foo');
-    });
-  });
-
-  describe('setOptions', () => {
-    it('should set options', () => {
-      youtubeStore.setOptions('foo');
-      expect(youtubeStore.state.optionsOpen).toEqual('foo');
-    });
-  });
-
-  describe('setVolume', () => {
-    it('should set volume', () => {
-      youtubeStore.setVolume(0.5);
-      expect(youtubeStore.state.volume).toEqual(0.5);
-    });
+  it('persists playback volume when a video closes', () => {
+    const store = new YoutubeStore(); store.setVolume(45); store.setCurrentlyPlaying(null);
+    expect(store.getState().volume).toBe(45); expect(store.getState().currentlyPlaying).toBeNull();
   });
 });

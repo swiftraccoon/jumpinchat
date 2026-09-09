@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import TetherComponent from 'react-tether';
+import FloatingLayer from '../../../elements/FloatingLayer.react';
 import WrappedListItems from '../../../elements/ListItems.react';
 
 const PmListItemOptions = ({
@@ -29,7 +29,7 @@ const PmListItemOptions = ({
   ];
 
   return (
-    <TetherComponent
+    <FloatingLayer
       attachment="top center"
       constraints={[
         {
@@ -57,7 +57,7 @@ const PmListItemOptions = ({
           onClickOutside={handleClickOutside}
         />
       )}
-    </TetherComponent>
+    </FloatingLayer>
   );
 };
 

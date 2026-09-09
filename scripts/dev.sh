@@ -3,4 +3,4 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../jumpinchat-web"
 
-./node_modules/.bin/gulp watchify "$@"
+node build.js --watch "$@"

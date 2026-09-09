@@ -1,3 +1,5 @@
+@use "../../variables";
+
 .chat {
   &__UserList {
     height: auto;
@@ -5,7 +7,7 @@
     border-inline-start: {
       width: 1px;
       style: solid;
-      color: $black-08;
+      color: variables.$black-08;
     }
   }
 }

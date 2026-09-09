@@ -1,148 +1,33 @@
-/* global window, it, beforeEach, describe */
-
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import MediaSource from './MediaSource.react';
+vi.mock('../../utils/CamUtil', () => ({ publish: vi.fn() }));
+vi.mock('../../actions/ModalActions', () => ({ setModalError: vi.fn() }));
 
-describe('<MediaSource />', () => {
-  let mediaSource;
-  let props;
-  beforeEach(() => {
-    props = {
-      device: {
-        deviceId: '123',
-      },
-      type: 'video',
-      onSelectDevice: jest.fn(),
-      isGold: false,
-    };
-
-    mediaSource = new MediaSource(props);
-    window.navigator.mediaDevices = {
-      getUserMedia: jest.fn(() => Promise.resolve()),
-    };
+const device = { deviceId: 'camera-1', label: 'Front camera' };
+describe('media source preview', () => {
+  it('acquires the selected camera, attaches its preview, and stops tracks on removal', async () => {
+    const videoTrack = { stop: vi.fn() }; const audioTrack = { stop: vi.fn() };
+    const stream = { getTracks: () => [videoTrack, audioTrack], getVideoTracks: () => [videoTrack], getAudioTracks: () => [audioTrack] };
+    navigator.mediaDevices.getUserMedia.mockResolvedValue(stream);
+    const select = vi.fn(); const { container, unmount } = render(<MediaSource type="video" device={device} onSelectDevice={select} />);
+    await waitFor(() => expect(container.querySelector('video').srcObject).toBe(stream));
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith(expect.objectContaining({ audio: false, video: expect.objectContaining({ deviceId: { exact: 'camera-1' } }) }));
+    fireEvent.click(screen.getByRole('button', { name: 'Front camera' })); expect(select).toHaveBeenCalledWith('camera-1', 'video');
+    unmount(); await waitFor(() => expect(videoTrack.stop).toHaveBeenCalledOnce()); expect(audioTrack.stop).toHaveBeenCalledOnce();
   });
-
-  describe('componentDidMount', () => {
-    it('should call attachMediaStream on success', (done) => {
-      window.navigator.mediaDevices.getUserMedia = jest.fn(() => Promise.resolve('foo'));
-
-      mediaSource.video = {
-        srcObject: null,
-      };
-
-      mediaSource.props = {
-        ...props,
-        device: {
-          deviceId: '123',
-        },
-      };
-
-      mediaSource.componentDidMount().then(() => {
-        expect(mediaSource.video.srcObject).toEqual('foo');
-        done();
-      }).catch(done.fail);
-    });
-
-    it('should set modal error when no permission for source', (done) => {
-      window.navigator.mediaDevices.getUserMedia = jest.fn(() => new Promise((resolve, reject) => reject({ name: 'PermissionDeniedError' })));
-
-      mediaSource.setModalError = jest.fn();
-
-      mediaSource.video = 'foo';
-
-      mediaSource.props = {
-        ...props,
-        device: {
-          deviceId: '123',
-        },
-      };
-
-      mediaSource.componentDidMount().then(() => {
-        expect(mediaSource.setModalError).toHaveBeenCalled();
-        done();
-      });
-    });
-
-    it('should use gold constraints if user is gold', async () => {
-      mediaSource.props = {
-        ...props,
-        isGold: true,
-        device: {
-          deviceId: '123',
-        },
-        videoQuality: {
-          id: 'foo',
-          dimensions: {
-            width: 1,
-            height: 2,
-          },
-          frameRate: 69,
-        },
-      };
-
-      mediaSource.video = {};
-      await mediaSource.componentDidMount();
-      expect(window.navigator.mediaDevices.getUserMedia)
-        .toHaveBeenCalledWith({
-          audio: false,
-          video: {
-            deviceId: {
-              exact: '123',
-            },
-            frameRate: { ideal: 69, max: 69 },
-            width: {
-              min: 320,
-              ideal: 1,
-              max: 1,
-            },
-            height: {
-              min: 240,
-              ideal: 2,
-              max: 2,
-            },
-          },
-        });
-    });
+  it('releases a preview that resolves after the source has unmounted', async () => {
+    let resolve; const stop = vi.fn(); const stream = { getTracks: () => [{ stop }], getVideoTracks: () => [{ stop }], getAudioTracks: () => [] };
+    navigator.mediaDevices.getUserMedia.mockReturnValue(new Promise(done => { resolve = done; }));
+    const { unmount } = render(<MediaSource type="video" device={device} onSelectDevice={vi.fn()} />); unmount();
+    await act(async () => resolve(stream)); expect(stop).toHaveBeenCalledOnce();
   });
-
-  describe('onSelectDevice', () => {
-    beforeEach(() => {
-      mediaSource.setMediaSelectionModal = jest.fn();
-    });
-
-    it('should call onSelectDevice', () => {
-      mediaSource.onSelectDevice();
-      expect(mediaSource.props.onSelectDevice)
-        .toHaveBeenCalledWith('123', 'video');
-    });
-  });
-
-  describe('video', () => {
-    beforeEach(() => {
-      props = {
-        ...props,
-        device: {
-          deviceId: '123',
-          label: 'foo',
-        },
-        type: 'video',
-      };
-    });
-
-    it('should contain video element', () => {
-      const wrapper = shallow(<MediaSource {...props} />);
-      expect(wrapper.find('.mediaSources__Source').length).toEqual(1);
-    });
-
-    it('should autoplay video', () => {
-      const wrapper = shallow(<MediaSource {...props} />);
-      expect(wrapper.find('.mediaSources__Source').props().autoPlay).toEqual(true);
-    });
-
-    it('should show device label', () => {
-      const wrapper = shallow(<MediaSource {...props} />);
-      expect(wrapper.find('.mediaSources__SourceLabel').text()).toEqual('foo');
-    });
+  it('shows permission failure and keeps audio selection available without acquiring a preview', async () => {
+    navigator.mediaDevices.getUserMedia.mockRejectedValue(Object.assign(new Error('Camera permission denied'), { name: 'NotAllowedError' }));
+    const { rerender } = render(<MediaSource type="video" device={device} onSelectDevice={vi.fn()} />);
+    expect(await screen.findByText('Camera permission denied')).toBeVisible();
+    rerender(<MediaSource key="audio" type="audio" device={{ deviceId: 'mic', label: 'Microphone' }} onSelectDevice={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Microphone' })).toBeVisible(); expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledOnce();
   });
 });

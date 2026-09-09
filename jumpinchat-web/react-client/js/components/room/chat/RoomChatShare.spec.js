@@ -1,41 +1,17 @@
-/* global window, it, beforeEach, describe */
-
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import RoomChatShare from './RoomChatShare.react';
+import { addNotification } from '../../../actions/NotificationActions';
+vi.mock('../../../actions/NotificationActions', () => ({ addNotification: vi.fn() }));
 
-describe('<RoomChatShare />', () => {
-  let roomChatShare;
-  beforeEach(() => {
-    roomChatShare = new RoomChatShare({ roomName: 'room' });
-    window.ga = jest.fn();
-  });
-
-  describe('constructor', () => {
-    it('should set room link', () => {
-      expect(roomChatShare.link).toEqual('jumpin.chat/room');
-    });
-  });
-
-  describe('componentWillUnmount', () => {
-    it('should destroy the clipboard', () => {
-      roomChatShare.clipboard.destroy = jest.fn();
-      roomChatShare.componentWillUnmount();
-      expect(roomChatShare.clipboard.destroy).toHaveBeenCalled();
-    });
-  });
-
-  describe('render', () => {
-    let props;
-    beforeEach(() => {
-      props = {
-        roomName: 'room',
-      };
-    });
-
-    it('should render an input with the link as a value', () => {
-      const wrapper = shallow(<RoomChatShare {...props} />);
-      expect(wrapper.find('.chat__ShareInput').props().defaultValue).toEqual('jumpin.chat/room');
-    });
+describe('room sharing', () => {
+  it('shares the room URL with the native share API', async () => {
+    const share = vi.fn().mockResolvedValue(); Object.defineProperty(navigator, 'share', { configurable: true, value: share });
+    render(<RoomChatShare roomName="friends" />); expect(screen.getByRole('textbox')).toHaveValue('jumpin.chat/friends');
+    fireEvent.click(screen.getByRole('button'));
+    expect(share).toHaveBeenCalledWith(expect.objectContaining({ url: 'https://jumpin.chat/friends' }));
+    await waitFor(() => expect(addNotification).toHaveBeenCalledWith(expect.objectContaining({ color: 'green' })));
+    delete navigator.share;
   });
 });

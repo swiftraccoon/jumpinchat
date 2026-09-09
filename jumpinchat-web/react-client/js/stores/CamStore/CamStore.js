@@ -1,5 +1,5 @@
 /* global window */
-import { EventEmitter } from 'events';
+import Store from '../Store';
 import { CamDispatcher } from '../../dispatcher/AppDispatcher';
 import * as types from '../../constants/ActionTypes';
 import { newRemoteFeed } from '../../utils/CamUtil';
@@ -12,7 +12,7 @@ import { BUSY_BROADCAST_THRESHOLD } from '../../constants/RoomConstants';
 const storageKey = 'settingsCams';
 export const PTT_SETTING_KEY = 'audioPtt';
 
-export class CamStore extends EventEmitter {
+export class CamStore extends Store {
   constructor() {
     super();
     let audioContext = null;
@@ -657,19 +657,10 @@ export class CamStore extends EventEmitter {
   }
 
   // Emit Change event
-  emitChange() {
-    this.emit('change');
-  }
 
   // Add change listener
-  addChangeListener(callback) {
-    this.on('change', callback);
-  }
 
   // Remove change listener
-  removeChangeListener(callback) {
-    this.removeListener('change', callback);
-  }
 }
 
 

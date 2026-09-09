@@ -1,48 +1,11 @@
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
 import ProfileInfo from './Info.react';
 
-describe('ProfileInfo', () => {
-  let props;
-
-  beforeEach(() => {
-    props = {
-      closeModal: jest.fn(),
-      ignoreListItem: null,
-      profile: {
-        userListId: 'foo',
-      },
-      roomOwner: null,
-      user: {
-        isAdmin: false,
-        operatorPermissions: null,
-        user_id: null,
-      },
-    };
-  });
-
-  it('should explain guest user by default', () => {
-    props.profile.handle = 'foo';
-    const wrapper = shallow(<ProfileInfo {...props} />);
-    expect(wrapper.getElement()).toMatchSnapshot();
-  });
-
-  it('should show join info if user has join and last seen data', () => {
-    props.profile.username = 'foo';
-    props.profile.userType = 'awesome';
-    props.profile.handle = 'bar';
-    props.profile.joinDate = '2019-01-01T00:00:00.000Z';
-    props.profile.lastSeen = '2019-01-01T00:00:00.000Z';
-
-    const wrapper = shallow(<ProfileInfo {...props} />);
-    expect(wrapper.getElement()).toMatchSnapshot();
-  });
-
-  it('should show user type and username', () => {
-    props.profile.username = 'foo';
-    props.profile.userType = 'awesome';
-    props.profile.handle = 'bar';
-    const wrapper = shallow(<ProfileInfo {...props} />);
-    expect(wrapper.getElement()).toMatchSnapshot();
+describe('profile identity', () => {
+  it('uses guest handle and prefers a registered username when available', () => {
+    const { container, rerender } = render(<ProfileInfo profile={{ handle: 'Guest' }} />); expect(container).toHaveTextContent('Guest is a guest user');
+    rerender(<ProfileInfo profile={{ handle: 'Handle', username: 'alice', userType: 'registered user' }} />); expect(container).toHaveTextContent('alice is a registered user');
   });
 });

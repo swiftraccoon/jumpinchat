@@ -5,3 +5,4 @@ repo_dir="$(cd "$(dirname "$0")/.." && pwd)"
 npm --prefix "$repo_dir/jumpinchat-web" test -- "$@"
 npm --prefix "$repo_dir/jumpinchat-web" run test:client
 npm --prefix "$repo_dir/jumpinchat-homepage" test
+npm --prefix "$repo_dir/jumpinchat-email" test

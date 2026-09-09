@@ -1,119 +1,45 @@
-import React, { PureComponent } from 'react';
-import PropTypes from 'prop-types';
-import TetherComponent from 'react-tether';
+import React, { forwardRef, useEffect, useId, useRef, useState } from 'react';
+import { useMergeRefs } from '@floating-ui/react';
+import FloatingLayer from './FloatingLayer.react';
 
-class Tooltip extends PureComponent {
-  static getPosition(position = '') {
-    let [vertical, horizontal = 'center'] = position.split(' ');
-
-    if (vertical === 'left' || vertical === 'right') {
-      horizontal = vertical;
-      vertical = 'middle';
-    }
-
-    return `${vertical} ${horizontal}`;
-  }
-
-  static invertPosition(position) {
-    let [vertical, horizontal] = position.split(' ');
-
-    if (vertical === 'top') {
-      vertical = 'bottom';
-    } else if (vertical === 'bottom') {
-      vertical = 'top';
-    }
-
-    if (horizontal === 'right') {
-      horizontal = 'left';
-    } else if (horizontal === 'left') {
-      horizontal = 'right';
-    }
-
-    return `${vertical} ${horizontal}`;
-  }
-
-  constructor() {
-    super();
-
-    this.handleShowTooltip = this.handleShowTooltip.bind(this);
-    this.handleHideTooltip = this.handleHideTooltip.bind(this);
-
-    this.state = {
-      visible: false,
-    };
-
-    this.defaultId = `tooltip-${Math.round(Math.random() * 1e5)}`;
-    this.visibleTimeout = null;
-  }
-
-  componentDidMount() {
-    this.target.addEventListener('mouseenter', this.handleShowTooltip, false);
-    this.target.addEventListener('mouseleave', this.handleHideTooltip, false);
-  }
-
-  componentWillUnmount() {
-    this.target.removeEventListener('mouseenter', this.handleShowTooltip);
-    this.target.removeEventListener('mouseleave', this.handleHideTooltip);
-  }
-
-  handleHideTooltip() {
-    clearTimeout(this.visibleTimeout);
-    this.setState({ visible: false });
-  }
-
-  handleShowTooltip() {
-    this.visibleTimeout = setTimeout(() => this.setState({ visible: true }), 250);
-  }
-
-  render() {
-    const { children, text, position } = this.props;
-    const { visible } = this.state;
-    const childrenProps = {
-      'aria-describedby': this.defaultId,
-      ...children.props,
-    };
-
-    const targetPosition = Tooltip.getPosition(position);
-    const attachmentPosition = Tooltip.invertPosition(targetPosition);
-
-    return (
-      <TetherComponent
-        attachment={attachmentPosition}
-        targetAttachment={targetPosition}
-        constraints={[
-          {
-            to: 'window',
-            attachment: 'together',
-            pin: true,
-          },
-        ]}
-      >
-        {React.cloneElement(children, {
-          ref: (e) => { this.target = e; },
-          ...childrenProps,
-        })}
-        {visible && (
-          <div
-            className="tooltip__Content"
-            role="tooltip"
-            id={this.defaultId}
-          >
-            {text}
-          </div>
-        )}
-      </TetherComponent>
-    );
-  }
-}
-
-Tooltip.defaultProps = {
-  position: 'top center',
-};
-
-Tooltip.propTypes = {
-  children: PropTypes.node.isRequired,
-  text: PropTypes.string.isRequired,
-  position: PropTypes.oneOf(['top', 'bottom', 'left', 'right']),
-};
+const Tooltip = forwardRef(({ children, text, position = 'top' }, ref) => {
+  const [visible, setVisible] = useState(false);
+  const timer = useRef(null);
+  const id = useId();
+  const targetRef = useMergeRefs([ref, children.props.ref]);
+  const hide = () => {
+    clearTimeout(timer.current);
+    setVisible(false);
+  };
+  const show = () => {
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setVisible(true), 250);
+  };
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const positions = {
+    top: ['bottom center', 'top center'],
+    bottom: ['top center', 'bottom center'],
+    left: ['middle right', 'middle left'],
+    right: ['middle left', 'middle right'],
+  };
+  const [attachment, targetAttachment] = positions[position.split(' ')[0]] || positions.top;
+  return (
+    <FloatingLayer attachment={attachment} targetAttachment={targetAttachment}>
+      {React.cloneElement(children, {
+        ref: targetRef,
+        'aria-describedby': visible ? id : children.props['aria-describedby'],
+        onMouseEnter: (event) => { children.props.onMouseEnter?.(event); show(); },
+        onMouseLeave: (event) => { children.props.onMouseLeave?.(event); hide(); },
+        onFocus: (event) => { children.props.onFocus?.(event); show(); },
+        onBlur: (event) => { children.props.onBlur?.(event); hide(); },
+        onKeyDown: (event) => {
+          children.props.onKeyDown?.(event);
+          if (event.key === 'Escape') hide();
+        },
+      })}
+      {visible && <div className="tooltip__Content" role="tooltip" id={id}>{text}</div>}
+    </FloatingLayer>
+  );
+});
 
 export default Tooltip;

@@ -1,5 +1,8 @@
+@use "sass:meta";
+@use "../variables";
+
 .dark {
-  @import './dropdown.dark';
+  @include meta.load-css('dropdown.dark');
 }
 
 .dropdown {
@@ -17,9 +20,9 @@
     align-items: center;
     height: 3.5rem;
     padding: 0.5rem 1em;
-    background: $offWhite;
+    background: variables.$offWhite;
     box-sizing: border-box;
-    border-bottom: 1px solid $black-08;
+    border-bottom: 1px solid variables.$black-08;
     cursor: pointer;
     user-select: none;
 
@@ -28,9 +31,9 @@
       decoration: none;
     }
 
-    color: $black-03;
+    color: variables.$black-03;
 
-    @media screen and (min-width: $bp-02) {
+    @media screen and (min-width: variables.$bp-02) {
       height: 3rem;
     }
 
@@ -39,7 +42,7 @@
     }
 
     &:hover {
-      background: $black-09;
+      background: variables.$black-09;
     }
 
     &-button {
@@ -51,16 +54,16 @@
       width: 100%;
 
       &:hover {
-        background: $black-09;
+        background: variables.$black-09;
       }
     }
 
 
     &-header,
     &-header:hover {
-      background: $black-03;
+      background: variables.$black-03;
       border-bottom: 0;
-      color: $white;
+      color: variables.$white;
       cursor: auto;
       font: {
         weight: 700;

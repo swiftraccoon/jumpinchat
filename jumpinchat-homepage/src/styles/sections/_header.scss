@@ -1,13 +1,15 @@
+@use "../utils/variables";
+
 .header {
   float: left;
   width: 100%;
   padding: 1.6rem 0;
   background: {
-    color: $color-blue-02;
+    color: variables.$color-blue-02;
   }
   line-height: 40px;
 
-  @media screen and (min-width: $bp-tablet) {
+  @media screen and (min-width: variables.$bp-tablet) {
     position: relative;
   }
 
@@ -23,7 +25,7 @@
       position: center top;
     }
 
-    @media screen and (min-width: $bp-tablet) {
+    @media screen and (min-width: variables.$bp-tablet) {
       padding: 0 0 0 50px;
       background-position: left center;
     }
@@ -33,7 +35,7 @@
       weight: 300;
     }
 
-    color: $color-white;
+    color: variables.$color-white;
     text-align: center;
 
     a {
@@ -44,7 +46,7 @@
       }
     }
 
-    @media screen and (min-width: $bp-tablet) {
+    @media screen and (min-width: variables.$bp-tablet) {
       float: left;
       margin: 0;
       font: {
@@ -60,7 +62,7 @@
     flex-direction: column;
     text-align: center;
 
-    @media screen and (min-width: $bp-tablet) {
+    @media screen and (min-width: variables.$bp-tablet) {
       display: block;
       float: right;
       text-align: inherit;
@@ -76,7 +78,7 @@
       }
     }
 
-    @media screen and (min-width: $bp-tablet) {
+    @media screen and (min-width: variables.$bp-tablet) {
       & + & {
         margin: {
           left: 1em;
@@ -97,7 +99,7 @@
     z-index: 1000;
     min-width: 125px;
     margin: 0 10px;
-    background-color: $color-white;
+    background-color: variables.$color-white;
     border-radius: 3px;
     overflow: hidden;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
@@ -106,18 +108,18 @@
   &__ProfileDropdownItem {
     display: block;
     padding: 0.45em 1em;
-    color: $color-black-03;
+    color: variables.$color-black-03;
     text-decoration: none;
     text-align: center;
     line-height: 1;
 
     &:hover {
-      color: $color-black-01;
-      background-color: $color-black-09;
+      color: variables.$color-black-01;
+      background-color: variables.$color-black-09;
     }
 
     & + & {
-      border-top: 1px solid $color-black-08;
+      border-top: 1px solid variables.$color-black-08;
     }
   }
 }

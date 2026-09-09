@@ -1,3 +1,5 @@
+@use "../utils/variables";
+
 .modal {
   position: fixed;
 
@@ -29,18 +31,18 @@
     position: relative;
     margin: 0;
     padding: 1.25rem 1rem;
-    background: $color-black-02;
+    background: variables.$color-black-02;
     border-radius: 3px 3px 0 0;
     font: {
       size: 1em;
       weight: 500;
     }
-    color: $color-white;
+    color: variables.$color-white;
   }
 
   &__Body {
     padding: 2rem 1rem;
-    background: $color-black-10;
+    background: variables.$color-black-10;
 
     a,
     a:link,
@@ -50,7 +52,7 @@
 
     a:hover,
     a:focus {
-      color: $color-blue-02;
+      color: variables.$color-blue-02;
     }
 
     &--scroll {
@@ -68,7 +70,7 @@
     display: flex;
     justify-content: space-between;
     padding: 0.5em 0;
-    background: $color-black-10;
+    background: variables.$color-black-10;
   }
 
   &__Error {
@@ -108,16 +110,16 @@
 
     padding: 0 1rem 2rem;
 
-    color: $color-black-05;
+    color: variables.$color-black-05;
     text-align: center;
 
     a, a:visited {
-      color: $color-blue-03;
+      color: variables.$color-blue-03;
     }
 
     a:hover,
     a:focus {
-      color: $color-blue-02;
+      color: variables.$color-blue-02;
     }
   }
 }

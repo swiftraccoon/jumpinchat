@@ -1,5 +1,8 @@
+@use "sass:meta";
+@use "../variables";
+
 .dark {
-  @import './privateMessages.dark';
+  @include meta.load-css('privateMessages.dark');
 }
 
 
@@ -8,7 +11,7 @@
     &__ListWrapper {
       width: 200px;
       border-right: none;
-      border-left: 1px solid $black-07;
+      border-left: 1px solid variables.$black-07;
     }
 
     &__Empty {
@@ -29,10 +32,10 @@
     flex-grow: 1;
     align-items: center;
     justify-content: center;
-    background: $white;
-    border-color: $black-07;
+    background: variables.$white;
+    border-color: variables.$black-07;
     border-right: 1px solid;
-    color: $black-05;
+    color: variables.$black-05;
     font: {
       size: 1.25em;
       weight: 400;
@@ -41,7 +44,7 @@
 
   &__ListWrapper {
     right: 0;
-    border-color: $black-07;
+    border-color: variables.$black-07;
     border-right: 1px solid;
 
     &--conversationActive {

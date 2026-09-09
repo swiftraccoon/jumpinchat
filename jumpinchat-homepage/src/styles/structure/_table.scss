@@ -1,3 +1,5 @@
+@use "../utils/variables";
+
 table {
   width: 100%;
 }
@@ -11,20 +13,20 @@ th {
     size: 0.85em;
     weight: 400;
   }
-  color: $color-black-05;
+  color: variables.$color-black-05;
   text-align: left;
 }
 
 thead {
   & > tr {
-    border-bottom: 1px solid $color-black-08;
+    border-bottom: 1px solid variables.$color-black-08;
   }
 }
 
 tbody {
   & > tr {
     & + tr {
-      border-top: 1px solid $color-black-08;
+      border-top: 1px solid variables.$color-black-08;
     }
   }
 }

@@ -132,40 +132,38 @@ function checkDomainMx(domain) {
   });
 }
 
-export function checkEmailDomain(address) {
+export async function checkEmailDomain(address) {
   const [, domain] = address.split('@');
-  return new Promise(async (resolve, reject) => {
-    try {
-      const result = await checkDomainMx(domain);
-      if (result.valid) {
-        return resolve();
-      }
-
-      const error = new Error();
-      error.name = 'InvalidEmailDomainError';
-      error.message = 'email domain does not have MX records';
-
-      const blackListItem = {
-        type: bounceTypes.PERMANENT,
-        address: `*@${domain}`,
-        domain,
-        reason: 'Invalid domain',
-        expiresAt: null,
-      };
-
-      log.warn({ address, domain }, 'email DNS check failed');
-
-      try {
-        await addBlackListItem(blackListItem);
-      } catch (err) {
-        log.fatal({ err }, 'failed to add blacklist item');
-      }
-      return reject(error);
-    } catch (err) {
-      log.error({ err }, 'error checking email domain');
-      return reject(err);
+  try {
+    const result = await checkDomainMx(domain);
+    if (result.valid) {
+      return;
     }
-  });
+
+    const error = new Error();
+    error.name = 'InvalidEmailDomainError';
+    error.message = 'email domain does not have MX records';
+
+    const blackListItem = {
+      type: bounceTypes.PERMANENT,
+      address: `*@${domain}`,
+      domain,
+      reason: 'Invalid domain',
+      expiresAt: null,
+    };
+
+    log.warn({ address, domain }, 'email DNS check failed');
+
+    try {
+      await addBlackListItem(blackListItem);
+    } catch (err) {
+      log.fatal({ err }, 'failed to add blacklist item');
+    }
+    throw error;
+  } catch (err) {
+    log.error({ err }, 'error checking email domain');
+    throw err;
+  }
 };
 
 export default { addToBlacklist, getBlacklistItem, checkEmailDomain };

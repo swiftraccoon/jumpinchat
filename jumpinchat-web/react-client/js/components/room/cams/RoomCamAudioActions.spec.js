@@ -1,57 +1,19 @@
-/* global jest, it, beforeEach, describe */
-
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import RoomCamAudioActions from './RoomCamAudioActions.react';
+import { setRemoteFeedVolume, toggleMuteRemoteStream } from '../../../actions/CamActions';
+vi.mock('../../../actions/CamActions', () => ({ setRemoteFeedVolume: vi.fn(), toggleMuteRemoteStream: vi.fn(), setFeedVolumeSlider: vi.fn() }));
+const feed = { remoteFeed: { rfid: 'feed' }, userId: 'bob', volume: 50, showVolume: true };
 
-let event;
-
-describe('<RoomCamAudioActions />', () => {
-  beforeEach(() => {
-    event = {
-      preventDefault: jest.fn(),
-      stopPropagation: jest.fn(),
-    };
+describe('remote audio control', () => {
+  it('applies volume to the selected feed and toggles mute only across zero', () => {
+    const { rerender } = render(<RoomCamAudioActions feed={feed} volume={50} />);
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '40' } }); expect(setRemoteFeedVolume).toHaveBeenCalledWith('feed', 40); expect(toggleMuteRemoteStream).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '0' } }); expect(toggleMuteRemoteStream).toHaveBeenCalledWith('bob');
+    rerender(<RoomCamAudioActions feed={{ ...feed, volume: 0 }} volume={0} />); fireEvent.change(screen.getByRole('slider'), { target: { value: '25' } }); expect(toggleMuteRemoteStream).toHaveBeenCalledTimes(2);
   });
-
-  describe('doToggleAudioMuted', () => {
-    it('should call action with feed user ID', () => {
-      const roomCamAudioActions = new RoomCamAudioActions();
-      roomCamAudioActions.setFeedVolumeSlider = jest.fn();
-      roomCamAudioActions.props = {
-        feed: {
-          userId: '123',
-          remoteFeed: { rfid: 'foo' },
-          showVolume: false,
-        },
-      };
-
-      roomCamAudioActions.doToggleAudioMuted(event);
-      expect(roomCamAudioActions.setFeedVolumeSlider).toHaveBeenCalledWith('foo', true);
-    });
-  });
-
-  describe('render', () => {
-    let props;
-    beforeEach(() => {
-      props = {
-        isLocalStream: false,
-        volume: 100,
-        feed: {
-          showVolume: false,
-        },
-      };
-    });
-
-    it('should render empty component for a localstream', () => {
-      props = { ...props, isLocalStream: true };
-      const wrapper = shallow(<RoomCamAudioActions {...props} />);
-      expect(wrapper.html()).toEqual(null);
-    });
-
-    it('should show volume enabled button if audio is enabled', () => {
-      const wrapper = shallow(<RoomCamAudioActions {...props} />);
-      expect(wrapper.find('.cams__CamAudioControls').length).toEqual(1);
-    });
+  it('does not offer remote controls on the local stream', () => {
+    render(<RoomCamAudioActions feed={feed} isLocalStream />); expect(screen.queryByRole('slider')).not.toBeInTheDocument();
   });
 });

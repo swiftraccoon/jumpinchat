@@ -1,91 +1,27 @@
-/* global window, it, beforeEach, describe */
-
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import RoomChatFeed from './RoomChatFeed.react';
+import { setScroll, setScrollFixed } from '../../../actions/ChatActions';
+vi.mock('../../../actions/ChatActions', () => ({ setScroll: vi.fn(), setScrollFixed: vi.fn() }));
+vi.mock('./RoomChatInput.react', () => ({ default: () => <input aria-label="Chat message" /> }));
+vi.mock('./RoomChatMessage.react', () => ({ default: ({ message }) => <p>{message.message}</p> }));
+const props = { roomName: 'room', users: [], messages: [{ id: '1', message: 'First message' }], fixScroll: false, emojiPickerOpen: false, emojiSearch: { results: [], selected: 0 }, customEmoji: [] };
 
-describe('<RoomChatFeed />', () => {
-  let roomChatFeed;
-  let props;
-  beforeEach(() => {
-    roomChatFeed = new RoomChatFeed();
-    props = {
-      roomName: 'foo',
-      messages: [
-        {
-          id: 'foo1',
-          message: 'foo1',
-          timestamp: new Date(),
-        },
-        {
-          id: 'foo2',
-          message: 'foo2',
-          timestamp: new Date(),
-        },
-        {
-          id: 'foo3',
-          message: 'foo3',
-          timestamp: new Date(),
-        },
-      ],
-      room: { name: 'name' },
-      currentUser: { username: 'foo', handle: 'bar' },
-      emojiPickerOpen: false,
-      fixScroll: false,
-      emojiSearch: {
-        results: [],
-        query: '',
-        selected: 0,
-      },
-    };
+describe('chat feed scrolling', () => {
+  it('follows messages at the bottom, preserves reading position, and resumes on request', async () => {
+    const { container, rerender } = render(<RoomChatFeed {...props} />); const feed = container.querySelector('.chat__Feed');
+    Object.defineProperties(feed, { scrollHeight: { configurable: true, value: 1000 }, clientHeight: { configurable: true, value: 200 } });
+    await waitFor(() => expect(feed.scrollTop).toBe(1000));
+    feed.scrollTop = 250; fireEvent.scroll(feed); expect(setScroll).toHaveBeenLastCalledWith(550);
+    rerender(<RoomChatFeed {...props} fixScroll messages={[...props.messages, { id: '2', message: 'New message' }]} />);
+    expect(screen.getByText('New message')).toBeVisible(); expect(feed.scrollTop).toBe(250);
+    fireEvent.click(screen.getByRole('button', { name: 'Resume scrolling' }));
+    expect(setScrollFixed).toHaveBeenCalledWith(false); expect(feed.scrollTop).toBe(1000);
   });
-
-  describe('shouldComponentUpdate', () => {
-    it('should return true if messages have changed', () => {
-      const wrapper = shallow(<RoomChatFeed {...props} />);
-      const newProps = {
-        ...props,
-        messages: [
-          ...props.messages,
-          {
-            id: 'foo4',
-            message: 'foo4',
-            timestamp: new Date(),
-          },
-        ],
-      };
-      expect(wrapper.instance().shouldComponentUpdate(newProps)).toEqual(true);
-    });
-
-    it('should return true if chat input value has changed', () => {
-      props.chatInputValue = 'foo';
-      const wrapper = shallow(<RoomChatFeed {...props} />);
-      const newProps = {
-        ...props,
-        chatInputValue: 'bar',
-      };
-      expect(wrapper.instance().shouldComponentUpdate(newProps)).toEqual(true);
-    });
-
-    it('should return false if no changes', () => {
-      props.chatInputValue = 'foo';
-      const wrapper = shallow(<RoomChatFeed {...props} />);
-      const newProps = {
-        ...props,
-      };
-      expect(wrapper.instance().shouldComponentUpdate(newProps)).toEqual(false);
-    });
-  });
-
-  describe('render', () => {
-    it('should have a chat input', () => {
-      const wrapper = shallow(<RoomChatFeed {...props} />);
-      expect(wrapper.find('RoomChatInput').length).toEqual(1);
-    });
-
-    it('should render messages', () => {
-      const wrapper = shallow(<RoomChatFeed {...props} />);
-      expect(wrapper.find('RoomChatMessages').exists()).toEqual(true);
-    });
+  it('retains the input while an empty feed receives its first message', () => {
+    const { rerender } = render(<RoomChatFeed {...props} messages={[]} />);
+    expect(screen.getByRole('textbox', { name: 'Chat message' })).toBeVisible();
+    rerender(<RoomChatFeed {...props} />); expect(screen.getByText('First message')).toBeVisible();
   });
 });

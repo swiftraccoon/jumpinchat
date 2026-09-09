@@ -1,9 +1,12 @@
+@use "sass:meta";
+@use "../variables";
+
 .dark {
-  @import './badge.dark';
+  @include meta.load-css('badge.dark');
 }
 
 .badge {
-  background-color: $black-05;
+  background-color: variables.$black-05;
   margin: {
     left: 0.5em;
   }
@@ -13,11 +16,11 @@
     weight: 700;
   }
   text-transform: uppercase;
-  color: $white;
+  color: variables.$white;
   border-radius: 3px;
   line-height: 1;
 
   &--blue {
-    background-color: $color-blue-02;
+    background-color: variables.$color-blue-02;
   }
 }

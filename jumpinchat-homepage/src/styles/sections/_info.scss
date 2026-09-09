@@ -1,3 +1,5 @@
+@use "../utils/variables";
+
 .info {
   padding: 6.4rem 0;
 
@@ -10,7 +12,7 @@
       }
     }
 
-    @media screen and (min-width: $bp-tablet) {
+    @media screen and (min-width: variables.$bp-tablet) {
       & + & {
         margin: {
           top: 6.4rem;

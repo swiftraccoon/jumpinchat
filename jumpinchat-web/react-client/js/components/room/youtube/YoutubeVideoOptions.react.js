@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import TetherComponent from 'react-tether';
+import FloatingLayer from '../../elements/FloatingLayer.react';
 import WrappedListItems from '../../elements/ListItems.react';
 import {
   setYoutubeVideo,
@@ -52,7 +52,7 @@ class YoutubeVideoOptions extends Component {
   render() {
     const { open } = this.props;
     return (
-      <TetherComponent
+      <FloatingLayer
         attachment="bottom center"
         constraints={[{
           to: 'scrollParent',
@@ -73,7 +73,7 @@ class YoutubeVideoOptions extends Component {
             />
           )
         }
-      </TetherComponent>
+      </FloatingLayer>
     );
   }
 }

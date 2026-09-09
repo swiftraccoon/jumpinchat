@@ -1,68 +1,22 @@
-/* global it, beforeEach, describe */
-
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { RoomUserListItem } from './RoomUserListItem.react';
+import { setHandleModal, setProfileModal } from '../../../actions/ModalActions';
+import { setNewProfile } from '../../../actions/ProfileActions';
+vi.mock('../../../actions/ModalActions', () => ({ setHandleModal: vi.fn(), setProfileModal: vi.fn() }));
+vi.mock('../../../actions/ProfileActions', () => ({ setNewProfile: vi.fn(), setIgnoreListItem: vi.fn() }));
+const user = { _id: 'bob', handle: 'Bob', roles: [], isAdmin: false, isSiteMod: false, isSupporter: false };
 
-
-describe('<RoomUserListItem />', () => {
-  let props;
-
-  beforeEach(() => {
-    props = {
-      roleState: {
-        roles: [],
-      },
-      room: {
-        attrs: {
-          owner: 'foo',
-        },
-      },
-      user: {
-        _id: '123',
-        handle: 'foo',
-        isBroadcasting: false,
-        attrs: {
-          userLevel: 0,
-        },
-        user_id: 'foo',
-        isAdmin: false,
-        isSupporter: false,
-        isSiteMod: false,
-        roles: [],
-      },
-      clientUser: {
-        _id: '321',
-        handle: 'bar',
-      },
-    };
+describe('participant selection', () => {
+  it('opens another participant profile', () => {
+    render(<RoomUserListItem user={user} clientUser={{ _id: 'me' }} roleState={{ roles: [] }} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Bob' }));
+    expect(setNewProfile).toHaveBeenCalledWith(expect.objectContaining({ handle: 'Bob', userListId: 'bob' })); expect(setProfileModal).toHaveBeenCalledWith(true);
   });
-
-  describe('handle', () => {
-    it('should show the correct user handle', () => {
-      const wrapper = shallow(<RoomUserListItem {...props} />);
-      expect(wrapper.find('.userList__UserHandle').text()).toEqual('foo');
-    });
-
-    it('should highlight the client user', () => {
-      props = { ...props, clientUser: { ...props.clientUser, _id: '123' } };
-      const wrapper = shallow(<RoomUserListItem {...props} />);
-      expect(wrapper.find('.userList__UserHandle').props().className)
-        .toEqual('userList__UserHandle userList__UserHandle-current');
-    });
-  });
-
-  describe('user icons', () => {
-    it('should show no icons for neutral state', () => {
-      const wrapper = shallow(<RoomUserListItem {...props} />);
-      expect(wrapper.find('.userList__UserIcon-broadcast').length).toEqual(0);
-      expect(wrapper.find('.userList__UserIcon-op').length).toEqual(0);
-    });
-
-    it('should show broadcast icon if user is broadcasting', () => {
-      props = { ...props, user: { ...props.user, isBroadcasting: true } };
-      const wrapper = shallow(<RoomUserListItem {...props} />);
-      expect(wrapper.find('.userList__UserIcon-broadcast').length).toEqual(1);
-    });
+  it('lets the client edit their own handle', () => {
+    render(<RoomUserListItem user={user} clientUser={user} roleState={{ roles: [] }} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Bob' })); expect(setHandleModal).toHaveBeenCalledWith(true);
+    expect(screen.getByText('Bob')).toHaveClass('userList__UserHandle-current');
   });
 });

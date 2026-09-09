@@ -1,3 +1,5 @@
+@use "../variables";
+
 .browserList {
   &__List {
     display: flex;
@@ -25,7 +27,7 @@
     &:hover,
     &:focus,
     &:active {
-      color: $color-blue-02;
+      color: variables.$color-blue-02;
     }
   }
 }

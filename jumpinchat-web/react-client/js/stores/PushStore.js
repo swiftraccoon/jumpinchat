@@ -1,11 +1,11 @@
-import { EventEmitter } from 'events';
+import Store from './Store';
 import { PushDispatcher } from '../dispatcher/AppDispatcher';
 import {
   PUSH_SET_MANAGER,
   PUSH_SET_PUBLIC_KEY,
 } from '../constants/ActionTypes';
 
-class PushStore extends EventEmitter {
+class PushStore extends Store {
   constructor(props) {
     super(props);
 
@@ -33,17 +33,8 @@ class PushStore extends EventEmitter {
     return this.state;
   }
 
-  emitChange() {
-    this.emit('change');
-  }
 
-  addChangeListener(callback) {
-    this.on('change', callback);
-  }
 
-  removeChangeListener(callback) {
-    this.removeListener('change', callback);
-  }
 }
 
 const pushStore = new PushStore();

@@ -1,57 +1,56 @@
-/**
- * Created by Zaccary on 20/06/2015.
- */
-
-import { Dispatcher } from 'flux';
+import { createStore } from 'zustand/vanilla';
 import { VIEW_ACTION } from '../constants/PayloadSources';
 
-// Create dispatcher instance
-class AppDispatcher extends Dispatcher {
+// Actions publish synchronously. Nested actions wait until every subscriber has
+// seen the current action, preserving store/saga ordering without Flux internals.
+export class AppDispatcher {
   constructor(name = 'Global dispatcher') {
-    super();
     this.name = name;
-    this.queueRunning = false;
     this.queue = [];
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`%cregistering dispatcher ${this.name}`, 'color: #1B8CB5');
-    }
+    this.queueRunning = false;
+    this.nextToken = 0;
+    this.subscriptions = new Map();
+    this.actions = createStore(() => ({ payload: null, revision: 0 }));
   }
 
-  addToQueue(action) {
-    this.queue = [
-      ...this.queue,
-      action,
-    ];
-
-    if (!this.queueRunning) {
-      this.runQueue();
-    }
+  register(callback) {
+    const token = `action-${++this.nextToken}`;
+    const unsubscribe = this.actions.subscribe(({ payload }) => callback(payload));
+    this.subscriptions.set(token, unsubscribe);
+    return token;
   }
 
-  runQueue() {
+  unregister(token) {
+    const unsubscribe = this.subscriptions.get(token);
+    if (!unsubscribe) throw new Error(`Unknown action subscription: ${token}`);
+    unsubscribe();
+    this.subscriptions.delete(token);
+  }
+
+  isDispatching() {
+    return this.queueRunning;
+  }
+
+  dispatch(payload) {
+    this.queue.push(payload);
+    if (this.queueRunning) return;
     this.queueRunning = true;
-    while (this.queue.length > 0) {
-      if (!this.isDispatching()) {
-        const action = this.queue.pop();
-        this.dispatch(action);
-        if (this.queue.length === 0) {
-          this.queueRunning = false;
-        }
+    try {
+      while (this.queue.length) {
+        const next = this.queue.shift();
+        this.actions.setState(previous => ({ payload: next, revision: previous.revision + 1 }));
       }
+    } finally {
+      this.queueRunning = false;
+      this.queue.length = 0;
     }
   }
 
   handleAction(action) {
-    if (!action.actionType) {
+    if (!action?.actionType) {
       throw new Error('Empty action.type: you likely mistyped the action.');
     }
-
-    console.log(`%cDispatching action as ${this.name}`, 'color: #1B8CB5', action);
-
-    this.addToQueue({
-      source: VIEW_ACTION,
-      action,
-    });
+    this.dispatch({ source: VIEW_ACTION, action });
   }
 }
 

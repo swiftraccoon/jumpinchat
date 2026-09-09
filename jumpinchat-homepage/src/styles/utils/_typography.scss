@@ -1,10 +1,12 @@
+@use "variables";
+
 html {
   font: {
     family: sans-serif;
     size: 8px;
   }
 
-  @media screen and (min-width: $bp-tablet) {
+  @media screen and (min-width: variables.$bp-tablet) {
     font: {
       family: "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
       size: 10px;
@@ -19,7 +21,7 @@ body {
 
   line-height: 1.5;
 
-  color: $color-black-01;
+  color: variables.$color-black-01;
 }
 
 h1, h2, h3 {
@@ -27,7 +29,7 @@ h1, h2, h3 {
     weight: 600;
   }
 
-  @media screen and (min-width: $bp-tablet) {
+  @media screen and (min-width: variables.$bp-tablet) {
     font: {
       family: 'Dosis', 'arial', sans-serif;
       weight: 600;
@@ -52,7 +54,7 @@ h3 {
 }
 
 :target {
-  color: $color-blue-02;
+  color: variables.$color-blue-02;
 }
 
 a {
@@ -60,7 +62,7 @@ a {
 
   &:hover,
   &:focus {
-    color: $color-blue-02;
+    color: variables.$color-blue-02;
   }
 }
 
@@ -68,14 +70,14 @@ a[href^="#"] {
   text-decoration: none;
   &:before {
     content: "# ";
-    color: $color-black-06;
+    color: variables.$color-black-06;
   }
 }
 
 pre,
 samp {
-  border: 1px solid $color-black-08;
-  background-color: $color-black-10;
+  border: 1px solid variables.$color-black-08;
+  background-color: variables.$color-black-10;
 }
 
 pre {
@@ -86,13 +88,13 @@ kbd {
   display: inline-block;
   margin: 0 0.1em;
   padding: 0.1em 0.6em;
-  background-color: $color-black-09;
+  background-color: variables.$color-black-09;
   font: {
     size: 0.85em;
   }
   line-height: 1.4;
-  text-shadow: 0 1px 0 $color-white;
-  border: 1px solid $color-black-06;
+  text-shadow: 0 1px 0 variables.$color-white;
+  border: 1px solid variables.$color-black-06;
   border-radius: 3px;
   box-shadow: 0 1px 0 rgba(12,13,14,0.2), 0 0 0 2px #FFF inset;
   white-space: nowrap;
@@ -108,7 +110,7 @@ abbr {
 }
 
 blockquote {
-  border-left: 3px solid $color-black-08;
+  border-left: 3px solid variables.$color-black-08;
   margin: {
     left: 1em;
   }
@@ -134,21 +136,21 @@ time {
 
 .text {
   &--sub {
-    color: $color-black-05;
+    color: variables.$color-black-05;
     font: {
       size: 0.85em;
     }
   }
 
   &--green {
-    color: $color-green-01;
+    color: variables.$color-green-01;
   }
 
   &--yellow {
-    color: $color-yellow-02;
+    color: variables.$color-yellow-02;
   }
 
   &--red {
-    color: $color-red-01;
+    color: variables.$color-red-01;
   }
 }

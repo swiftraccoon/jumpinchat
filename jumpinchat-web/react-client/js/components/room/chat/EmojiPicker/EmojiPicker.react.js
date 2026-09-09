@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import TetherComponent from 'react-tether';
+import FloatingLayer from '../../../elements/FloatingLayer.react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { withState } from '../../../../utils/withState';
 import PickerPopup from './PickerPopup.react';
@@ -19,7 +19,7 @@ const EmojiPicker = ({
     },
   },
 }) => (
-  <TetherComponent
+  <FloatingLayer
     attachment="top center"
     constraints={[{
       to: 'window',
@@ -47,7 +47,7 @@ const EmojiPicker = ({
         custom={customEmoji}
       />
     )}
-  </TetherComponent>
+  </FloatingLayer>
 );
 
 EmojiPicker.propTypes = {

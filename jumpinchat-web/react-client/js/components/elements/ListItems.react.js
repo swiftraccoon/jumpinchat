@@ -1,6 +1,6 @@
-import React, { PureComponent } from 'react';
+import React, { PureComponent, useRef } from 'react';
 import PropTypes from 'prop-types';
-import clickOutside from 'react-click-outside';
+import { useOutsideDismiss } from './FloatingLayer.react';
 
 export class ListItems extends PureComponent {
   handleClickOutside() {
@@ -73,4 +73,8 @@ ListItems.propTypes = {
   onClickOutside: PropTypes.func.isRequired,
 };
 
-export default clickOutside(ListItems);
+export default function DismissibleListItems(props) {
+  const ref = useRef(null);
+  useOutsideDismiss(ref, props.onClickOutside);
+  return <div ref={ref}><ListItems {...props} /></div>;
+}

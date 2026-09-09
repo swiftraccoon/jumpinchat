@@ -117,33 +117,31 @@ export function getRoomsByUser({ userId, sessionId, ip }) {
     .exec();
 };
 
-export function getUserByListId(userListId) {
-  return new Promise(async (resolve, reject) => {
-    let room;
-    try {
-      room = await RoomModel.findOne({ 'users._id': userListId }).exec();
-    } catch (err) {
-      return reject(err);
-    }
+export async function getUserByListId(userListId) {
+  let room;
+  try {
+    room = await RoomModel.findOne({ 'users._id': userListId }).exec();
+  } catch (err) {
+    throw err;
+  }
 
-    if (!room) {
-      const error = new Error();
-      error.name = 'NotFoundError';
-      error.message = 'Room not found';
-      return reject(error);
-    }
+  if (!room) {
+    const error = new Error();
+    error.name = 'NotFoundError';
+    error.message = 'Room not found';
+    throw error;
+  }
 
-    const user = room.users.find(u => String(userListId) === String(u._id));
+  const user = room.users.find(u => String(userListId) === String(u._id));
 
-    if (!user) {
-      const error = new Error();
-      error.name = 'NotFoundError';
-      error.message = 'Room user not found';
-      return reject(error);
-    }
+  if (!user) {
+    const error = new Error();
+    error.name = 'NotFoundError';
+    error.message = 'Room user not found';
+    throw error;
+  }
 
-    return resolve(user);
-  });
+  return user;
 };
 
 /**

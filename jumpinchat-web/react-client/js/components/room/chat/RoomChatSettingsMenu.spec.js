@@ -1,73 +1,27 @@
-/* global jest, it, describe, expect */
-
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import RoomChatSettingsMenu from './RoomChatSettingsMenu.react';
+import { setNotificationsEnabled, setTheme } from '../../../actions/UserActions';
+import * as api from '../../../utils/UserAPI';
+import { registerPushNotifications, unsubscribeFromNotifications } from '../../../utils/ServiceWorkerUtils';
+vi.mock('../../../actions/UserActions', () => ({ setNotificationsEnabled: vi.fn(), setTheme: vi.fn() }));
+vi.mock('../../../utils/UserAPI', () => ({ setNotificationsEnabled: vi.fn(), setThemeRequest: vi.fn() }));
+vi.mock('../../../utils/ServiceWorkerUtils', () => ({ registerPushNotifications: vi.fn(), unsubscribeFromNotifications: vi.fn() }));
+vi.mock('../../../utils/RoomAPI', () => ({ sendOperatorAction: vi.fn() }));
+vi.mock('../../../utils/YoutubeAPI', () => ({ setPlayYoutubeVideos: vi.fn() }));
+vi.mock('../../../actions/NotificationActions', () => ({ addNotification: vi.fn() }));
+vi.mock('../../../utils/AnalyticsUtil', () => ({ trackEvent: vi.fn() }));
+vi.mock('./RoomChatColorPicker.react', () => ({ default: () => null }));
+const props = { user: { user_id: 'account', settings: { pushNotificationsEnabled: true } }, open: true, onClick: vi.fn(), chatColors: [], playYoutubeVideos: true, darkTheme: false, roomName: 'room', layout: 'horizontal' };
 
-jest.mock('../../../actions/UserActions');
-jest.mock('../../../utils/UserAPI');
-jest.mock('../../../utils/ServiceWorkerUtils');
-jest.mock('../../../actions/NotificationActions');
-
-describe('<RoomChatSettingsMenu />', () => {
-  let props;
-  beforeEach(() => {
-    props = {
-      open: true,
-      user: {
-        user_id: 'foo',
-      },
-      onClick: jest.fn(),
-      chatColors: [],
-      playYoutubeVideos: true,
-      modOnlyPlayMedia: false,
-      darkTheme: false,
-    };
+describe('chat preferences menu', () => {
+  it('updates notification subscriptions and the persisted preference', () => {
+    const { rerender } = render(<RoomChatSettingsMenu {...props} />); fireEvent.click(screen.getByLabelText('Enable notifications'));
+    expect(unsubscribeFromNotifications).toHaveBeenCalledOnce(); expect(setNotificationsEnabled).toHaveBeenCalledWith(false); expect(api.setNotificationsEnabled).toHaveBeenCalledWith('account', false);
+    rerender(<RoomChatSettingsMenu {...props} user={{ ...props.user, settings: { pushNotificationsEnabled: false } }} />); fireEvent.click(screen.getByLabelText('Enable notifications')); expect(registerPushNotifications).toHaveBeenCalledOnce();
   });
-
-  describe('onChangeNotifications', () => {
-    it('should unsubscribe when unchecked', () => {
-      const serviceWorkerUtils = require('../../../utils/ServiceWorkerUtils');
-      const wrapper = shallow(<RoomChatSettingsMenu {...props} />);
-      wrapper.instance().onChangeNotifications({ target: { checked: false } });
-      expect(serviceWorkerUtils.unsubscribeFromNotifications).toHaveBeenCalled();
-    });
-
-    it('should subscribe when checked', () => {
-      const serviceWorkerUtils = require('../../../utils/ServiceWorkerUtils');
-      const wrapper = shallow(<RoomChatSettingsMenu {...props} />);
-      wrapper.instance().onChangeNotifications({ target: { checked: true } });
-      expect(serviceWorkerUtils.registerPushNotifications).toHaveBeenCalled();
-    });
-
-    it('should call setNotificationsEnabled action', () => {
-      const userActions = require('../../../actions/UserActions');
-      const wrapper = shallow(<RoomChatSettingsMenu {...props} />);
-      wrapper.instance().onChangeNotifications({ target: { checked: true } });
-      expect(userActions.setNotificationsEnabled).toHaveBeenCalledWith(true);
-    });
-
-    it('should call setNotificationsEnabled from user API', () => {
-      const userApi = require('../../../utils/UserAPI');
-      const wrapper = shallow(<RoomChatSettingsMenu {...props} />);
-      wrapper.instance().onChangeNotifications({ target: { checked: true } });
-      expect(userApi.setNotificationsEnabled).toHaveBeenCalledWith('foo', true);
-    });
-
-    it('should show notification', () => {
-      const notificationActions = require('../../../actions/NotificationActions');
-      const wrapper = shallow(<RoomChatSettingsMenu {...props} />);
-      wrapper.instance().onChangeNotifications({ target: { checked: true } });
-      expect(notificationActions.addNotification).toHaveBeenCalledWith({
-        color: 'blue',
-        message: 'Notifications enabled',
-      });
-
-      wrapper.instance().onChangeNotifications({ target: { checked: false } });
-      expect(notificationActions.addNotification).toHaveBeenCalledWith({
-        color: 'blue',
-        message: 'Notifications disabled',
-      });
-    });
+  it('updates the account theme from the accessible checkbox', () => {
+    render(<RoomChatSettingsMenu {...props} />); fireEvent.click(screen.getByLabelText('Enable dark theme')); expect(setTheme).toHaveBeenCalledWith(true); expect(api.setThemeRequest).toHaveBeenCalledWith('account', true);
   });
 });

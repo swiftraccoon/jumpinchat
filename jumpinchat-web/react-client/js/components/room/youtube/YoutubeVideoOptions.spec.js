@@ -1,75 +1,15 @@
-/* global window, it, beforeEach, describe */
-
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import YoutubeVideoOptions from './YoutubeVideoOptions.react';
+import { setYoutubeVideo, setYoutubeOptions } from '../../../actions/YoutubeActions';
+vi.mock('../../../actions/YoutubeActions', () => ({ setYoutubeVideo: vi.fn(), setYoutubeOptions: vi.fn() }));
 
-describe('<YoutubeVideoOptions />', () => {
-  let youtubeVideoOptions;
-  beforeEach(() => {
-    youtubeVideoOptions = new YoutubeVideoOptions();
-    window.ga = jest.fn();
-  });
-
-  describe('constructor', () => {
-    it('should set list options during construction', () => {
-      expect(youtubeVideoOptions.options).toBeDefined();
-      expect(Array.isArray(youtubeVideoOptions.options)).toEqual(true);
-    });
-  });
-
-  describe('handleCloseVideo', () => {
-    it('should set video to null', () => {
-      youtubeVideoOptions.setYoutubeVideo = jest.fn();
-      youtubeVideoOptions.handleCloseVideo();
-      expect(youtubeVideoOptions.setYoutubeVideo).toHaveBeenCalledWith(null);
-    });
-  });
-
-  describe('handleToggleOptions', () => {
-    let event;
-    beforeEach(() => {
-      event = {
-        stopPropagation: jest.fn(),
-      };
-      youtubeVideoOptions.setYoutubeOptions = jest.fn();
-    });
-
-    it('should set options to false if true', () => {
-      youtubeVideoOptions.props = { ...youtubeVideoOptions.props, open: false };
-      youtubeVideoOptions.handleToggleOptions(event);
-      expect(youtubeVideoOptions.setYoutubeOptions).toHaveBeenCalledWith(true);
-    });
-
-    it('should set options to false if true', () => {
-      youtubeVideoOptions.props = { ...youtubeVideoOptions.props, open: true };
-      youtubeVideoOptions.handleToggleOptions(event);
-      expect(youtubeVideoOptions.setYoutubeOptions).toHaveBeenCalledWith(false);
-    });
-  });
-
-  describe('createListOptions', () => {
-    it('should add a close video option', () => {
-      youtubeVideoOptions.props = {
-        onSync: jest.fn(),
-      };
-      const options = youtubeVideoOptions.createListOptions();
-      expect(options[0].text).toEqual('Hide video');
-    });
-  });
-
-  describe('render', () => {
-    let props;
-    beforeEach(() => {
-      props = {
-        open: false,
-        onSync: jest.fn(),
-      };
-    });
-
-    it('should have a toggle button', () => {
-      const wrapper = shallow(<YoutubeVideoOptions {...props} />);
-      expect(wrapper.find('.cams__OptionsTrigger').length).toEqual(1);
-    });
+describe('shared video menu', () => {
+  it('offers sync and hide in a dismissible portal', () => {
+    const sync = vi.fn(); render(<YoutubeVideoOptions open onSync={sync} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Sync video' })); expect(sync).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide video' })); expect(setYoutubeVideo).toHaveBeenCalledWith(null);
+    fireEvent.keyDown(document, { key: 'Escape' }); expect(setYoutubeOptions).toHaveBeenCalledWith(false);
   });
 });

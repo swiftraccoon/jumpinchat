@@ -1,43 +1,23 @@
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import VideoVolumeControl from './VideoVolumeControl.react';
 
-describe('<VideoVolumeControl />', () => {
-  let props;
-  beforeEach(() => {
-    props = {
-      volume: 0,
-      showControl: false,
-      onChange: jest.fn(),
-      onSetControl: jest.fn(),
-      onClickOutside: jest.fn(),
-    };
+describe('video volume', () => {
+  it('mutes and restores volume from the button', () => {
+    const change = vi.fn(); const props = { onChange: change, onSetControl: vi.fn(), showControl: false };
+    const { rerender } = render(<VideoVolumeControl {...props} volume={70} />);
+    fireEvent.click(screen.getByRole('button')); expect(change).toHaveBeenLastCalledWith(0);
+    rerender(<VideoVolumeControl {...props} volume={0} />);
+    fireEvent.click(screen.getByRole('button')); expect(change).toHaveBeenLastCalledWith(100);
   });
-
-  describe('onChangeVolume', () => {
-    it('should call onChange', () => {
-      const wrapper = shallow(<VideoVolumeControl {...props} />);
-      wrapper.instance().onChangeVolume(100);
-      expect(props.onChange).toHaveBeenCalledWith(100);
-    });
+  it('uses an accessible native slider and reports numeric values', () => {
+    const change = vi.fn(); render(<VideoVolumeControl volume={35} showControl onChange={change} onSetControl={vi.fn()} />);
+    const slider = screen.getByRole('slider', { name: 'Volume' }); expect(slider).toHaveValue('35');
+    fireEvent.change(slider, { target: { value: '64' } }); expect(change).toHaveBeenCalledWith(64);
   });
-
-  describe('render', () => {
-    it('should not show volume control if showControl is false', () => {
-      const wrapper = shallow(<VideoVolumeControl {...props} />);
-      expect(wrapper.getElement()).toMatchSnapshot();
-    });
-
-    it('should show volume control if showControl is true', () => {
-      props.showControl = true;
-      const wrapper = shallow(<VideoVolumeControl {...props} />);
-      expect(wrapper.getElement()).toMatchSnapshot();
-    });
-
-    it('should show correct icon when volume > 0', () => {
-      props.volume = 100;
-      const wrapper = shallow(<VideoVolumeControl {...props} />);
-      expect(wrapper.getElement()).toMatchSnapshot();
-    });
+  it('opens the control for keyboard focus', () => {
+    const setControl = vi.fn(); render(<VideoVolumeControl volume={35} showControl={false} onChange={vi.fn()} onSetControl={setControl} />);
+    fireEvent.focus(screen.getByRole('button')); expect(setControl).toHaveBeenCalledWith(expect.anything(), true);
   });
 });

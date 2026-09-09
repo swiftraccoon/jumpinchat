@@ -30,16 +30,10 @@ const events = {
   USER_DATA: 'self::user',
 };
 
-function getFingerprint() {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const fp = await Fingerprint.load();
-      const result = await fp.get();
-      return resolve(result.visitorId);
-    } catch (err) {
-      return reject(err);
-    }
-  });
+async function getFingerprint() {
+  const agent = await Fingerprint.load();
+  const result = await agent.get();
+  return { fp: result.visitorId, fingerprintVersion: result.version };
 }
 
 export function checkCanBroadcast(room, cb) {
@@ -103,7 +97,7 @@ export async function getSession(cb) {
   }
 
   try {
-    axios.post('/api/user/session', { fp })
+    axios.post('/api/user/session', fp || {})
       .then((response) => {
         if (response.data.user) {
           const { user } = response.data;

@@ -1,3 +1,5 @@
+@use "../utils/variables";
+
 .messages {
   &__InboxList {
     margin: {
@@ -55,10 +57,10 @@
     flex-grow: 1;
     align-items: center;
 
-    color: $color-black-07;
+    color: variables.$color-black-07;
     &:hover,
     &:focus {
-      color: $color-black-02;
+      color: variables.$color-black-02;
     }
   }
 
@@ -83,7 +85,7 @@
       right: 1em;
     }
     padding: 0.35em 1em 0.35em 0.35em;
-    background: $color-black-09;
+    background: variables.$color-black-09;
     border-radius: 0.5em;
 
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
@@ -95,7 +97,7 @@
       top: 0;
       width: 0;
       height: 0;
-      border-top: 16px solid $color-black-09;
+      border-top: 16px solid variables.$color-black-09;
       border-right: 8px solid transparent;
       border-left: 14px solid transparent;
       border-radius: 3px;
@@ -110,12 +112,12 @@
         left: 1em;
       }
 
-      background: $color-blue-05;
+      background: variables.$color-blue-05;
 
       &::before {
         right: -14px;
         left: auto;
-        border-color: $color-blue-05;
+        border-color: variables.$color-blue-05;
         border-left: 8px solid transparent;
         border-right: 14px solid transparent;
       }
@@ -180,7 +182,7 @@
     font-size: 0.85em;
     text-align: right;
     line-height: 1;
-    color: rgba($color-black-02, 0.5);
+    color: rgba(variables.$color-black-02, 0.5);
   }
 
   &__LoadMoreContainer {
@@ -195,14 +197,14 @@
     display: flex;
     justify-content: space-between;
     padding: 0.5em;
-    border: 1px solid $color-black-08;
-    background-color: $color-white;
+    border: 1px solid variables.$color-black-08;
+    background-color: variables.$color-white;
     border-radius: 3px;
     text-decoration: none;
 
     &:hover,
     &:focus {
-      background-color: $color-blue-06;
+      background-color: variables.$color-blue-06;
     }
 
     & + & {

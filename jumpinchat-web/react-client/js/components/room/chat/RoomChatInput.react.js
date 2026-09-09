@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { emojiIndex } from 'emoji-mart';
-import TetherComponent from 'react-tether';
+import { searchEmoji } from '../../../utils/emoji';
+import FloatingLayer from '../../elements/FloatingLayer.react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import { withState } from '../../../utils/withState';
@@ -39,10 +39,20 @@ export class RoomChatInput extends Component {
     this.setEmoji = this.setEmoji.bind(this);
     this.codeRegExp = /:([a-zA-Z0-9+_]{2,})$/;
 
+    this.searchGeneration = 0;
+  }
+
+  componentDidMount() {
     window.addEventListener('keydown', this.handleSelectPrevious);
   }
 
+  componentWillUnmount() {
+    this.searchGeneration += 1;
+    window.removeEventListener('keydown', this.handleSelectPrevious);
+  }
+
   setEmoji(code) {
+    this.searchGeneration += 1;
     const { value } = this.input;
     const newValue = value.replace(this.codeRegExp, code);
     this.setChatInputValue(newValue);
@@ -69,6 +79,7 @@ export class RoomChatInput extends Component {
 
     const codeMatch = value.match(this.codeRegExp) || [];
     if (!codeMatch.length) {
+      this.searchGeneration += 1;
       this.setEmojiSearch([], null);
     } else {
       this.completeEmoji(codeMatch[1]);
@@ -113,7 +124,7 @@ export class RoomChatInput extends Component {
 
       this.handleMatches = [
         ...this.handleMatches,
-        roles
+        ...roles
           .filter(({ tag }) => tag.match(new RegExp(`${actualValue}.*`)))
           .map(({ tag }) => tag),
       ];
@@ -139,15 +150,18 @@ export class RoomChatInput extends Component {
     }
   }
 
-  completeEmoji(value) {
+  async completeEmoji(value) {
+    const generation = ++this.searchGeneration;
     const { customEmoji } = this.props;
-    const customSearch = customEmoji.filter(e => e.name.indexOf(value) > -1);
-    let search = emojiIndex.search(value);
-
-    if (search.length > 20) {
-      search = search.slice(0, 40);
+    const customSearch = customEmoji.filter(emoji => emoji.name.toLowerCase().includes(value.toLowerCase()));
+    try {
+      const search = await searchEmoji(value);
+      if (generation !== this.searchGeneration) return;
+      this.setSelectedEmojiResult(0);
+      this.setEmojiSearch([...search, ...customSearch], value);
+    } catch (error) {
+      if (generation === this.searchGeneration) this.setEmojiSearch(customSearch, value);
     }
-    this.setEmojiSearch([...search, ...customSearch], value);
   }
 
   handleAutocomplete(e) {
@@ -180,7 +194,7 @@ export class RoomChatInput extends Component {
 
     const codeMatch = value.match(this.codeRegExp) || [];
 
-    if (codeMatch.length && (tab || revTab)) {
+    if (codeMatch.length && results.length && (tab || revTab)) {
       const dir = revTab ? -1 : 1;
       const start = revTab ? results.length - 1 : 0;
       const end = revTab ? 0 : results.length - 1;
@@ -188,12 +202,13 @@ export class RoomChatInput extends Component {
       return this.setSelectedEmojiResult(nextSelected);
     }
 
-    if (esc && results.length) {
+    if (esc) {
+      this.searchGeneration += 1;
       this.setEmojiSearch([], '');
     }
 
     if (enter && results.length) {
-      return this.setEmoji(results[selected].colons);
+      return this.setEmoji(results[selected]?.colons || results[0].colons);
     }
 
     return false;
@@ -213,6 +228,8 @@ export class RoomChatInput extends Component {
 
     if (message.length && user.hasChangedHandle) {
       this.sendMessage(message, room);
+      this.searchGeneration += 1;
+      this.setEmojiSearch([], '');
       this.setChatInputValue('');
     }
   }
@@ -237,7 +254,7 @@ export class RoomChatInput extends Component {
     } = this.props;
     return (
       <form className="chat__InputWrapper" onSubmit={this.doSendMessage}>
-        <TetherComponent
+        <FloatingLayer
           attachment="top center"
           constraints={[{
             to: 'scrollParent',
@@ -262,7 +279,7 @@ export class RoomChatInput extends Component {
               onSelect={({ colons }) => this.setEmoji(colons)}
             />
           )}
-        </TetherComponent>
+        </FloatingLayer>
         <EmojiPicker
           open={emojiPickerOpen}
           onToggle={() => setEmojiPicker(!emojiPickerOpen)}

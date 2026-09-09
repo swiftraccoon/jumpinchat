@@ -1,3 +1,5 @@
+@use "../variables";
+
 .dark {
   .tabs {
     &__Item {
@@ -37,7 +39,7 @@
       height: 2px;
       transform: scaleX(0);
       background: {
-        color: $color-blue-02;
+        color: variables.$color-blue-02;
       }
       transition: transform 125ms ease-out;
     }

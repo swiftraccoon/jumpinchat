@@ -1,3 +1,5 @@
+@use "../utils/variables";
+
 .pagination {
   display: flex;
   justify-content: center;
@@ -9,10 +11,10 @@
     min-width: 32px;
     height: 32px;
     padding: 0 0.25em;
-    border: 1px solid $color-black-08;
+    border: 1px solid variables.$color-black-08;
     border-radius: 2px;
     box-sizing: border-box;
-    background-color: $color-white;
+    background-color: variables.$color-white;
     line-height: 32px;
     text-decoration: none;
     text-align: center;
@@ -25,18 +27,18 @@
 
     &:hover,
     &:focus {
-      background: $color-black-09;
+      background: variables.$color-black-09;
       color: inherit;
     }
 
     &--current {
-      background-color: $color-blue-03;
-      color: $color-white;
+      background-color: variables.$color-blue-03;
+      color: variables.$color-white;
 
       &:hover,
       &:focus {
-        background: $color-blue-04;
-        color: $color-white;
+        background: variables.$color-blue-04;
+        color: variables.$color-white;
       }
     }
   }

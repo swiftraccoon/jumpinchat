@@ -1,9 +1,9 @@
 
-import { EventEmitter } from 'events';
+import Store from './Store';
 import { SessionDispatcher } from '../dispatcher/AppDispatcher';
 import * as types from '../constants/ActionTypes';
 
-class SessionStore extends EventEmitter {
+class SessionStore extends Store {
   constructor(props) {
     super(props);
 
@@ -31,17 +31,8 @@ class SessionStore extends EventEmitter {
     };
   }
 
-  emitChange() {
-    this.emit('change');
-  }
 
-  addChangeListener(callback) {
-    this.on('change', callback);
-  }
 
-  removeChangeListener(callback) {
-    this.removeListener('change', callback);
-  }
 }
 
 const sessionStore = new SessionStore();

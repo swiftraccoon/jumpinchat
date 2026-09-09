@@ -1,31 +1,33 @@
+@use "../utils/variables";
+
 .settings {
   &__Menu {
     list-style: none;
     margin: 0;
     padding: 0;
-    border: 1px solid $color-black-06;
+    border: 1px solid variables.$color-black-06;
     border-radius: 3px;
   }
 
   &__MenuItem {
     & + & {
-      border-top: 1px solid $color-black-06;
+      border-top: 1px solid variables.$color-black-06;
     }
   }
 
   &__MenuItemLink {
     display: block;
     padding: 0.25em;
-    background-color: $color-white;
-    color: $color-blue-03;
+    background-color: variables.$color-white;
+    color: variables.$color-blue-03;
     text-decoration: none;
 
     &:hover {
-      background-color: $color-black-09;
+      background-color: variables.$color-black-09;
     }
 
     &.active {
-      background-color: $color-black-09;
+      background-color: variables.$color-black-09;
     }
   }
 
@@ -59,7 +61,7 @@
     border: none;
     &:hover,
     &:focus {
-      color: $color-blue-02;
+      color: variables.$color-blue-02;
     }
   }
 
@@ -74,8 +76,8 @@
   &__Stat {
     flex-grow: 1;
     padding: 1em;
-    background-color: $color-white;
-    border: 1px solid $color-black-08;
+    background-color: variables.$color-white;
+    border: 1px solid variables.$color-black-08;
     box-sizing: border-box;
     text-align: center;
 
@@ -100,9 +102,9 @@
       top: 0.5em;
       bottom: 0.5em;
     }
-    background-color: $color-black-03;
+    background-color: variables.$color-black-03;
 
-    color: $color-white;
+    color: variables.$color-white;
 
     text-align: center;
     font: {
@@ -110,11 +112,11 @@
     }
 
     &--success {
-      background-color: $color-green-02;
+      background-color: variables.$color-green-02;
     }
 
     &--error {
-      background-color: $color-red-02;
+      background-color: variables.$color-red-02;
     }
   }
 }

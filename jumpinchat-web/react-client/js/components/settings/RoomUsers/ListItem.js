@@ -1,7 +1,7 @@
 import React, { Fragment } from 'react';
 import PropTypes from 'prop-types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import TetherComponent from 'react-tether';
+import FloatingLayer from '../../elements/FloatingLayer.react';
 import RoleDropdown from './RoleDropdown';
 
 const RoomUsersListItem = ({
@@ -17,7 +17,7 @@ const RoomUsersListItem = ({
       <span className="roomUserSettings__ListItemTitle">
         {enrollment.username}
       </span>
-      <TetherComponent
+      <FloatingLayer
         attachment="top center"
         constraints={[
           {
@@ -59,7 +59,7 @@ const RoomUsersListItem = ({
             onRemoveRole={enrollmentId => onRemoveRole(enrollmentId)}
           />
         )}
-      </TetherComponent>
+      </FloatingLayer>
     </div>
   </li>
 );

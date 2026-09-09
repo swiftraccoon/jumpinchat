@@ -1,3 +1,5 @@
+@use "../variables";
+
 .switch {
   &__Wrapper {
     display: flex;
@@ -12,7 +14,7 @@
     user-select: none;
 
     &--disabled {
-      color: $black-05;
+      color: variables.$black-05;
     }
 
     .jic-checkbox {
@@ -33,9 +35,9 @@
       left: 1em;
     }
     border: 0;
-    border-radius: ($height/2);
+    border-radius: ($height*0.5);
     outline: none;
-    background-color: $black-05;
+    background-color: variables.$black-05;
 
     &:after {
       content: "";
@@ -47,25 +49,25 @@
       height: $switch-height;
       transform: translateX(0);
       box-sizing: border-box;
-      background-color: $white;
+      background-color: variables.$white;
       border-radius: $height;
       transition: all 125ms ease-out;
     }
 
     &:disabled {
       cursor: not-allowed;
-      background: $black-06;
+      background: variables.$black-06;
       &:after {
-        background: $black-04;
+        background: variables.$black-04;
       }
     }
 
     &:focus {
-      box-shadow: 0 0 3px 2px $color-blue-03, 0 0 0 1px $white;
+      box-shadow: 0 0 3px 2px variables.$color-blue-03, 0 0 0 1px variables.$white;
     }
 
     &--checked {
-      background-color: $color-blue-02;
+      background-color: variables.$color-blue-02;
       &:after {
         left: calc(100% - #{$switch-padding});
         transform: translateX(-100%);
@@ -96,19 +98,19 @@
 .dark {
   .switch {
     &__Input {
-      background-color: $color-light4;
+      background-color: variables.$color-light4;
       &:after {
-        background-color: $color-light0;
+        background-color: variables.$color-light0;
       }
 
       &--checked {
-        background-color: $theme-blue;
+        background-color: variables.$theme-blue;
       }
 
       &:disabled {
-        background-color: $color-dark4;
+        background-color: variables.$color-dark4;
         &:after {
-          background-color: $color-dark3;
+          background-color: variables.$color-dark3;
         }
       }
     }

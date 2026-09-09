@@ -1,101 +1,103 @@
+@use "../variables";
+
 .chat {
   background: {
-    color: $color-dark0;
+    color: variables.$color-dark0;
   }
 
   &__Header {
     background: {
-      color: $color-dark2;
+      color: variables.$color-dark2;
     }
   }
 
   &__FeedWrapper {
     background: {
-      color: $color-dark1;
+      color: variables.$color-dark1;
     }
   }
 
   &__Feed {
     border: {
-      color: $color-dark2;
+      color: variables.$color-dark2;
     }
   }
 
   &__Message {
     &.redlt {
-      color: $theme-bright-red;
+      color: variables.$theme-bright-red;
     }
 
     &.greenalt {
-      color: $theme-bright-green;
+      color: variables.$theme-bright-green;
     }
 
     &.yellowalt {
-      color: $theme-bright-yellow;
+      color: variables.$theme-bright-yellow;
     }
 
     &.bluealt {
-      color: $theme-bright-blue;
+      color: variables.$theme-bright-blue;
     }
 
     &.purplealt {
-      color: $theme-bright-purple;
+      color: variables.$theme-bright-purple;
     }
 
     &.aquaalt {
-      color: $theme-bright-aqua;
+      color: variables.$theme-bright-aqua;
     }
 
     &.orangealt {
-      color: $theme-bright-orange;
+      color: variables.$theme-bright-orange;
     }
   }
 
   &__MessageBody {
     &-status {
-      color: $color-light0;
+      color: variables.$color-light0;
     }
 
     &-info {
-      color: $color-blue-03;
+      color: variables.$color-blue-03;
     }
 
     &-success {
-      color: $green-01;
+      color: variables.$green-01;
     }
 
     &-alert {
-      color: $orange-02;
+      color: variables.$orange-02;
     }
 
     &-warning {
-      color: $red-01;
+      color: variables.$red-01;
     }
 
     &-error {
-      color: $red-01;
+      color: variables.$red-01;
     }
   }
 
   &__MessageTimestamp {
-    color: $color-light4;
+    color: variables.$color-light4;
   }
 
   &__Message:hover .chat__MessageTimestamp {
-    color: $color-light2;
+    color: variables.$color-light2;
   }
 
   &__InputWrapper {
     border: {
-      color: $color-dark3;
+      color: variables.$color-dark3;
     }
 
     &:focus-within {
-      border-color: $color-dark4;
+      border-color: variables.$color-dark4;
     }
 
     background: {
-      color: $color-dark2;
+      color: variables.$color-dark2;
     }
   }
 
@@ -105,59 +107,59 @@
     }
 
     &::placeholder {
-      color: $color-light4;
+      color: variables.$color-light4;
     }
   }
 
   &__InputAction {
     border: {
-      color: $color-dark2;
+      color: variables.$color-dark2;
     }
 
     &.button {
-      color: $color-blue-03;
+      color: variables.$color-blue-03;
 
       &:hover {
-        color: $color-blue-04;
+        color: variables.$color-blue-04;
       }
     }
   }
 
   &__ShareCopy {
-    background-color: $color-light4;
+    background-color: variables.$color-light4;
 
     &:hover {
-      background-color: $color-light3;
+      background-color: variables.$color-light3;
     }
   }
 
   &__Color {
     &-redalt {
-      background-color: $theme-bright-red;
+      background-color: variables.$theme-bright-red;
     }
 
     &-greenalt {
-      background-color: $theme-bright-green;
+      background-color: variables.$theme-bright-green;
     }
 
     &-yellowalt {
-      background-color: $theme-bright-yellow;
+      background-color: variables.$theme-bright-yellow;
     }
 
     &-bluealt {
-      background-color: $theme-bright-blue;
+      background-color: variables.$theme-bright-blue;
     }
 
     &-purplealt {
-      background-color: $theme-bright-purple;
+      background-color: variables.$theme-bright-purple;
     }
 
     &-aquaalt {
-      background-color: $theme-bright-aqua;
+      background-color: variables.$theme-bright-aqua;
     }
 
     &-orangealt {
-      background-color: $theme-bright-orange;
+      background-color: variables.$theme-bright-orange;
     }
   }
 }

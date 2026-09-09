@@ -71,7 +71,7 @@ export default async function register(req, res) {
 
     const username = validatedUser.username.toLowerCase();
     const ip = getRemoteIpFromReq(req);
-    const { fingerprint } = req.session;
+    const { fingerprint, fingerprintVersion } = req.session;
 
     log.debug({ username, ip }, 'register user');
 
@@ -86,6 +86,7 @@ export default async function register(req, res) {
           settings: validatedUser.settings,
           ip,
           fingerprint,
+          fingerprintVersion: fingerprintVersion === 'legacy' ? undefined : fingerprintVersion,
         },
         validateStatus: () => true,
       });

@@ -99,14 +99,13 @@ app.use((req, res) => {
 
 // Error handler
 app.use((err, req, res, next) => {
-  let title;
   let message;
   if (err instanceof Error) {
     message = err.message;
   }
   res.status(500).render('errors/500', {
     err,
-    errorTitle: title,
+    errorTitle: undefined,
     errorMsg: message,
   });
 });

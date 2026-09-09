@@ -1,24 +1,16 @@
-import $ from 'jquery';
 import Fingerprint from '@fingerprintjs/fingerprintjs';
 
-function getFingerprint() {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const fp = await Fingerprint.load();
-      const result = await fp.get();
-      return resolve(result.visitorId);
-    } catch (err) {
-      return reject(err);
-    }
-  });
+export async function getFingerprint() {
+  const agent = await Fingerprint.load();
+  const result = await agent.get();
+  return { fp: result.visitorId, fingerprintVersion: result.version };
 }
 
-
 window.genFp = async () => {
-  const fp = await getFingerprint();
-  $.ajax({
-    method: 'post',
-    url: '/session/register',
-    data: { fp },
+  const identity = await getFingerprint();
+  return fetch('/session/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(identity),
   });
 };

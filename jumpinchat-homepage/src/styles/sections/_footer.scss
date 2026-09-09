@@ -1,8 +1,10 @@
+@use "../utils/variables";
+
 .footer {
   padding: 3.2rem 0;
 
   &__Wrapper {
-    @media screen and (min-width: $bp-tablet) {
+    @media screen and (min-width: variables.$bp-tablet) {
       display: flex;
       justify-content: space-between;
     }
@@ -24,7 +26,7 @@
       }
     }
 
-    @media screen and (min-width: $bp-tablet) {
+    @media screen and (min-width: variables.$bp-tablet) {
       width: auto;
       text-align: left;
 
@@ -41,7 +43,7 @@
     width: 100%;
     color: inherit;
 
-    @media screen and (min-width: $bp-tablet) {
+    @media screen and (min-width: variables.$bp-tablet) {
       width: auto;
 
       & + & {
@@ -53,7 +55,7 @@
 
 
     &:hover {
-      color: $color-blue-03;
+      color: variables.$color-blue-03;
     }
 
     &-social {
@@ -61,7 +63,7 @@
       width: 21px;
       height: 21px;
       padding: 0.25em;
-      border: 1px solid $color-white;
+      border: 1px solid variables.$color-white;
       border-radius: 50%;
       line-height: 21px;
       text-align: center;
@@ -82,7 +84,7 @@
       size: 0.85em;
     }
 
-    color: $color-black-05;
+    color: variables.$color-black-05;
   }
 
   &__Logo {

@@ -1,52 +1,54 @@
+@use "../variables";
+
 .dark {
   .settings {
-    --border: #{$color-dark0};
-    --menu-bg: #{$color-dark1};
+    --border: #{variables.$color-dark0};
+    --menu-bg: #{variables.$color-dark1};
     --menu-item-hover: #{rgba(255,255,255,0.15)};
-    --control-bg: #{$color-dark3};
-    --control-selected: #{$color-light0};
-    --control-selected-bg: #{$color-blue-02};
-    --chat-preview-bg: #{$color-dark2};
+    --control-bg: #{variables.$color-dark3};
+    --control-selected: #{variables.$color-light0};
+    --control-selected-bg: #{variables.$color-blue-02};
+    --chat-preview-bg: #{variables.$color-dark2};
     &__Color {
       &-redalt {
-        background-color: $theme-bright-red;
+        background-color: variables.$theme-bright-red;
       }
 
       &-greenalt {
-        background-color: $theme-bright-green;
+        background-color: variables.$theme-bright-green;
       }
 
       &-yellowalt {
-        background-color: $theme-bright-yellow;
+        background-color: variables.$theme-bright-yellow;
       }
 
       &-bluealt {
-        background-color: $theme-bright-blue;
+        background-color: variables.$theme-bright-blue;
       }
 
       &-purplealt {
-        background-color: $theme-bright-purple;
+        background-color: variables.$theme-bright-purple;
       }
 
       &-aquaalt {
-        background-color: $theme-bright-aqua;
+        background-color: variables.$theme-bright-aqua;
       }
 
       &-orangealt {
-        background-color: $theme-bright-orange;
+        background-color: variables.$theme-bright-orange;
       }
     }
   }
 }
 
 .settings {
-  --border: #{$black-08};
-  --menu-bg: #{$black-08};
+  --border: #{variables.$black-08};
+  --menu-bg: #{variables.$black-08};
   --menu-item-hover: #{rgba(0,0,0,0.15)};
-  --control-bg: #{$white};
-  --control-selected: #{$color-light0};
-  --control-selected-bg: #{$color-blue-02};
-  --chat-preview-bg: #{$white};
+  --control-bg: #{variables.$white};
+  --control-selected: #{variables.$color-light0};
+  --control-selected-bg: #{variables.$color-blue-02};
+  --chat-preview-bg: #{variables.$white};
 
   font: {
     size: 1.4rem;
@@ -61,7 +63,7 @@
     overflow: hidden;
     outline: none;
 
-    @media screen and (min-width: $bp-02) and (min-height: $bp-height-01) {
+    @media screen and (min-width: variables.$bp-02) and (min-height: variables.$bp-height-01) {
       width: 90%;
       height: 90vh;
     }
@@ -125,7 +127,7 @@
     position: absolute;
     top: 1em;
     left: 1em;
-    @media screen and (min-width: $bp-02) and (min-height: $bp-height-01) {
+    @media screen and (min-width: variables.$bp-02) and (min-height: variables.$bp-height-01) {
       display: none;
     }
   }
@@ -178,7 +180,7 @@
     height: 100%;
     background-color: rgba(0,0,0,0.5);
 
-    @media screen and (min-width: $bp-02) and (min-height: $bp-height-01) {
+    @media screen and (min-width: variables.$bp-02) and (min-height: variables.$bp-height-01) {
       display: none;
     }
   }
@@ -199,7 +201,7 @@
       transform: translate3d(0, 0, 0);
     }
 
-    @media screen and (min-width: $bp-02) and (min-height: $bp-height-01) {
+    @media screen and (min-width: variables.$bp-02) and (min-height: variables.$bp-height-01) {
       position: static;
       transform: translate3d(0, 0, 0);
     }
@@ -254,7 +256,7 @@
 
     overflow-y: auto;
 
-    @media screen and (min-width: $bp-02) and (min-height: $bp-height-01) {
+    @media screen and (min-width: variables.$bp-02) and (min-height: variables.$bp-height-01) {
       margin: {
         right: calc(42px + 1em);
       }
@@ -346,7 +348,7 @@
     box-sizing: border-box;
     width: $dimensions;
     height: $dimensions;
-    border: 1px solid $black-04;
+    border: 1px solid variables.$black-04;
     border-radius: 0;
 
     &:hover,
@@ -358,7 +360,7 @@
         top: 0;
         width: 100%;
         height: 100%;
-        background: rgba($white, 0.15);
+        background: rgba(variables.$white, 0.15);
       }
     }
 
@@ -368,66 +370,66 @@
 
     &-active {
       border: {
-        bottom: 3px solid $color-blue-03;
+        bottom: 3px solid variables.$color-blue-03;
       }
     }
   }
 
   &__Color {
     &-red {
-      background-color: $theme-red;
+      background-color: variables.$theme-red;
     }
 
     &-green {
-      background-color: $theme-green;
+      background-color: variables.$theme-green;
     }
 
     &-yellow {
-      background-color: $theme-yellow;
+      background-color: variables.$theme-yellow;
     }
 
     &-blue {
-      background-color: $theme-blue;
+      background-color: variables.$theme-blue;
     }
 
     &-purple {
-      background-color: $theme-purple;
+      background-color: variables.$theme-purple;
     }
 
     &-aqua {
-      background-color: $theme-aqua;
+      background-color: variables.$theme-aqua;
     }
 
     &-orange {
-      background-color: $theme-orange;
+      background-color: variables.$theme-orange;
     }
 
     &-redalt {
-      background-color: $theme-faded-red;
+      background-color: variables.$theme-faded-red;
     }
 
     &-greenalt {
-      background-color: $theme-faded-green;
+      background-color: variables.$theme-faded-green;
     }
 
     &-yellowalt {
-      background-color: $theme-faded-yellow;
+      background-color: variables.$theme-faded-yellow;
     }
 
     &-bluealt {
-      background-color: $theme-faded-blue;
+      background-color: variables.$theme-faded-blue;
     }
 
     &-purplealt {
-      background-color: $theme-faded-purple;
+      background-color: variables.$theme-faded-purple;
     }
 
     &-aquaalt {
-      background-color: $theme-faded-aqua;
+      background-color: variables.$theme-faded-aqua;
     }
 
     &-orangealt {
-      background-color: $theme-faded-orange;
+      background-color: variables.$theme-faded-orange;
     }
   }
 

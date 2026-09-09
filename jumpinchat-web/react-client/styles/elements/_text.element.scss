@@ -1,29 +1,38 @@
+@use "../variables";
+
 .text {
   &-sub {
     font: {
       size: 1.2rem;
     }
 
-    color: $black-04;
+    color: variables.$black-04;
   }
 
   &-red {
-    color: $red-01;
+    color: variables.$red-01;
   }
 }
 
 .dark {
   .text {
     &-sub {
-      color: $color-light4;
+      color: variables.$color-light4;
     }
 
     &-red {
       display: inline-block;
-      background-color: $red-01;
-      color: $color-light0;
+      background-color: variables.$red-01;
+      color: variables.$color-light0;
       border-radius: 2px;
       padding: 2px 4px;
     }
   }
+}
+
+.text-clamp-two {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }

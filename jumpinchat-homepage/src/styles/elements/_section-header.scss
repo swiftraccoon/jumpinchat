@@ -1,3 +1,5 @@
+@use "../utils/variables";
+
 .section-header {
   font: {
     size: 2em;
@@ -5,6 +7,6 @@
   text-align: center;
 
   &.white {
-    color: $color-white;
+    color: variables.$color-white;
   }
 }

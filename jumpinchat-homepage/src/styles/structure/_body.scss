@@ -1,6 +1,8 @@
+@use "../utils/variables";
+
 html, body {
 	height: 100%;
 }
 body {
-	background-color: $color-black-10;
+	background-color: variables.$color-black-10;
 }

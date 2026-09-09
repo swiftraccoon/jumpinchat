@@ -1,8 +1,10 @@
+@use "../variables";
+
 
 .roomHeader {
-  background-color: $theme-blue;
+  background-color: variables.$theme-blue;
 
   &__LogoText {
-    color: $color-light0-soft;
+    color: variables.$color-light0-soft;
   }
 }

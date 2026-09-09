@@ -1,12 +1,12 @@
-import { EventEmitter } from 'events';
-import { set as lodashSet } from 'lodash';
+import Store from './Store';
+import lodashSet from 'lodash/set.js';
 import { get, set } from '../utils/localStorage';
 import { ApplicationDispatcher } from '../dispatcher/AppDispatcher';
 import * as actionTypes from '../constants/ActionTypes';
 import { layouts } from '../constants/RoomConstants';
 
 const storageKey = 'settingsApp';
-export class AppStore extends EventEmitter {
+export class AppStore extends Store {
   constructor() {
     super();
     const state = get(storageKey);
@@ -56,19 +56,10 @@ export class AppStore extends EventEmitter {
   }
 
   // Emit Change event
-  emitChange() {
-    this.emit('change');
-  }
 
   // Add change listener
-  addChangeListener(callback) {
-    this.on('change', callback);
-  }
 
   // Remove change listener
-  removeChangeListener(callback) {
-    this.removeListener('change', callback);
-  }
 }
 
 const appStore = new AppStore();

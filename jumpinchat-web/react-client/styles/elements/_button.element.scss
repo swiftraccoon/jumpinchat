@@ -1,5 +1,8 @@
+@use "sass:meta";
+@use "../variables";
+
 .dark {
-  @import './button.dark';
+  @include meta.load-css('button.dark');
 }
 
 button {
@@ -49,7 +52,7 @@ button {
     weight: 700;
   }
 
-  @media screen and (min-width: $bp-02) and (min-height: $bp-height-01) {
+  @media screen and (min-width: variables.$bp-02) and (min-height: variables.$bp-height-01) {
     padding: {
       right: 1rem;
       left: 1rem;
@@ -82,7 +85,7 @@ button {
     text-decoration: none;
     box-shadow: 0 -1px rgba(0, 0, 0, 0.5) inset;
 
-    @media screen and (min-width: $bp-02) and (min-height: $bp-height-01) {
+    @media screen and (min-width: variables.$bp-02) and (min-height: variables.$bp-height-01) {
       padding: {
         right: 1em;
         left: 1em;
@@ -112,35 +115,35 @@ button {
   }
 
   &-default {
-    background: $black-07;
+    background: variables.$black-07;
     border-radius: 3px;
     box-shadow: 0 -1px rgba(0, 0, 0, 0.5) inset;
-    color: $black-02;
+    color: variables.$black-02;
 
     &:hover {
-      background: $black-09;
+      background: variables.$black-09;
     }
   }
 
   &-clear {
-    color: $black-05;
+    color: variables.$black-05;
 
     &:hover {
-      color: $color-blue-03;
+      color: variables.$color-blue-03;
     }
   }
 
   &-white {
-    background: $white;
+    background: variables.$white;
 
     &:visited,
     &:link {
-      color: $black-02;
+      color: variables.$black-02;
     }
 
     &:hover,
     &:disabled {
-      background: $black-09;
+      background: variables.$black-09;
     }
   }
 
@@ -149,21 +152,21 @@ button {
       right: 0.25em;
       left: 0.25em;
     }
-    border: 1px solid $white;
+    border: 1px solid variables.$white;
     box-shadow: none;
-    color: $white;
+    color: variables.$white;
 
     &:hover:not(:disabled),
     &:focus:not(:disabled) {
-      background: $white;
-      color: $black-04;
+      background: variables.$white;
+      color: variables.$black-04;
     }
 
     &:disabled {
-      border-color: rgba($white, 0.5);
+      border-color: rgba(variables.$white, 0.5);
     }
 
-    @media screen and (min-width: $bp-02) and (min-height: $bp-height-01) {
+    @media screen and (min-width: variables.$bp-02) and (min-height: variables.$bp-height-01) {
       padding: {
         right: 1rem;
         left: 1rem;
@@ -172,66 +175,66 @@ button {
   }
 
   &-outlineBlack {
-    border: 1px solid $black-02;
+    border: 1px solid variables.$black-02;
     box-shadow: none;
-    color: $black-02;
+    color: variables.$black-02;
 
     &:hover,
     &:focus {
-      background: rgba($black-02, 0.25);
-      color: $black-02;
+      background: rgba(variables.$black-02, 0.25);
+      color: variables.$black-02;
     }
   }
 
   &-blue {
-    background: $color-blue-03;
-    color: $white;
+    background: variables.$color-blue-03;
+    color: variables.$white;
 
     &:hover {
-      background: $color-blue-04;
+      background: variables.$color-blue-04;
     }
 
     &:disabled {
-      background: $color-blue-05;
+      background: variables.$color-blue-05;
     }
   }
 
   &-green {
-    background: $green-02;
-    color: $white;
+    background: variables.$green-02;
+    color: variables.$white;
 
     &:hover {
-      background-color: $green-03;
+      background-color: variables.$green-03;
     }
 
     &:disabled {
-      background-color: $green-04;
+      background-color: variables.$green-04;
     }
   }
 
   &-black {
-    background: $black-01;
-    color: $white;
+    background: variables.$black-01;
+    color: variables.$white;
 
     &:hover {
-      background: $black-03;
+      background: variables.$black-03;
     }
 
     &:disabled {
-      background: $black-03;
+      background: variables.$black-03;
     }
   }
 
   &-red {
-    background: $red-02;
-    color: $white;
+    background: variables.$red-02;
+    color: variables.$white;
 
     &:hover {
-      background: $red-03;
+      background: variables.$red-03;
     }
 
     &:disabled {
-      background: $red-03;
+      background: variables.$red-03;
     }
   }
 
@@ -244,7 +247,7 @@ button {
       width: 100%;
       height: 100%;
       opacity: 0.25;
-      background: linear-gradient(90deg, transparent, $white, transparent);
+      background: linear-gradient(90deg, transparent, variables.$white, transparent);
       transform: translate3d(100%, 0, 0);
       animation: 2s linear 500ms highlight infinite;
     }
@@ -252,17 +255,17 @@ button {
 
   &--text {
     background-color: transparent;
-    color: $black-10;
+    color: variables.$black-10;
     box-shadow: none;
     font: {
       weight: 700;
     }
-    text-shadow: 0 1px $black-02;
+    text-shadow: 0 1px variables.$black-02;
 
     &:hover,
     &:focus {
-      color: $black-10;
-      background-color: rgba($black-10, 0.25);
+      color: variables.$black-10;
+      background-color: rgba(variables.$black-10, 0.25);
     }
   }
 

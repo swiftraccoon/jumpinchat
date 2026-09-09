@@ -1,10 +1,12 @@
+@use "../utils/variables";
+
 .banner {
   padding: 1em 1.5em;
   border-radius: 4px;
   font-weight: 600;
 
   &--warning {
-    background-color: $color-yellow-03;
-    text-shadow: 0 1px $color-yellow-05;
+    background-color: variables.$color-yellow-03;
+    text-shadow: 0 1px variables.$color-yellow-05;
   }
 }

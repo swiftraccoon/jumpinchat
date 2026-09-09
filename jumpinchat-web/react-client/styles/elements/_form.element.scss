@@ -1,3 +1,5 @@
+@use "../variables";
+
 .form {
 
   &-inline {
@@ -12,8 +14,8 @@
   &__Input {
     width: 100%;
     box-sizing: border-box;
-    border: 1px solid $black-07;
-    color: $black-02;
+    border: 1px solid variables.$black-07;
+    color: variables.$black-02;
 
     &-inline {
       flex-grow: 1;
@@ -23,7 +25,7 @@
     }
 
     &-floating {
-      border-right: 1px solid $black-07;
+      border-right: 1px solid variables.$black-07;
       border-radius: 2px;
     }
 
@@ -81,6 +83,6 @@
       top: 0.5em;
     }
 
-    color: $black-04;
+    color: variables.$black-04;
   }
 }

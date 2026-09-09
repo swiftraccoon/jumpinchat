@@ -119,11 +119,24 @@ describe('Private message controller', () => {
     });
   });
 
-  xit('should return socket ID if socket ID not already in cache', (done) => {
-    done();
-  });
-
-  xit('should return socket ID if socket ID not already in cache and sending to registered user', (done) => {
-    done();
-  });
+  for (const registered of [false, true]) {
+    it(`returns the ${registered ? 'registered user' : 'guest'} socket after a cache miss`, async () => {
+      const lookupUser = sinon.stub().yields(null, mockUserData);
+      const controller = await esmock('../../controllers/room.privateMessage.js', {
+        '../../room.utils.js': {
+          ...roomUtilsStubs,
+          getSocketIdFromListId: sinon.stub().yields(null, null),
+          getSocketIdFromRoom: sinon.stub().yields(null, {
+            socketId: 'recovered-socket', userId: registered ? 'account-id' : undefined,
+          }),
+        },
+        '../../../user/user.utils.js': { getUserById: lookupUser },
+      });
+      const socket = await new Promise((resolve, reject) => controller('room', 'sender', 'target',
+        (err, id) => err ? reject(err) : resolve(id)));
+      expect(socket).to.equal('recovered-socket');
+      expect(lookupUser.called).to.equal(registered);
+      if (registered) expect(lookupUser.firstCall.args[0]).to.equal('account-id');
+    });
+  }
 });

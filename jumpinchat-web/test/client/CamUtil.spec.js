@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { transformSync } from '@babel/core';
+import { transformSync } from 'esbuild';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import createMediaRecovery from '../../react-client/js/utils/mediaRecovery.js';
@@ -9,9 +9,9 @@ import createMediaRecovery from '../../react-client/js/utils/mediaRecovery.js';
 // No Enzyme adapter or browser bundle is needed for these callback contracts.
 const source = fs.readFileSync(new URL('../../react-client/js/utils/CamUtil.js', import.meta.url), 'utf8');
 const { code } = transformSync(source, {
-  babelrc: false,
-  configFile: false,
-  presets: [['@babel/preset-env', { targets: { node: '22' } }]],
+  loader: 'js',
+  format: 'cjs',
+  target: 'node24',
 });
 
 describe('camera failure handling', () => {
@@ -64,6 +64,7 @@ describe('camera failure handling', () => {
     };
     const module = { exports: {} };
     vm.runInNewContext(code, {
+      module,
       exports: module.exports,
       require(name) {
         if (!(name in mocks)) throw new Error(`Unmocked dependency: ${name}`);
@@ -77,7 +78,7 @@ describe('camera failure handling', () => {
     client = module.exports;
     await new Promise(resolve => client.init(1, 'test', 'user', resolve));
   });
-  afterEach(() => client.destroy());
+  afterEach(() => client?.destroy());
 
   for (const name of ['NotAllowedError', 'NotReadableError', 'UnknownError']) {
     it(`cleans up ${name} and permits another broadcast attempt`, () => {

@@ -1,5 +1,8 @@
+@use "sass:meta";
+@use "../variables";
+
 .dark {
-  @import './modal.dark';
+  @include meta.load-css('modal.dark');
 }
 
 .modal {
@@ -17,7 +20,7 @@
 
   background: rgba(0, 0, 0, 0.5);
 
-  --bg-color: #{$offWhite};
+  --bg-color: #{variables.$offWhite};
 
   &__Window {
     display: flex;
@@ -31,13 +34,13 @@
   &__Header {
     position: relative;
     padding: 1.25rem 1rem;
-    background: $black-02;
+    background: variables.$black-02;
     border-radius: 3px 3px 0 0;
     font: {
       size: 1em;
       weight: 700;
     }
-    color: $white;
+    color: variables.$white;
   }
 
   &__Body {
@@ -52,7 +55,7 @@
 
     a:hover,
     a:focus {
-      color: $color-blue-02;
+      color: variables.$color-blue-02;
     }
 
     &--scroll {
@@ -78,7 +81,7 @@
     justify-content: space-between;
     flex-direction: row-reverse;
     padding: 0.5em;
-    background: $offWhite;
+    background: variables.$offWhite;
   }
 
   &__Error {
@@ -126,16 +129,16 @@
 
     padding: 0 1rem 2rem;
 
-    color: $black-05;
+    color: variables.$black-05;
     text-align: center;
 
     a, a:visited {
-      color: $color-blue-03;
+      color: variables.$color-blue-03;
     }
 
     a:hover,
     a:focus {
-      color: $color-blue-02;
+      color: variables.$color-blue-02;
     }
   }
 

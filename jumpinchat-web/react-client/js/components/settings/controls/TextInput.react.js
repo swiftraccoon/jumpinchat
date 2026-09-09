@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 
@@ -6,8 +6,8 @@ const TextInput = React.forwardRef(({
   className = '',
   label,
   subTitle = null,
-  value = null,
-  defaultValue = null,
+  value,
+  defaultValue,
   onSubmit = null,
   onChange = () => {},
   changed = false,
@@ -15,12 +15,15 @@ const TextInput = React.forwardRef(({
   success = false,
   buttonLabel,
   id,
-}, ref) => (
+}, ref) => {
+  const generatedId = useId();
+  const inputId = id || generatedId;
+  return (
   <div className={classNames('settings__TextInputGroup', className)}>
     <div className="settings__TextInputLabelWrapper">
       <label
         className="settings__Title settings__TextInputLabel"
-        htmlFor={id}
+        htmlFor={inputId}
       >
         {label}
       </label>
@@ -30,13 +33,12 @@ const TextInput = React.forwardRef(({
     </div>
     <div className="settings__TextInputWrapper">
       <input
-        id={id}
+        id={inputId}
         className={classNames('input form__Input', 'settings__TextInput', {
           'settings__TextInput--button': Boolean(onSubmit),
         })}
         type="text"
-        value={value}
-        defaultValue={defaultValue}
+        {...(value !== undefined && value !== null ? { value } : { defaultValue: defaultValue ?? '' })}
         ref={ref}
         onChange={onChange}
       />
@@ -60,7 +62,8 @@ const TextInput = React.forwardRef(({
       <span className="text-red settings__TextInputError">{error}</span>
     )}
   </div>
-));
+  );
+});
 
 TextInput.propTypes = {
   className: PropTypes.string,
@@ -73,7 +76,7 @@ TextInput.propTypes = {
   changed: PropTypes.bool,
   error: PropTypes.string,
   success: PropTypes.bool,
-  id: PropTypes.string.isRequired,
+  id: PropTypes.string,
 };
 
 export default TextInput;

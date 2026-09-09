@@ -1,3 +1,5 @@
+@use "../utils/variables";
+
 #new {
   position: relative;
 }
@@ -8,7 +10,7 @@
   right: 0;
   display: inline-block !important;
 
-  @media screen and (min-width: $bp-tablet) {
+  @media screen and (min-width: variables.$bp-tablet) {
     right: -0.75em;
   }
 }

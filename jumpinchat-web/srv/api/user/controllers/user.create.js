@@ -91,7 +91,8 @@ export default async function createUser(req, res) {
       receiveUpdates: Joi.boolean().required(),
     }).required(),
     ip: Joi.string().required(),
-    fingerprint: Joi.string().allow(''),
+    fingerprint: Joi.string().max(128).allow(''),
+    fingerprintVersion: Joi.string().pattern(/^\d+\.\d+\.\d+$/),
   });
 
   const user = {
@@ -101,6 +102,7 @@ export default async function createUser(req, res) {
     settings: req.body.settings,
     ip: req.body.ip,
     fingerprint: req.body.fingerprint,
+    fingerprintVersion: req.body.fingerprintVersion,
   };
 
   try {
@@ -153,6 +155,7 @@ export default async function createUser(req, res) {
             passhash: hash,
             joinFingerprint: validatedUser.fingerprint,
             latestFingerprint: validatedUser.fingerprint,
+            fingerprintVersion: validatedUser.fingerprintVersion || 'legacy',
           },
           settings: validatedUser.settings,
         };

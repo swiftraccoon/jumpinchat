@@ -1,61 +1,48 @@
-import { fileURLToPath } from 'url';
-import path from 'path';
-import { FlatCompat } from '@eslint/eslintrc';
 import js from '@eslint/js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-});
+import globals from 'globals';
+import react from '@eslint-react/eslint-plugin';
+import hooks from 'eslint-plugin-react-hooks';
+import importX from 'eslint-plugin-import-x';
 
 export default [
-  ...compat.extends('airbnb'),
+  { ignores: ['dist/**', '.tmp/**', 'coverage/**'] },
+  js.configs.recommended,
   {
-    languageOptions: {
-      parser: (await import('@babel/eslint-parser')).default,
-      ecmaVersion: 2017,
-      sourceType: 'module',
-      parserOptions: {
-        ecmaVersion: 2017,
-      },
-    },
+    files: ['**/*.js', '**/*.cjs'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+    linterOptions: { reportUnusedDisableDirectives: false },
     rules: {
-      // formatting
-      indent: ['error', 2, { SwitchCase: 1 }],
-      'no-underscore-dangle': 0,
-      strict: 0,
-      'linebreak-style': 0,
-      'no-bitwise': ['error', { int32Hint: true }],
-
-      // import rules
-      'import/no-extraneous-dependencies': ['error', { devDependencies: true }],
-
-      // react rules
-      'react/forbid-prop-types': 0,
-      'react/prefer-es6-class': 0,
-      'react/jsx-filename-extension': 0,
-      'react/jsx-one-expression-per-line': 0,
-      'jsx-a11y/media-has-caption': 0,
-    },
+      // Keep existing cleanup debt visible while correctness checks block CI.
+      'no-redeclare': ['error', { builtinGlobals: false }],
+      'no-useless-catch': 'warn',
+      'no-useless-assignment': 'warn',
+      'preserve-caught-error': 'warn',
+      'no-unused-vars': ['warn', { args: 'none', caughtErrors: 'none', varsIgnorePattern: '^_' }] },
   },
   {
-    files: ['**/*.spec.js'],
+    files: ['**/*.cjs'],
+    languageOptions: { sourceType: 'commonjs' },
+  },
+  {
+    files: ['react-client/**/*.js'],
     languageOptions: {
-      globals: {
-        describe: 'readonly',
-        it: 'readonly',
-        before: 'readonly',
-        beforeEach: 'readonly',
-        after: 'readonly',
-        afterEach: 'readonly',
-        context: 'readonly',
-      },
+      parserOptions: { ecmaFeatures: { jsx: true } },
+    },
+    plugins: { '@eslint-react': react, 'react-hooks': hooks, 'import-x': importX },
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+      '@eslint-react/no-missing-key': 'error',
+      '@eslint-react/no-direct-mutation-state': 'error',
+      '@eslint-react/dom-no-find-dom-node': 'error',
+      '@eslint-react/dom-no-render': 'error',
+      '@eslint-react/dom-no-hydrate': 'error',
+      '@eslint-react/dom-no-void-elements-with-children': 'error',
+      'import-x/no-unresolved': ['error', { ignore: ['^node:'] }],
     },
   },
-  {
-    ignores: ['react-client/js/lib/janus.js'],
-  },
+  { files: ['**/*.spec.js', 'test/**/*.js'], languageOptions: {
+    globals: { ...globals.mocha, ...globals.vitest },
+  } },
+  { files: ['react-client/sw/*.js'], languageOptions: { globals: globals.serviceworker } },
 ];

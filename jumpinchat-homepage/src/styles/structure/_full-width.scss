@@ -1,31 +1,33 @@
+@use "../utils/variables";
+
 .full-width {
   float: left;
   width: 100%;
 
   &--blue {
     background: {
-      color: $color-blue-03;
+      color: variables.$color-blue-03;
     }
   }
 
   &--white {
     background: {
-      color: $color-black-10;
+      color: variables.$color-black-10;
     }
   }
 
   &--grey {
     background: {
-      color: $color-black-09;
+      color: variables.$color-black-09;
     }
   }
 
   &--black {
     background: {
-      color: $color-black-01;
+      color: variables.$color-black-01;
     }
 
-    color: $color-white;
+    color: variables.$color-white;
   }
 }
 

@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import classnames from 'classnames';
-import TetherComponent from 'react-tether';
+import FloatingLayer from './FloatingLayer.react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import VolumeControl from './VolumeControl/VolumeControl.react';
 
@@ -16,6 +16,10 @@ class VideoVolumeControl extends Component {
     this.onChangeVolume = this.onChangeVolume.bind(this);
     this.handleOpenControl = this.handleOpenControl.bind(this);
     this.handleCloseControl = this.handleCloseControl.bind(this);
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this.hoverTimeout);
   }
 
   onChangeVolume(volume) {
@@ -53,7 +57,7 @@ class VideoVolumeControl extends Component {
     } = this.props;
 
     return (
-      <TetherComponent
+      <FloatingLayer
         attachment="top center"
         constraints={[{
           to: 'scrollParent',
@@ -63,6 +67,7 @@ class VideoVolumeControl extends Component {
         <button
           type="button"
           className={className}
+          aria-label={volume > 0 ? 'Mute audio' : 'Unmute audio'}
           onClick={this.toggleMute}
           onMouseOver={this.handleOpenControl}
           onMouseOut={this.handleCloseControl}
@@ -99,7 +104,7 @@ class VideoVolumeControl extends Component {
             />
           </div>
         )}
-      </TetherComponent>
+      </FloatingLayer>
     );
   }
 }

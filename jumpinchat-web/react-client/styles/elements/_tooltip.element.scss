@@ -1,3 +1,5 @@
+@use "../variables";
+
 @keyframes tooltip-appear {
   0% {
     opacity: 0;
@@ -11,7 +13,7 @@
 .dark {
   .tooltip {
     &__Content {
-      color: $color-light0-soft;
+      color: variables.$color-light0-soft;
     }
   }
 }
@@ -20,9 +22,9 @@
   &__Content {
     max-width: 10em;
     padding: 0.5em;
-    background-color: $black-01;
+    background-color: variables.$black-01;
     border-radius: 3px;
-    color: $white;
+    color: variables.$white;
 
     animation-name: tooltip-appear;
     animation-duration: 125ms;

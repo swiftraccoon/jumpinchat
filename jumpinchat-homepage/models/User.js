@@ -20,6 +20,7 @@ const userSchema = new Schema({
     isSupporter: { type: Boolean, default: false },
     isGold: { type: Boolean, default: false },
     supportExpires: { type: Date, default: null },
+    appliedCheckoutSessions: { type: [String], default: undefined, select: false },
   },
   settings: {
     playYtVideos: { type: Boolean, default: true },
@@ -48,6 +49,8 @@ const userSchema = new Schema({
     passhash: String,
     joinFingerprint: { type: String, default: null },
     latestFingerprint: { type: String, default: null },
+    fingerprintVersion: { type: String, default: null },
+    fingerprintHistory: [{ _id: false, value: String, version: String }],
     totpSecret: { type: String, default: null },
   },
   trophies: [
@@ -66,5 +69,13 @@ const userSchema = new Schema({
     pic: { type: String, default: null },
   },
 });
+
+// Internal fulfillment markers must never be returned with a user document.
+function hidePaymentMarkers(_document, value) {
+  if (value.attrs) delete value.attrs.appliedCheckoutSessions;
+  return value;
+}
+userSchema.set('toJSON', { transform: hidePaymentMarkers });
+userSchema.set('toObject', { transform: hidePaymentMarkers });
 
 export default model('User', userSchema);

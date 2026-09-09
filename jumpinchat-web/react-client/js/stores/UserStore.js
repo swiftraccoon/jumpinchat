@@ -2,7 +2,7 @@
  * Created by Zaccary on 20/06/2015.
  */
 
-import { EventEmitter } from 'events';
+import Store from './Store';
 import { UserDispatcher } from '../dispatcher/AppDispatcher';
 import * as types from '../constants/ActionTypes';
 import { set, get } from '../utils/localStorage';
@@ -11,7 +11,7 @@ const STORAGE_KEY_HANDLE = 'handle';
 const STORAGE_KEY_THEME_DARK = 'darkTheme';
 const STORAGE_KEY_VIDEOS = 'playYtVideos';
 
-export class UserStore extends EventEmitter {
+export class UserStore extends Store {
   constructor() {
     super();
 
@@ -160,19 +160,10 @@ export class UserStore extends EventEmitter {
   }
 
   // Emit Change event
-  emitChange() {
-    this.emit('change');
-  }
 
   // Add change listener
-  addChangeListener(callback) {
-    this.on('change', callback);
-  }
 
   // Remove change listener
-  removeChangeListener(callback) {
-    this.removeListener('change', callback);
-  }
 }
 
 const userStore = new UserStore();

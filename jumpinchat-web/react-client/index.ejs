@@ -17,7 +17,6 @@
   <link rel="manifest" href="/<%= room.name %>/manifest.json" crossorigin="use-credentials">
   <link rel="canonical" href="https://jumpin.chat/<%= room.name %>">
   <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
-  <link rel="preconnect" href="https://use.fontawesome.com/releases/" crossorigin>
   <link rel="preconnect" href="https://webrtchacks.github.io" crossorigin>
 
   <% if(room.attrs && room.attrs.owner) { %>
@@ -45,7 +44,6 @@
   <meta property="twitter:url" content="https://jumpin.chat/<%= room.name %>" />
 
   <link rel="preload" href="/img/loading.svg" as="image">
-  <link rel="prefetch" href="https://unpkg.com/emoji-datasource-apple@4.0.4/img/apple/sheets-256/32.png" as="image">
 
   <link
     media="(min-width: 640px)"
@@ -56,9 +54,10 @@
     rel="prefetch stylesheet"
     href="https://fonts.googleapis.com/css?family=Fira+Sans:400,400i,700,700i&display=swap" rel="stylesheet">
 
-  <link rel="prefetch stylesheet" href="https://use.fontawesome.com/releases/v5.6.0/css/all.css">
 
-  <link rel="prefetch stylesheet" href="https://use.fontawesome.com/releases/v5.6.0/css/v4-shims.css">
+
+  <link rel="stylesheet" href="/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="/fontawesome/css/v4-shims.min.css">
 
   <style>
     .loading {
@@ -86,7 +85,6 @@
   </style>
 
   <!-- build:css({.tmp,node_modules}) /styles/main.css -->
-  <link rel="stylesheet" href="/emoji-mart/css/emoji-mart.css"/>
   <link rel="stylesheet" href="/styles/main.css"/>
   <!-- endbuild -->
 </head>

@@ -20,22 +20,23 @@ import { initialSession } from '../../../config/session.config.js';
 import userUtils from '../user.utils.js';
 import roomUtils from '../../room/room.utils.js';
 import videoQuality from '../../../config/constants/videoQuality.js';
+import { parseFingerprint, updateSessionFingerprint, updateAccountFingerprint } from '../../../utils/fingerprint.util.js';
 const log = logFactory({ name: 'userCreateSession' });
 export default function createSession(req, res) {
   let activityToken;
   const responseBody = {};
   const session = req.sessionID;
   const mergedSession = initialSession(req.session);
-  const { fp } = req.body;
+  const fingerprint = parseFingerprint(req.body.fp, req.body.fingerprintVersion);
 
   req.session = Object.assign(
     req.session,
     mergedSession,
     {
       ignoreList: roomUtils.removeExpiredIgnoreListItems(mergedSession.ignoreList),
-      fingerprint: fp,
     },
   );
+  updateSessionFingerprint(req.session, req.body);
 
   // if the user has a session cookie, and the user exists
   // in the system, consider them logged in
@@ -110,7 +111,7 @@ export default function createSession(req, res) {
 
         user.attrs.last_active = new Date();
         user.attrs.last_login_ip = utils.getRemoteIpFromReq(req);
-        user.auth.latestFingerprint = fp;
+        updateAccountFingerprint(user.auth, fingerprint);
 
         user.save()
           .then(() => {

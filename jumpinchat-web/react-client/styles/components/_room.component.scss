@@ -1,3 +1,5 @@
+@use "../variables";
+
 .room {
   display: grid;
   height: 100%;
@@ -12,25 +14,25 @@
     grid-template-rows: 50px calc(100% - 90px) fit-content(300px);
   }
 
-  @media screen and (min-height: $bp-height-01) {
+  @media screen and (min-height: variables.$bp-height-01) {
     grid-template-rows: 50px calc(100% - 50px - 270px) fit-content(270px);
   }
 
-  @media screen and (min-height: $bp-height-01) and (min-width: $bp-02) {
+  @media screen and (min-height: variables.$bp-height-01) and (min-width: variables.$bp-02) {
     grid-template-rows: 50px calc(100% - 50px - 300px) fit-content(300px);
   }
 
   &.layout--horizontal {
-    @media screen and (min-height: $bp-height-01) and (min-width: $bp-02) {
+    @media screen and (min-height: variables.$bp-height-01) and (min-width: variables.$bp-02) {
       grid-template-areas:
           "header header header"
           "cams cams chat";
       grid-template-rows: 50px calc(100% - 50px);
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) $wideChatWidth;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) variables.$wideChatWidth;
     }
   }
 
   &.dark {
-    color: $color-light0;
+    color: variables.$color-light0;
   }
 }

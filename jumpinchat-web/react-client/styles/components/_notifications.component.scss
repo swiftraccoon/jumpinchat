@@ -30,7 +30,7 @@ $notification-width: 300px;
     top: 6px;
     left: 50%;
     width: $notification-width;
-    margin-left: -$notification-width/2;
+    margin-left: -$notification-width*0.5;
     //box-shadow: 0 0 2px 1px rgba(#000000, 0.25);
 
     animation-name: notification-appear;

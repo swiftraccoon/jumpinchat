@@ -1,21 +1,23 @@
+@use "../variables";
+
 .dropdown {
   &__Options {
-    background-color: $color-dark2;
+    background-color: variables.$color-dark2;
   }
 
   &__Option {
-    background-color: $color-dark2;
-    border-color: $color-dark3;
-    color: $color-light0;
+    background-color: variables.$color-dark2;
+    border-color: variables.$color-dark3;
+    color: variables.$color-light0;
 
     &:hover {
-      background-color: $color-dark1;
+      background-color: variables.$color-dark1;
     }
 
     &-header,
     &-header:hover {
       color: inherit;
-      background-color: $color-dark4;
+      background-color: variables.$color-dark4;
     }
   }
 }

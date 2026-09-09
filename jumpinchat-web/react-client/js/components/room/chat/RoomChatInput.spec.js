@@ -1,273 +1,59 @@
-import React from 'react';
-import { shallow } from 'enzyme';
+import React, { useState } from 'react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, it, expect, vi } from 'vitest';
 import { RoomChatInput } from './RoomChatInput.react';
+import { sendMessage } from '../../../utils/RoomAPI';
+import * as actions from '../../../actions/ChatActions';
+import { searchEmoji } from '../../../utils/emoji';
+vi.mock('../../../utils/RoomAPI', () => ({ sendMessage: vi.fn() }));
+vi.mock('../../../utils/emoji', () => ({ searchEmoji: vi.fn().mockResolvedValue([]) }));
+vi.mock('../../../actions/ChatActions', () => ({ setChatInputValue: vi.fn(), restoreMessage: vi.fn(), setEmojiPicker: vi.fn(), insertEmoji: vi.fn(), setEmojiSearch: vi.fn(), setSelectedEmojiResult: vi.fn() }));
+vi.mock('./EmojiPicker/EmojiPicker.react', () => ({ default: () => <button type="button">Emoji picker</button> }));
+vi.mock('./EmojiPicker/EmojiPredict.react', () => ({ default: ({ emojis, onSelect }) => <div>{emojis.map(emoji => <button type="button" key={emoji.id} onClick={() => onSelect(emoji)}>{emoji.colons}</button>)}</div> }));
 
-describe('<RoomChatInput />', () => {
-  let roomChatInput;
-  let props;
-  beforeEach(() => {
-    props = {
-      users: [],
-      room: 'foo',
-      roomOwnerId: null,
-      chatInputValue: '',
-      emojiPickerOpen: false,
-      emojiSearch: {
-        results: [],
-        query: '',
-        selected: 0,
-      },
-      userState: { user: { hasChangedHandle: true } },
-      customEmoji: [],
-      roleState: {
-        roles: [
-          {
-            tag: 'everybody',
-          },
-        ],
-      },
-    };
-    roomChatInput = new RoomChatInput();
-    roomChatInput.props = props;
-    window.ga = jest.fn();
+function Composer({ initialValue = '', hasHandle = true, ...props }) {
+  const [value, setValue] = useState(initialValue);
+  actions.setChatInputValue.mockImplementation(setValue);
+  return <RoomChatInput room="room" users={[{ handle: 'Alice' }, { handle: 'Alison' }]} roleState={{ roles: [] }} userState={{ user: { hasChangedHandle: hasHandle } }} chatInputValue={value} customEmoji={[]} emojiPickerOpen={false} emojiSearch={{ results: [], query: null, selected: 0 }} {...props} />;
+}
+
+describe('chat composer', () => {
+  it('sends trimmed text and clears the field after submission', async () => {
+    render(<Composer />); const user = userEvent.setup(); const input = screen.getByPlaceholderText('Start typing');
+    await user.type(input, '  Hello room  '); fireEvent.submit(input.closest('form'));
+    expect(sendMessage).toHaveBeenCalledWith('Hello room', 'room'); expect(input).toHaveValue('');
   });
-
-  describe('handleChange', () => {
-    it('should call completeEmoji if colon code is entered', () => {
-      const event = {
-        target: {
-          value: ':foo',
-        },
-      };
-      const wrapper = shallow(<RoomChatInput {...props} />);
-      wrapper.instance().completeEmoji = jest.fn();
-      wrapper.instance().setChatInputValue = jest.fn();
-      wrapper.instance().handleChange(event);
-      expect(wrapper.instance().completeEmoji).toHaveBeenCalledWith('foo');
-    });
-
-    it('should call setEmojiSearch and close popup if no code entered', () => {
-      const event = {
-        target: {
-          value: 'foo',
-        },
-      };
-      const wrapper = shallow(<RoomChatInput {...props} />);
-      wrapper.instance().completeEmoji = jest.fn();
-      wrapper.instance().setEmojiSearch = jest.fn();
-      wrapper.instance().setChatInputValue = jest.fn();
-      wrapper.instance().handleChange(event);
-      expect(wrapper.instance().completeEmoji).not.toHaveBeenCalled();
-      expect(wrapper.instance().setEmojiSearch).toHaveBeenCalledWith([], null);
-    });
+  it('does not send whitespace or messages before choosing a handle', () => {
+    const { rerender } = render(<Composer initialValue="   " />); fireEvent.submit(screen.getByRole('textbox').closest('form')); expect(sendMessage).not.toHaveBeenCalled();
+    rerender(<Composer key="guest" initialValue="Hello" hasHandle={false} />); fireEvent.submit(screen.getByRole('textbox').closest('form')); expect(sendMessage).not.toHaveBeenCalled();
   });
-
-  describe('handleAutocomplete', () => {
-    let event;
-    beforeEach(() => {
-      event = {
-        preventDefault: jest.fn(),
-        keyCode: 9,
-      };
-
-      roomChatInput.props = {
-        ...props,
-        users: [
-          { username: 'username', handle: 'foo' },
-        ],
-      };
-
-      roomChatInput.input = {
-        value: 'foo',
-      };
-
-      roomChatInput.setChatInputValue = jest.fn();
-      roomChatInput.setSelectedEmojiResult = jest.fn();
-    });
-
-    it('should prevent default when tab key is pressed', () => {
-      roomChatInput.handleAutocomplete(event);
-      expect(event.preventDefault).toHaveBeenCalled();
-    });
-
-    it('should only match when input value prefixed with @', () => {
-      roomChatInput.input.value = 'foo';
-      roomChatInput.handleAutocomplete(event);
-      expect(roomChatInput.input.value).toEqual('foo');
-    });
-
-    it('should match handle', () => {
-      roomChatInput.input.value = '@foo';
-      roomChatInput.handleAutocomplete(event);
-      expect(roomChatInput.setChatInputValue).toHaveBeenCalledWith('@foo: ');
-    });
-
-    it('should match username', () => {
-      roomChatInput.input.value = '@username';
-      roomChatInput.handleAutocomplete(event);
-      expect(roomChatInput.setChatInputValue).toHaveBeenCalledWith('@username: ');
-    });
-
-    it('should cycle to next match on subsequent <tab>s', () => {
-      roomChatInput.props.users = [
-        { username: 'username', handle: 'foo' },
-        { username: 'username', handle: 'foobaz' },
-      ];
-
-      roomChatInput.input.value = '@fo';
-      roomChatInput.handleAutocomplete(event);
-      expect(roomChatInput.setChatInputValue).toHaveBeenCalledWith('@foo: ');
-      roomChatInput.handleAutocomplete(event);
-      expect(roomChatInput.setChatInputValue).toHaveBeenCalledWith('@foobaz: ');
-    });
-
-    it('should cycle back to index 0 when the end of matches is reached', () => {
-      roomChatInput.props.users = [
-        { username: 'username', handle: 'foo' },
-        { username: 'username', handle: 'foobaz' },
-      ];
-      roomChatInput.input.value = '@fo';
-      roomChatInput.handleAutocomplete(event);
-      expect(roomChatInput.setChatInputValue).toHaveBeenCalledWith('@foo: ');
-      roomChatInput.handleAutocomplete(event);
-      expect(roomChatInput.setChatInputValue).toHaveBeenCalledWith('@foobaz: ');
-      roomChatInput.handleAutocomplete(event);
-      expect(roomChatInput.setChatInputValue).toHaveBeenCalledWith('@foo: ');
-    });
-
-    it('should select next emoji if code entered and Tab pressed', () => {
-      roomChatInput.props.emojiSearch.results = [{}, {}];
-      roomChatInput.input.value = ':foo';
-      roomChatInput.handleAutocomplete(event);
-      expect(roomChatInput.setSelectedEmojiResult).toHaveBeenCalledWith(1);
-    });
-
-    it('should select previous emoji if code entered and Shift+Tab pressed', () => {
-      roomChatInput.props.emojiSearch.results = [{}, {}];
-      roomChatInput.props.emojiSearch.selected = 1;
-      event.shiftKey = true;
-      roomChatInput.input.value = ':foo';
-      roomChatInput.handleAutocomplete(event);
-      expect(roomChatInput.setSelectedEmojiResult).toHaveBeenCalledWith(0);
-    });
-
-    it('should select first emoji if code entered and Tab pressed while selecting last', () => {
-      roomChatInput.props.emojiSearch.results = [{}, {}];
-      roomChatInput.props.emojiSearch.selected = 1;
-      event.shiftKey = false;
-      roomChatInput.input.value = ':foo';
-      roomChatInput.handleAutocomplete(event);
-      expect(roomChatInput.setSelectedEmojiResult).toHaveBeenCalledWith(0);
-    });
-
-    it('should select last emoji if code entered and Shift+Tab pressed while selecting first', () => {
-      roomChatInput.props.emojiSearch.results = [{}, {}];
-      roomChatInput.props.emojiSearch.selected = 0;
-      event.shiftKey = true;
-      roomChatInput.input.value = ':foo';
-      roomChatInput.handleAutocomplete(event);
-      expect(roomChatInput.setSelectedEmojiResult).toHaveBeenCalledWith(1);
-    });
-
-    it('should complete command value with handle', () => {
-      roomChatInput.props.users = [
-        { username: 'username', handle: 'foo' },
-        { username: 'username', handle: 'bar' },
-      ];
-      roomChatInput.input.value = '/foo f';
-      roomChatInput.handleAutocomplete(event);
-      expect(roomChatInput.setChatInputValue).toHaveBeenCalledWith('/foo foo');
-    });
-
-    it('should complete command value with username', () => {
-      roomChatInput.props.users = [
-        { username: 'username', handle: 'foo' },
-        { username: 'username', handle: 'bar' },
-      ];
-      roomChatInput.input.value = '/foo us';
-      roomChatInput.handleAutocomplete(event);
-      expect(roomChatInput.setChatInputValue).toHaveBeenCalledWith('/foo username');
-    });
+  it('cycles matching participant names with Tab', () => {
+    render(<Composer initialValue="@Al" />); const input = screen.getByRole('textbox');
+    fireEvent.keyDown(input, { key: 'Tab', keyCode: 9 }); expect(input).toHaveValue('@Alice: ');
+    fireEvent.keyDown(input, { key: 'Tab', keyCode: 9 }); expect(input).toHaveValue('@Alison: ');
+    fireEvent.keyDown(input, { key: 'Tab', keyCode: 9 }); expect(input).toHaveValue('@Alice: ');
   });
-
-  describe('doSendMessage', () => {
-    let event;
-    beforeEach(() => {
-      event = { preventDefault: jest.fn() };
-      roomChatInput.sendMessage = jest.fn();
-      roomChatInput.props = {
-        ...props,
-        room: 'room',
-      };
-    });
-
-    it('should trim message whitespace', () => {
-      roomChatInput.input = {
-        value: 'foo ',
-      };
-
-      roomChatInput.doSendMessage(event);
-      expect(roomChatInput.sendMessage).toHaveBeenCalledWith('foo', 'room');
-    });
-
-    it('should not send message if message is empty', () => {
-      roomChatInput.input = {
-        value: '   ',
-      };
-
-      roomChatInput.doSendMessage(event);
-      expect(roomChatInput.sendMessage).not.toHaveBeenCalled();
-    });
-
-    it('should reset the input value after sending a message', () => {
-      roomChatInput.input = {
-        value: 'foo',
-      };
-
-      roomChatInput.setChatInputValue = jest.fn();
-
-      roomChatInput.props.chatInputValue = 'foo';
-
-      roomChatInput.doSendMessage(event);
-      expect(roomChatInput.setChatInputValue).toHaveBeenCalledWith('');
-    });
+  it('rejects stale emoji search results after another query or Escape', async () => {
+    let resolveFirst; let resolveSecond;
+    searchEmoji.mockReturnValueOnce(new Promise(resolve => { resolveFirst = resolve; })).mockReturnValueOnce(new Promise(resolve => { resolveSecond = resolve; }));
+    render(<Composer />); const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: ':sm' } }); fireEvent.change(input, { target: { value: ':he' } });
+    const heart = { id: 'heart', colons: ':heart:' }; await act(async () => resolveSecond([heart]));
+    expect(actions.setEmojiSearch).toHaveBeenLastCalledWith([heart], 'he');
+    await act(async () => resolveFirst([{ id: 'smile' }])); expect(actions.setEmojiSearch).toHaveBeenLastCalledWith([heart], 'he');
+    let resolveThird; searchEmoji.mockReturnValueOnce(new Promise(resolve => { resolveThird = resolve; }));
+    fireEvent.change(input, { target: { value: ':ha' } }); fireEvent.keyDown(input, { key: 'Escape', keyCode: 27 });
+    await act(async () => resolveThird([{ id: 'happy' }])); expect(actions.setEmojiSearch).toHaveBeenLastCalledWith([], '');
   });
-
-  describe('handleSelectPrevious', () => {
-    it('should call restoreMessage on arrow up', () => {
-      roomChatInput.restoreMessage = jest.fn();
-      roomChatInput.handleSelectPrevious({ code: 'ArrowUp' });
-      expect(roomChatInput.restoreMessage).toHaveBeenCalled();
-    });
-
-    it('should call restoreMessage with prev false on arrow down', () => {
-      roomChatInput.restoreMessage = jest.fn();
-      roomChatInput.handleSelectPrevious({ code: 'ArrowDown' });
-      expect(roomChatInput.restoreMessage).toHaveBeenCalledWith(false);
-    });
+  it('chooses an emoji with Enter instead of sending an unfinished message', () => {
+    const results = [{ id: 'smile', colons: ':smile:' }, { id: 'heart', colons: ':heart:' }];
+    render(<Composer initialValue="Hello :sm" emojiSearch={{ results, selected: 0, query: 'sm' }} />);
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter', keyCode: 13 });
+    expect(screen.getByRole('textbox')).toHaveValue('Hello :smile:'); expect(sendMessage).not.toHaveBeenCalled();
   });
-
-  describe('handleGift', () => {
-    it('should open a new window to gift support', () => {
-      props.roomOwnerId = 'foo';
-      window.open = jest.fn();
-      const wrapper = shallow(<RoomChatInput {...props} />);
-      wrapper.instance().handleGift({ preventDefault: jest.fn() });
-      expect(window.open)
-        .toHaveBeenCalledWith('/support/payment?productId=onetime&amount=300&beneficiary=foo', '_blank');
-    });
-  });
-
-  describe('render', () => {
-    it('should render the input with an emoji picker', () => {
-      const wrapper = shallow(<RoomChatInput {...props} />);
-      expect(wrapper.getElement()).toMatchSnapshot();
-    });
-
-    it('should render a gift button if the room has an owner', () => {
-      props.roomOwnerId = 'foo';
-      const wrapper = shallow(<RoomChatInput {...props} />);
-      expect(wrapper.getElement()).toMatchSnapshot();
-    });
+  it('removes history keyboard listeners when the composer unmounts', () => {
+    const { unmount } = render(<Composer />); fireEvent.keyDown(window, { code: 'ArrowUp' }); expect(actions.restoreMessage).toHaveBeenCalledOnce();
+    unmount(); fireEvent.keyDown(window, { code: 'ArrowUp' }); expect(actions.restoreMessage).toHaveBeenCalledOnce();
   });
 });

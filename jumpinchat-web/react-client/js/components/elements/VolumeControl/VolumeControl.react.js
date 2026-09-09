@@ -1,31 +1,19 @@
 import React, { forwardRef } from 'react';
-import PropTypes from 'prop-types';
-import _Slider from 'react-rangeslider';
-const Slider = _Slider.default || _Slider;
 
 const VolumeControl = forwardRef(({ volume, onChangeVolume }, ref) => (
-  <div
-    className="cams__VolumeSlider"
-    onClick={(e) => { e.stopPropagation(); }}
-    role="button"
-    tabIndex="0"
-    ref={ref}
-  >
-    <Slider
+  <div className="cams__VolumeSlider" onClick={event => event.stopPropagation()} ref={ref}>
+    <input
+      aria-label="Volume"
+      aria-valuetext={`${volume}%`}
+      className="volume-range"
+      type="range"
+      min="0"
+      max="100"
+      step="1"
       value={volume}
-      format={value => `${value}%`}
-      min={0}
-      max={100}
-      tooltip={false}
-      orientation="vertical"
-      onChange={onChangeVolume}
+      onChange={event => onChangeVolume(Number(event.target.value))}
     />
   </div>
 ));
-
-VolumeControl.propTypes = {
-  onChangeVolume: PropTypes.func.isRequired,
-  volume: PropTypes.number.isRequired,
-};
 
 export default VolumeControl;

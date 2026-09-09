@@ -1,110 +1,18 @@
-/* global window, it, beforeEach, describe */
-
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import RoomCamsHeader from './RoomCamsHeader.react';
+vi.mock('./RoomBroadcastButton.react', () => ({ default: ({ canBroadcast }) => <button disabled={!canBroadcast}>Broadcast</button> }));
+vi.mock('./RoomCamsLocalAudioActions.react', () => ({ default: () => <button>Microphone</button> }));
+const props = { room: { name: 'Friends', attrs: {}, settings: { description: 'Welcome to our room' } }, feedCount: 2, userCount: 5, canBroadcast: true, broadcastRestricted: false };
 
-describe('<RoomCamsHeader />', () => {
-  let props;
-  beforeEach(() => {
-    props = {
-      localStream: {
-        stream: {
-          getAudioTracks: jest.fn(() => ([])),
-        },
-      },
-      canBroadcast: true,
-      room: {
-        name: 'room',
-        users: [1, 2, 3, 4],
-        settings: {
-          description: 'foo',
-        },
-        attrs: {
-          ageRestricted: false,
-        },
-      },
-      playYoutubeVideos: true,
-      feedCount: 3,
-      userCount: 4,
-      localAudioActive: false,
-      showYoutubeVolume: false,
-      showVolumeControl: false,
-      broadcastRestricted: false,
-    };
+describe('room camera header', () => {
+  it('keeps the full room description in the DOM and prevents restricted broadcasts', () => {
+    const { rerender } = render(<RoomCamsHeader {...props} />); expect(screen.getByRole('heading', { name: 'Friends' })).toBeVisible(); expect(screen.getByText('Welcome to our room')).toBeVisible(); expect(screen.getByRole('button', { name: 'Broadcast' })).toBeEnabled();
+    rerender(<RoomCamsHeader {...props} broadcastRestricted />); expect(screen.getByRole('button', { name: 'Broadcast' })).toBeDisabled();
   });
-
-  describe('broadcast button', () => {
-    it('should show the broadcast button', () => {
-      const wrapper = shallow(<RoomCamsHeader {...props} />);
-
-      expect(wrapper.find('RoomBroadcastButton').length).toEqual(1);
-    });
-  });
-
-  describe('local audio actions', () => {
-    it('should show the actions if local stream has audio tracks', () => {
-      props.localStream.stream.getAudioTracks = jest.fn(() => [{}]);
-      const wrapper = shallow(<RoomCamsHeader {...props} />);
-      expect(wrapper.find('RoomCamsLocalAudioActions').length).toEqual(1);
-    });
-
-    it('should not show the actions if no local stream', () => {
-      props.localStream.stream.getAudioTracks = jest.fn(() => []);
-      const wrapper = shallow(<RoomCamsHeader {...props} />);
-      expect(wrapper.find('RoomCamsLocalAudioActions').length).toEqual(0);
-    });
-  });
-
-  describe('room info', () => {
-    it('should display correct room name', () => {
-      const wrapper = shallow(<RoomCamsHeader {...props} />);
-      expect(wrapper.find('.cams__RoomName').text()).toEqual('room');
-    });
-
-    it('should display correct cam count', () => {
-      const wrapper = shallow(<RoomCamsHeader {...props} />);
-      expect(wrapper.find('.cams__StreamCount').text()).toEqual('3');
-    });
-
-    it('should show correct user count', () => {
-      const wrapper = shallow(<RoomCamsHeader {...props} />);
-      expect(wrapper.find('.cams__ViewerCount').text()).toEqual('4');
-    });
-
-    it('should show display pic if one has been set', () => {
-      props.room.settings.display = 'foo';
-      const wrapper = shallow(<RoomCamsHeader {...props} />);
-      expect(wrapper.find('.cams__RoomDisplayPic').length).toEqual(1);
-    });
-
-    it('should show room description if one exists', () => {
-      props.room.settings.description = 'foo';
-      const wrapper = shallow(<RoomCamsHeader {...props} />);
-      expect(wrapper.getElement()).toMatchSnapshot();
-    });
-
-    it('should not show room description if none exists', () => {
-      props.room.settings.description = null;
-      const wrapper = shallow(<RoomCamsHeader {...props} />);
-      expect(wrapper.getElement()).toMatchSnapshot();
-    });
-
-    it('should show topic if topic set', () => {
-      props.room.settings.topic = {
-        text: 'such topic',
-      };
-      const wrapper = shallow(<RoomCamsHeader {...props} />);
-      expect(wrapper.getElement()).toMatchSnapshot();
-    });
-
-    it('should show topic instead of description if set', () => {
-      props.room.settings.description = 'a description';
-      props.room.settings.topic = {
-        text: 'such topic',
-      };
-      const wrapper = shallow(<RoomCamsHeader {...props} />);
-      expect(wrapper.getElement()).toMatchSnapshot();
-    });
+  it('offers microphone controls only when the local stream carries audio', () => {
+    const { rerender } = render(<RoomCamsHeader {...props} localStream={{ stream: { getAudioTracks: () => [] } }} />); expect(screen.queryByRole('button', { name: 'Microphone' })).not.toBeInTheDocument();
+    rerender(<RoomCamsHeader {...props} localStream={{ stream: { getAudioTracks: () => [{}] } }} />); expect(screen.getByRole('button', { name: 'Microphone' })).toBeVisible();
   });
 });

@@ -1,3 +1,5 @@
+@use "variables";
+
 html {
   font-size: 10px;
 }
@@ -8,10 +10,10 @@ body {
     family: "Fira Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
 
-  color: $black-02;
+  color: variables.$black-02;
 
   &.dark {
-    color: $color-light0;
+    color: variables.$color-light0;
   }
 }
 
@@ -21,7 +23,7 @@ h3 {
     family: 'Dosis', sans-serif;
     weight: 400;
   }
-  color: $color-blue-02;
+  color: variables.$color-blue-02;
 }
 
 p {
@@ -42,7 +44,7 @@ button {
 .mobileHidden {
   display: none;
   visibility: hidden;
-  @media screen and (min-width: $bp-02) and (min-height: $bp-height-01) {
+  @media screen and (min-width: variables.$bp-02) and (min-height: variables.$bp-height-01) {
     display: inline;
     visibility: visible;
   }

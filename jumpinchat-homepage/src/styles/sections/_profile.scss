@@ -1,3 +1,5 @@
+@use "../utils/variables";
+
 .profile {
   &__SubTitle {
     margin: 0;
@@ -5,8 +7,8 @@
 
   &__Container {
     padding: 1em;
-    background-color: $color-white;
-    border: 1px solid $color-black-08;
+    background-color: variables.$color-white;
+    border: 1px solid variables.$color-black-08;
 
     & + & {
       margin: {
@@ -21,7 +23,7 @@
     }
 
     &--danger {
-      border-color: $color-red-02;
+      border-color: variables.$color-red-02;
     }
 
     &--clear {
@@ -69,7 +71,7 @@
   }
 
   &__ListItemTitle {
-    color: $color-black-04;
+    color: variables.$color-black-04;
   }
 
   &__ListItemValue {
@@ -82,7 +84,7 @@
         top: 3.2rem;
       }
 
-      border-top: 1px solid $color-black-07;
+      border-top: 1px solid variables.$color-black-07;
     }
   }
 

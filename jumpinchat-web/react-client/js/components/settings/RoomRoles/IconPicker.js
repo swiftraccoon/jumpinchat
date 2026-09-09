@@ -2,7 +2,7 @@ import React, { useEffect, useRef, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import TetherComponent from 'react-tether';
+import FloatingLayer from '../../elements/FloatingLayer.react';
 import ScrollArea from '../../elements/ScrollArea.react';
 
 const IconPicker = ({
@@ -13,30 +13,27 @@ const IconPicker = ({
   value = null,
   icons,
 }) => {
-  const node = useRef();
-
-  const handleClickOutside = (e) => {
-    if (node.current.contains(e.target)) {
-      return false;
-    }
-
-    return onClose();
-  };
+  const node = useRef(null);
+  const trigger = useRef(null);
 
   useEffect(() => {
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+    if (!isOpen) return undefined;
+    const outside = (event) => {
+      if (!node.current?.contains(event.target) && !trigger.current?.contains(event.target)) onClose();
     };
-  }, [isOpen]);
+    const escape = (event) => {
+      if (event.key === 'Escape') { onClose(); trigger.current?.focus(); }
+    };
+    document.addEventListener('pointerdown', outside, true);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', outside, true);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [isOpen, onClose]);
 
   return (
-    <TetherComponent
+    <FloatingLayer
       attachment="top center"
       constraints={[
         {
@@ -48,7 +45,10 @@ const IconPicker = ({
     >
       <button
         type="button"
-        onClick={!isOpen && onOpen}
+        ref={trigger}
+        aria-label="Choose role icon"
+        aria-expanded={isOpen}
+        onClick={isOpen ? onClose : onOpen}
         className={classNames(
           'button',
           'button--clear',
@@ -78,7 +78,7 @@ const IconPicker = ({
           </div>
         </ScrollArea>
       )}
-    </TetherComponent>
+    </FloatingLayer>
   );
 };
 

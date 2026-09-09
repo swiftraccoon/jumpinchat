@@ -1,8 +1,8 @@
-import { EventEmitter } from 'events';
+import Store from './Store';
 import { RoomDispatcher } from '../dispatcher/AppDispatcher';
 import * as types from '../constants/ActionTypes';
 
-export class RoomStore extends EventEmitter {
+export class RoomStore extends Store {
   constructor() {
     super();
     this._room = null;
@@ -27,19 +27,10 @@ export class RoomStore extends EventEmitter {
   }
 
   // Emit Change event
-  emitChange() {
-    this.emit('change');
-  }
 
   // Add change listener
-  addChangeListener(callback) {
-    this.on('change', callback);
-  }
 
   // Remove change listener
-  removeChangeListener(callback) {
-    this.removeListener('change', callback);
-  }
 }
 
 const roomStore = new RoomStore();

@@ -1,60 +1,18 @@
-/* global it, beforeEach, describe */
-
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { RoomChat } from './RoomChat.react';
-import { layouts } from '../../../constants/RoomConstants';
+import { chatTabs } from '../../../constants/RoomConstants';
+vi.mock('./RoomChatHeader.react', () => ({ default: ({ chatOpen, onToggleChat }) => <button onClick={() => onToggleChat(!chatOpen)}>Toggle chat</button> }));
+vi.mock('./RoomChatFeed.react', () => ({ default: () => <div>Public feed</div> }));
+vi.mock('./RoomUserList.react', () => ({ default: () => <div>Participants</div> }));
+vi.mock('./privateMessages/PmWrapper.react', () => ({ default: () => <div>Private conversations</div> }));
+const props = { room: { name: 'room', attrs: {} }, scroll: { fixScroll: false }, emojiSearch: { results: [] } };
 
-describe('<RoomChat />', () => {
-  describe('render', () => {
-    let props;
-    beforeEach(() => {
-      props = {
-        messages: [{}, {}, {}],
-        room: {
-          name: 'name',
-          attrs: {},
-        },
-        unreadConversations: 0,
-        feedsHighDef: false,
-        settingsOptionsOpen: false,
-        chatColors: ['foo'],
-        playYoutubeVideos: true,
-        chatTab: 'CHAT_FEED',
-        scroll: {
-          fixScroll: false,
-        },
-        emojiPickerOpen: false,
-        emojiSearch: {
-          results: [],
-          query: null,
-          selected: 0,
-        },
-        customEmoji: [],
-        layout: layouts.VERTICAL,
-        globalVolume: 0,
-      };
-    });
-
-    it('should have a chat header', () => {
-      const wrapper = shallow(<RoomChat {...props} />);
-      expect(wrapper.find('RoomChatHeader').length).toEqual(1);
-    });
-
-    it('should have a user list', () => {
-      const wrapper = shallow(<RoomChat {...props} />);
-      expect(wrapper.find('RoomUserList').length).toEqual(1);
-    });
-
-    it('should show the feed if feed selected', () => {
-      const wrapper = shallow(<RoomChat {...props} />);
-      expect(wrapper.find('RoomChatFeed').length).toEqual(1);
-    });
-
-    it('should show the pm list if pms selected', () => {
-      props.chatTab = 'CHAT_PM';
-      const wrapper = shallow(<RoomChat {...props} />);
-      expect(wrapper.find('PmWrapper').length).toEqual(1);
-    });
+describe('chat panel navigation', () => {
+  it('switches between public and private feeds and retains its expansion toggle', () => {
+    const { container, rerender } = render(<RoomChat {...props} chatTab={chatTabs.CHAT_FEED} />); expect(screen.getByText('Public feed')).toBeVisible(); expect(screen.getByText('Participants')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle chat' })); expect(container.querySelector('.chat')).toHaveClass('chat--open');
+    rerender(<RoomChat {...props} chatTab={chatTabs.CHAT_PM} />); expect(screen.getByText('Private conversations')).toBeVisible(); expect(screen.queryByText('Public feed')).not.toBeInTheDocument();
   });
 });

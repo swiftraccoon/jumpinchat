@@ -1,146 +1,27 @@
-/* global jest,describe,expect,beforeEach,it */
-
+import { describe, it, expect } from 'vitest';
 import { UserStore } from './UserStore';
+import { set, get } from '../utils/localStorage';
 
-jest.mock('../utils/localStorage');
-
-describe('UserStore', () => {
-  let userStore;
-  beforeEach(() => {
-    userStore = new UserStore();
-    jest.clearAllMocks();
+describe('user preferences', () => {
+  it('restores a guest handle and preferences across sessions', () => {
+    set('handle', 'Alice'); set('darkTheme', true); set('playYtVideos', false);
+    const store = new UserStore(); store.setUser({});
+    expect(store.getState().user).toMatchObject({ restoredHandle: 'Alice', settings: { darkTheme: true, playYtVideos: false } });
   });
-
-  describe('setUser', () => {
-    it('should set the user in state', () => {
-      userStore.setUser({ foo: 'bar' });
-      expect(userStore.state.user).toEqual({
-        user_id: null,
-        handle: null,
-        hasChangedHandle: false,
-        is_client_user: true,
-        restoredHandle: null,
-        foo: 'bar',
-        roles: [],
-        settings: {
-          darkTheme: false,
-          playYtVideos: true,
-          pushNotificationsEnabled: true,
-        },
-      });
-    });
-
-    it('should set a restored handle if exists', () => {
-      const { get, __setMockData } = require('../utils/localStorage');
-
-      __setMockData('handle', 'foo');
-
-      userStore.setUser({ foo: 'bar' });
-
-      expect(get).toHaveBeenCalledWith('handle');
-
-      expect(userStore.state.user).toEqual({
-        user_id: null,
-        handle: null,
-        hasChangedHandle: false,
-        is_client_user: true,
-        restoredHandle: 'foo',
-        foo: 'bar',
-        roles: [],
-        settings: {
-          darkTheme: false,
-          playYtVideos: true,
-          pushNotificationsEnabled: true,
-        },
-      });
-    });
-
-    it('should set darkTheme from existing state', () => {
-      userStore.state.user.settings.darkTheme = true;
-      userStore.setUser({ user_id: 'foo' });
-      expect(userStore.state.user.settings).toEqual({
-        darkTheme: true,
-        playYtVideos: true,
-        pushNotificationsEnabled: true,
-      });
-    });
-
-    it('should set darkTheme from localStorage if exits and user has no ID', () => {
-      const { get, __setMockData } = require('../utils/localStorage');
-
-      __setMockData('darkTheme', true);
-
-      userStore.setUser({ user_id: null });
-
-      expect(get).toHaveBeenCalledWith('darkTheme');
-    });
-
-    it('should set darkTheme from user argument', () => {
-      userStore.state.user.settings.darkTheme = true;
-      userStore.setUser({
-        user_id: 'foo',
-        settings: {
-          darkTheme: 'foo',
-        },
-      });
-
-      expect(userStore.state.user.settings).toEqual({
-        darkTheme: 'foo',
-        playYtVideos: true,
-        pushNotificationsEnabled: true,
-      });
-    });
-
-    it('should not attempt to fetch theme from storage if user ID is in state', () => {
-      userStore.state.user.settings.darkTheme = true;
-      userStore.state.user.user_id = 'foo';
-      userStore.setUser({
-        color: 'foo',
-      });
-
-      expect(userStore.state.user.settings).toEqual({
-        darkTheme: true,
-        playYtVideos: true,
-        pushNotificationsEnabled: true,
-      });
-    });
+  it('preserves account preferences over guest storage', () => {
+    set('darkTheme', false);
+    const store = new UserStore();
+    store.setUser({ user_id: 'account', settings: { darkTheme: true } });
+    store.setUser({ handle: 'Alice' });
+    expect(store.getState().user.settings.darkTheme).toBe(true);
   });
-
-  describe('changeHandle', () => {
-    it('should set new handle in storage', () => {
-      const { set } = require('../utils/localStorage');
-
-      userStore.changeHandle({ handle: 'foo' });
-      expect(set).toHaveBeenCalledWith('handle', 'foo');
-    });
-
-    it('should reset `restoredHandle`', () => {
-      userStore.changeHandle({ handle: 'foo' });
-      expect(userStore.state.user.restoredHandle).toEqual(null);
-    });
+  it('persists guest changes and clears the restored handle after confirmation', () => {
+    const store = new UserStore(); store.changeHandle({ handle: 'Alice' }); store.setTheme(true);
+    expect(store.getState().user).toMatchObject({ handle: 'Alice', hasChangedHandle: true, restoredHandle: null });
+    expect(get('handle')).toBe('Alice'); expect(get('darkTheme')).toBe(true);
   });
-
-  describe('setTheme', () => {
-    it('should save theme in storage if there is no user ID', () => {
-      const { set } = require('../utils/localStorage');
-
-      userStore.state.user = {
-        user_id: null,
-      };
-
-      userStore.setTheme(true);
-      expect(set).toHaveBeenCalledWith('darkTheme', true);
-    });
-
-    it('should not save theme in storage if there is a user ID', () => {
-      const { set } = require('../utils/localStorage');
-
-      userStore.state.user = {
-        user_id: 'foo',
-      };
-
-      userStore.setTheme(true);
-      expect(set).not.toHaveBeenCalled();
-    });
+  it('does not overwrite guest preferences when an account changes theme', () => {
+    const store = new UserStore(); store.setUser({ user_id: 'account' }); store.setTheme(true);
+    expect(localStorage.getItem('darkTheme')).toBeNull();
   });
 });

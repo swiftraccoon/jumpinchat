@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import LinkifyIt from 'linkify-it';
+import { LinkifyIt } from 'linkify-it';
 import tlds from 'tlds';
-import { Emoji } from 'emoji-mart';
+import Emoji from '../../../elements/Emoji.react';
 import insertComponentToString from '../../../../utils/insertComponentToString';
 import ChatStore from '../../../../stores/ChatStore/ChatStore';
 
 class FormattedMessage extends Component {
   static getEmojiCodes(message) {
-    const re = /:[^ :]+:/g;
+    const re = /:[^ :]+:(?::skin-tone-[2-6]:)?/g;
     let match = [];
     let result = [];
     do {
@@ -26,7 +26,7 @@ class FormattedMessage extends Component {
   }
 
   static getInlineFormatting(message) {
-    const re = /(?:\*|_)([^\*_]+)(?:\*|_)(?!:|\w|\d|\/)/g;
+    const re = /(?:\*|_)([^*_]+)(?:\*|_)(?!:|\w|\d|\/)/g;
     let result = [];
     let match = [];
     const elementMap = {

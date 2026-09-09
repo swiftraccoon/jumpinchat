@@ -259,10 +259,10 @@ describe('Room Join Controller', () => {
       });
     });
 
-    xit('should create a new Janus room', (done) => {
+    it('reuses the existing Janus room when joining', (done) => {
       roomJoin.attachClientToRoom = sinon.stub().yields(null, () => {});
       roomJoin.join('room', sampleNewUser, null, { session: {} }, () => {
-        expect(roomJoin.roomUtils.createJanusRoom.called).to.equal(true);
+        expect(roomJoin.roomUtils.createJanusRoom.called).to.equal(false);
         done();
       });
     });

@@ -20,6 +20,7 @@ const UserSchema = new Schema({
     isSupporter: { type: Boolean, default: false },
     isGold: { type: Boolean, default: false },
     supportExpires: { type: Date, default: null },
+    appliedCheckoutSessions: { type: [String], default: undefined, select: false },
     meta: { type: Boolean, default: false },
   },
   settings: {
@@ -50,6 +51,8 @@ const UserSchema = new Schema({
     passhash: String,
     joinFingerprint: { type: String, default: null },
     latestFingerprint: { type: String, default: null },
+    fingerprintVersion: { type: String, default: null },
+    fingerprintHistory: [{ _id: false, value: String, version: String }],
     totpSecret: { type: String, default: null },
   },
 
@@ -69,5 +72,13 @@ const UserSchema = new Schema({
     },
   ],
 });
+
+// Internal fulfillment markers must never be returned with a user document.
+function hidePaymentMarkers(_document, value) {
+  if (value.attrs) delete value.attrs.appliedCheckoutSessions;
+  return value;
+}
+UserSchema.set('toJSON', { transform: hidePaymentMarkers });
+UserSchema.set('toObject', { transform: hidePaymentMarkers });
 
 export default mongoose.model('User', UserSchema);

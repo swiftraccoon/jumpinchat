@@ -1,6 +1,8 @@
+@use "../utils/variables";
+
 .multicol {
 	&__Wrapper {
-		@media screen and (min-width: $bp-tablet) {
+		@media screen and (min-width: variables.$bp-tablet) {
 			display: flex;
 		}
 	}
@@ -8,12 +10,12 @@
 	&__Side {
 		width: 100%;
 		flex-shrink: 0;
-		@media screen and (min-width: $bp-tablet) {
+		@media screen and (min-width: variables.$bp-tablet) {
 			width: 200px;
 		}
 
 		&--left {
-			@media screen and (min-width: $bp-tablet) {
+			@media screen and (min-width: variables.$bp-tablet) {
 				margin: {
 					right: 1em;
 				}
@@ -23,7 +25,7 @@
 
 	&__Main {
 		width: 100%;
-		@media screen and (min-width: $bp-tablet) {
+		@media screen and (min-width: variables.$bp-tablet) {
 			flex-grow: 1;
 			width: auto;
 		}

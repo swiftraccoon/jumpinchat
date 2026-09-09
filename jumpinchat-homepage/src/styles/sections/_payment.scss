@@ -1,3 +1,5 @@
+@use "../utils/variables";
+
 .payment {
   &__Container {
     display: grid;
@@ -23,9 +25,9 @@
       bottom: 1em;
     }
     padding: 0.5em;
-    border: 1px solid $color-black-07;
+    border: 1px solid variables.$color-black-07;
     background: {
-      color: $color-white;
+      color: variables.$color-white;
     }
   }
 

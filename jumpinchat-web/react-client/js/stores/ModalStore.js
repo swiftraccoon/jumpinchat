@@ -2,7 +2,7 @@
  * Created by Zaccary on 23/05/2016.
  */
 
-import { EventEmitter } from 'events';
+import Store from './Store';
 import { ModalDispatcher } from '../dispatcher/AppDispatcher';
 import {
   HANDLE_MODAL_STATE,
@@ -20,7 +20,7 @@ import {
   SET_BAN_MODAL,
 } from '../constants/ActionTypes';
 
-export class ModalStore extends EventEmitter {
+export class ModalStore extends Store {
   constructor() {
     super();
     this._modalError = null;
@@ -211,19 +211,10 @@ export class ModalStore extends EventEmitter {
   }
 
   // Emit Change event
-  emitChange() {
-    this.emit('change');
-  }
 
   // Add change listener
-  addChangeListener(callback) {
-    this.on('change', callback);
-  }
 
   // Remove change listener
-  removeChangeListener(callback) {
-    this.removeListener('change', callback);
-  }
 }
 
 const modalStore = new ModalStore();

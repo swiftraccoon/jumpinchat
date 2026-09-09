@@ -1,3 +1,5 @@
+@use "../utils/variables";
+
 .form {
   $p: &;
   &__InputContainer {
@@ -43,23 +45,23 @@
       weight: 400;
     }
 
-    color: $color-black-04;
+    color: variables.$color-black-04;
   }
 
   &__Input {
     padding: 0.4em 0.75em;
-    border: 1px solid $color-black-06;
+    border: 1px solid variables.$color-black-06;
     border-radius: 2px;
-    background-color: $color-black-10;
+    background-color: variables.$color-black-10;
     outline: none;
     box-sizing: border-box;
 
     &:focus {
-      border-color: $color-black-03;
+      border-color: variables.$color-black-03;
     }
 
     &.touched:required:invalid {
-      border-color: $color-red-03;
+      border-color: variables.$color-red-03;
     }
 
     &:disabled {
@@ -67,7 +69,7 @@
     }
 
     &--white {
-      background-color: $color-white;
+      background-color: variables.$color-white;
     }
 
     &-radio {
@@ -93,8 +95,8 @@
           left: 0;
           width: 1.6rem;
           height: 1.6rem;
-          background: $color-black-10;
-          border: 1px solid $color-black-06;
+          background: variables.$color-black-10;
+          border: 1px solid variables.$color-black-06;
           border-radius: 2px;
 
           line-height: 1.6rem;
@@ -108,7 +110,7 @@
 
         &:hover {
           &:before {
-            border-color: $color-blue-02;
+            border-color: variables.$color-blue-02;
           }
         }
       }
@@ -124,9 +126,9 @@
 
       &:disabled + label {
         &:before {
-          background-color: $color-black-08;
-          color: $color-black-05;
-          border-color: $color-black-06;
+          background-color: variables.$color-black-08;
+          color: variables.$color-black-05;
+          border-color: variables.$color-black-06;
 
           cursor: not-allowed;
         }
@@ -169,22 +171,22 @@
     height: 2.3em;
     padding: 0 0.75em;
     border: none;
-    border-bottom: 2px solid $color-black-06;
+    border-bottom: 2px solid variables.$color-black-06;
 
-    background-color: $color-black-10;
+    background-color: variables.$color-black-10;
     outline: none;
     box-sizing: border-box;
 
     &:focus {
-      border-color: $color-blue-02;
+      border-color: variables.$color-blue-02;
     }
 
     &.touched:required:invalid {
-      border-color: $color-red-03;
+      border-color: variables.$color-red-03;
     }
 
     &--white {
-      background-color: $color-white;
+      background-color: variables.$color-white;
     }
   }
 
@@ -194,7 +196,7 @@
       weight: 600;
     }
 
-    color: $color-red-03;
+    color: variables.$color-red-03;
   }
 
   &__LinkBack {

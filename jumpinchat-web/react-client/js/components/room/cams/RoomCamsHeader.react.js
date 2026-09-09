@@ -1,7 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import _Clamp from 'react-clamp-lines';
-const Clamp = _Clamp.default || _Clamp;
 import RoomBroadcastButton from './RoomBroadcastButton.react';
 import RoomCamsLocalAudioActions from './RoomCamsLocalAudioActions.react';
 import RoomRestrictions from '../RoomRestrictions.react';
@@ -49,14 +47,9 @@ const RoomCamsHeader = ({
           className="cams__RoomDescriptionWrapper mobileHidden"
           title={(room.settings.topic && room.settings.topic.text) || room.settings.description}
         >
-          <Clamp
-            id="room-description"
-            className="cams__RoomDescription"
-            text={(room.settings.topic && room.settings.topic.text) || room.settings.description}
-            lines={2}
-            buttons={false}
-            ellipsis="&hellip;"
-          />
+          <div id="room-description" className="cams__RoomDescription text-clamp-two">
+            {(room.settings.topic && room.settings.topic.text) || room.settings.description}
+          </div>
         </div>
       )}
     </div>

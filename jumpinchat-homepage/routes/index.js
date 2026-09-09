@@ -124,7 +124,12 @@ export default function routes(app) {
   app.get('/privacy', privacyView);
   app.get('/status', statusView);
   app.post('/session/register', (req, res) => {
-    req.session.fingerprint = req.body.fp;
+    const { fp, fingerprintVersion } = req.body || {};
+    if (typeof fp === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(fp)
+      && (fingerprintVersion == null || /^\d+\.\d+\.\d+$/.test(fingerprintVersion))) {
+      req.session.fingerprint = fp;
+      req.session.fingerprintVersion = fingerprintVersion || 'legacy';
+    }
     return res.status(200).send();
   });
 

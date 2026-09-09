@@ -1,5 +1,8 @@
+@use "sass:meta";
+@use "../variables";
+
 .dark {
-  @import './mediaSources.dark';
+  @include meta.load-css('mediaSources.dark');
 }
 
 .mediaSources {
@@ -31,21 +34,21 @@
     max-width: calc(160px + 1em + 4px);
     margin: 0.5em;
     padding: 0.5em;
-    border: 1px solid $black-05;
-    background-color: $black-09;
+    border: 1px solid variables.$black-05;
+    background-color: variables.$black-09;
     border-radius: 3px;
     color: inherit;
 
     &:hover {
-      border-color: $color-blue-03;
+      border-color: variables.$color-blue-03;
     }
 
     &-error {
-      border-color: $red-02;
+      border-color: variables.$red-02;
       cursor: not-allowed;
 
       &:hover {
-        border-color: $red-02;
+        border-color: variables.$red-02;
       }
     }
   }
@@ -67,7 +70,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: space-around;
-      color: $red-02;
+      color: variables.$red-02;
       font: {
         size: 2em;
       }

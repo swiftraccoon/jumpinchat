@@ -1,7 +1,9 @@
+@use "../../variables";
+
 .dark {
   .roles {
     &__IconPicker {
-      --dropdown-bg: #{$color-dark0};
+      --dropdown-bg: #{variables.$color-dark0};
     }
   }
 }
@@ -58,7 +60,7 @@
   }
 
   &__IconPicker {
-    --dropdown-bg: #{$black-10};
+    --dropdown-bg: #{variables.$black-10};
     width: 200px;
     background-color: var(--dropdown-bg);
     border-radius: 4px;

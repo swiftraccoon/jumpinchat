@@ -1,27 +1,29 @@
+@use "../variables";
+
 .cams {
   background: {
-    color: $color-dark0;
+    color: variables.$color-dark0;
   }
 
   &__Header {
     background: {
-      color: $color-dark2;
+      color: variables.$color-dark2;
     }
   }
 
   &__InfoLabel {
-    color: $color-light3;
+    color: variables.$color-light3;
   }
 
   &__Cam {
-    border-color: $color-light4;
+    border-color: variables.$color-light4;
   }
 
   &__Restriction {
-    background-color: $theme-blue;
-    color: $color-light0-soft;
+    background-color: variables.$theme-blue;
+    color: variables.$color-light0-soft;
     &--18plus {
-      background-color: $theme-red;
+      background-color: variables.$theme-red;
     }
   }
 }

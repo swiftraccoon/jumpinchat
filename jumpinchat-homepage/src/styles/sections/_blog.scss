@@ -1,8 +1,10 @@
+@use "../utils/variables";
+
 .blog {
   &__post {
     margin-bottom: 2rem;
     padding-bottom: 2rem;
-    border-bottom: 1px solid $color-black-08;
+    border-bottom: 1px solid variables.$color-black-08;
 
     &:last-child {
       border-bottom: none;
@@ -27,7 +29,7 @@
   &__postDate {
     display: block;
     margin-bottom: 0.5rem;
-    color: $color-black-05;
+    color: variables.$color-black-05;
     font-size: 0.9em;
   }
 
@@ -54,6 +56,6 @@
   &__nav {
     margin-top: 2rem;
     padding-top: 1rem;
-    border-top: 1px solid $color-black-08;
+    border-top: 1px solid variables.$color-black-08;
   }
 }
