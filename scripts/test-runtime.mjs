@@ -163,10 +163,10 @@ try {
 
   const paymentSuite = await execute(process.execPath, [
     '--loader=esmock', path.join(webPath, 'node_modules/mocha/bin/mocha.js'),
-    '--exit', '-t', '10000', 'test/payment/fulfillment.mongo.spec.js',
+    '-t', '10000', 'test/payment/fulfillment.mongo.spec.js',
   ], {
     cwd: webPath,
-    env: { PATH: process.env.PATH, NODE_ENV: 'test',
+    env: { PATH: process.env.PATH, NODE_ENV: 'test', MONGODB_URI: mongoUri, REDIS_URI: redisUri,
       PAYMENT_TEST_MONGO_URI: `mongodb://127.0.0.1:${mongoPort}/unused?replicaSet=rs0&directConnection=true` },
     timeout: 60000,
     maxBuffer: 1024 * 1024,

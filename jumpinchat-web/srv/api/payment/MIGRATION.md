@@ -171,10 +171,14 @@ annual, cancellation and failure/retry behavior. The homepage has 22 focused
 payment route/browser cases. All provider calls are doubled; no real card or
 account is used.
 
-`test/payment/fulfillment.mongo.spec.js` adds 14 cases against actual MongoDB 8.3:
+`test/payment/fulfillment.mongo.spec.js` adds 18 cases against actual MongoDB 8.3:
 concurrent date-pipeline grants, distinct gifts, injected post-grant failure,
 lease recovery/fencing, real unique-index enforcement with automatic indexing
-disabled, serialization, annual/late invoices and cancellation races. The shared
+disabled, serialization, annual/late invoices and cancellation races. Four cases
+exercise the legacy reconciliation procedure above: an uncertain paid session
+remains blocked, an already-granted session is acknowledged without another
+grant, a verified never-granted session grants once, and an unpaid session remains
+unchanged. These use synthetic records and doubled Stripe responses. The shared
 `scripts/test-runtime.mjs` harness executes it against a fresh temporary database
 and checks application runtime/backup restoration separately.
 
@@ -183,8 +187,10 @@ For a standalone run against an explicitly provided disposable local MongoDB:
 ```bash
 cd jumpinchat-web
 PAYMENT_TEST_MONGO_URI=mongodb://127.0.0.1:27017/unused NODE_ENV=test \
-  npx mocha --loader=esmock --exit -t 10000 test/payment/fulfillment.mongo.spec.js
+  npx mocha --loader=esmock -t 10000 test/payment/fulfillment.mongo.spec.js
 ```
 
 The suite requires a loopback URI, creates a uniquely named test database with
-`autoIndex: false`, and drops only that database afterward.
+`autoIndex: false`, and drops only that database afterward. Strict provider mocks
+prevent unrelated Redis clients from being initialized; the process must exit
+naturally so leaked connections fail the runtime harness timeout.

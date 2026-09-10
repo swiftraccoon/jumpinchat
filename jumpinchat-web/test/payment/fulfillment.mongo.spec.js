@@ -25,7 +25,9 @@ before(async () => {
     checkout: { sessions: { retrieve: sinon.stub(), list: sinon.stub().resolves({ data: [], has_more: false }) } },
     invoices: { listLineItems: sinon.stub() },
   };
-  utils = await esmock('../../srv/api/payment/payment.utils.js', {
+  // Replace these boundaries entirely: merging mocked exports would evaluate
+  // their original import trees, including the default Redis connection.
+  utils = await esmock.strict('../../srv/api/payment/payment.utils.js', {
     '../../srv/utils/logger.util.js': logger,
     '../../srv/api/payment/stripe.client.js': { default: stripe },
     '../../srv/api/trophy/trophy.utils.js': { default: { applyTrophy: (_id, _trophy, done) => done() } },
@@ -33,8 +35,11 @@ before(async () => {
   });
 });
 after(async () => {
-  if (mongoose.connection.name === dbName) await mongoose.connection.dropDatabase();
-  await mongoose.disconnect();
+  try {
+    if (mongoose.connection.name === dbName) await mongoose.connection.dropDatabase();
+  } finally {
+    await mongoose.disconnect();
+  }
 });
 beforeEach(async () => {
   await Promise.all([User.deleteMany({}), Payment.deleteMany({}), CheckoutSession.deleteMany({})]);
@@ -48,7 +53,7 @@ beforeEach(async () => {
 });
 
 async function makeFulfillment(overrides = {}) {
-  return (await esmock('../../srv/api/payment/controllers/fulfillPayment.controller.js', {
+  return (await esmock.strict('../../srv/api/payment/controllers/fulfillPayment.controller.js', {
     '../../srv/api/payment/stripe.client.js': { default: stripe }, '../../srv/api/payment/payment.utils.js': { default: { ...utils.default, ...overrides } },
     '../../srv/utils/logger.util.js': logger,
     '../../srv/api/message/utils/metaSendMessage.util.js': { default: async () => {} },
@@ -57,6 +62,14 @@ async function makeFulfillment(overrides = {}) {
 
 async function storedUser() {
   return User.findById(user._id).select('+attrs.appliedCheckoutSessions').lean();
+}
+
+async function makeLegacySession() {
+  await CheckoutSession.collection.updateOne({ _id: local._id }, {
+    $unset: { fulfillmentVersion: '' },
+  });
+  assert.equal((await CheckoutSession.findById(local._id)).fulfillmentVersion, undefined,
+    'Historical records must not gain a fulfillment version from schema defaults');
 }
 
 describe('MongoDB payment durability and concurrency', () => {
@@ -209,5 +222,59 @@ describe('MongoDB payment durability and concurrency', () => {
     await utils.handleSubscriptionDeleted({ id: 'sub_old' });
     assert.equal((await storedUser()).attrs.isGold, true);
     assert.equal(await Payment.countDocuments({ 'subscription.id': 'sub_old' }), 0);
+  });
+
+  it('holds an uncertain paid legacy checkout across repeated deliveries without granting support', async () => {
+    await makeLegacySession();
+    const fulfill = await makeFulfillment();
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await assert.rejects(fulfill(checkout), /Legacy checkout requires operator reconciliation/);
+    }
+    const stored = await storedUser();
+    assert.equal(stored.attrs.supportExpires.getTime(), baseExpiry.getTime());
+    assert.equal(stored.attrs.appliedCheckoutSessions, undefined);
+    assert.equal(await Payment.countDocuments({ checkoutSessionId: checkout.id }), 0);
+  });
+
+  it('acknowledges a legacy checkout marked already granted by the runbook without a second grant', async () => {
+    await makeLegacySession();
+    const recorded = await CheckoutSession.collection.updateOne({
+      checkoutSessionId: checkout.id, fulfilledAt: null,
+    }, { $set: { fulfilledAt: new Date('2026-09-01T00:00:00Z') } });
+    assert.equal(recorded.matchedCount, 1);
+    const fulfill = await makeFulfillment();
+    assert.equal(await fulfill(checkout), true);
+    const stored = await storedUser();
+    assert.equal(stored.attrs.supportExpires.getTime(), baseExpiry.getTime());
+    assert.equal(stored.attrs.appliedCheckoutSessions, undefined);
+    assert.equal(await Payment.countDocuments({ checkoutSessionId: checkout.id }), 0);
+  });
+
+  it('grants a legacy checkout marked never granted by the runbook exactly once', async () => {
+    await makeLegacySession();
+    const approved = await CheckoutSession.collection.updateOne({
+      checkoutSessionId: checkout.id, fulfilledAt: null,
+    }, { $set: { fulfillmentVersion: 2 } });
+    assert.equal(approved.matchedCount, 1);
+    const fulfill = await makeFulfillment();
+    assert.equal(await fulfill(checkout), true);
+    assert.equal(await fulfill(checkout), true);
+    const stored = await storedUser();
+    assert.equal(stored.attrs.supportExpires.getTime(), baseExpiry.getTime() + 14 * day);
+    assert.deepEqual(stored.attrs.appliedCheckoutSessions, [checkout.id]);
+    assert.equal(await Payment.countDocuments({ checkoutSessionId: checkout.id }), 1);
+    assert.ok((await CheckoutSession.findById(local._id)).fulfilledAt);
+  });
+
+  it('leaves an unpaid legacy checkout ungranted and unversioned', async () => {
+    await makeLegacySession();
+    checkout.payment_status = 'unpaid';
+    const fulfill = await makeFulfillment();
+    assert.equal(await fulfill(checkout), false);
+    const stored = await storedUser();
+    assert.equal(stored.attrs.supportExpires.getTime(), baseExpiry.getTime());
+    assert.equal(stored.attrs.appliedCheckoutSessions, undefined);
+    assert.equal((await CheckoutSession.findById(local._id)).fulfillmentVersion, undefined);
+    assert.equal(await Payment.countDocuments({ checkoutSessionId: checkout.id }), 0);
   });
 });
