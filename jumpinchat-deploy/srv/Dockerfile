@@ -1,4 +1,4 @@
-FROM docker.io/library/node:24-trixie@sha256:f7d34e58713740f9eef9092c0bd6ff10369d132f7238399a4b270f16d47fa608 AS builder
+FROM docker.io/library/node:26-trixie@sha256:e961046fec20896e8904f2b4a8b4c7e5ca91826d84d8d33d83dbaa61f942069e AS builder
 
 WORKDIR /build
 COPY jumpinchat-web/package.json jumpinchat-web/package-lock.json ./
@@ -10,7 +10,7 @@ ARG BUILD_REVISION=local-dev
 RUN node -e "require('fs').writeFileSync('dist/version.js', 'window.BUILD_NUM=' + JSON.stringify(process.argv[1]) + ';\\n')" "$BUILD_REVISION"
 
 # Match the build and runtime libc/Node versions for native npm dependencies.
-FROM docker.io/library/node:24-trixie-slim@sha256:50c3b2f6988dfc307b86e5301d69611af31f4789bdf232863b07d3b02fe55ae0
+FROM docker.io/library/node:26-trixie-slim@sha256:14bf3eac4bf209d906d3c41256597d3ab1f926b2e93a79e9bdfe1efd32454239
 ENV NODE_ENV=production PORT=8080
 WORKDIR /var/www/jic-web
 RUN apt-get update && apt-get install -y --no-install-recommends nginx curl ca-certificates && \
