@@ -29,14 +29,26 @@ import * as chatActions from '../actions/ChatActions';
 import * as camActions from '../actions/CamActions';
 import * as sessionActions from '../actions/SessionActions';
 import { setHandleModal } from '../actions/ModalActions';
-import { addNotification } from '../actions/NotificationActions';
+import { addNotification, closeNotification } from '../actions/NotificationActions';
 import * as roleActions from '../actions/RoleActions';
 import SessionStore from '../stores/SessionStore';
+import NotificationStore from '../stores/NotificationStore';
 import ChatStore from '../stores/ChatStore/ChatStore';
 import { ALERT_COLORS } from '../constants/AlertMap';
 import {
   setBroadcastRestricted,
 } from '../actions/UserActions';
+
+const connectionFailureMessage = 'Unable to establish connection to chat server';
+
+function clearConnectionNotifications() {
+  const notifications = NotificationStore.getNotifications();
+  for (let index = notifications.length - 1; index >= 0; index -= 1) {
+    if ([connectionFailureMessage, 'Chat server disconnected'].includes(notifications[index].message)) {
+      closeNotification(index);
+    }
+  }
+}
 
 function initJanus(janusId, roomName, userId) {
   init(janusId, roomName, userId, (camInitErr, initialized) => {
@@ -139,6 +151,8 @@ function socketConnect(response, cb) {
   const room = getRoomName();
 
   sessionActions.setSessionId(SocketUtil.socket.id);
+  SocketUtil.resume();
+  clearConnectionNotifications();
   cb(null, {
     loading: false,
     room,
@@ -154,12 +168,24 @@ export function reconnect(cb = () => {}) {
   } = SessionStore.getState();
 
   if (isReconnecting) {
-    return cb();
+    return;
   }
 
-  // get the old session ID and
+  const newSocketId = SocketUtil.socket.id;
+  if (!newSocketId) return;
+
   sessionActions.setIsReconnecting(true);
-  return updateSessionId(oldSocketId, SocketUtil.socket.id, (err) => {
+  return updateSessionId(oldSocketId, newSocketId, (err) => {
+    sessionActions.setIsReconnecting(false);
+    if (!err) sessionActions.setSessionId(newSocketId);
+
+    // Another transport may have connected while this migration was in flight.
+    // Chain from the last confirmed mapping instead of saving an unregistered ID.
+    if (SocketUtil.socket.id !== newSocketId) {
+      if (SocketUtil.socket.connected) return reconnect(cb);
+      return;
+    }
+
     if (err) {
       console.error(err);
       console.log('failed to update session ID');
@@ -170,27 +196,26 @@ export function reconnect(cb = () => {}) {
         message: 'unable to reconnect to room, please refresh',
       });
 
-      sessionActions.setIsReconnecting(false);
       return cb('ERR_RECONNECT_FAIL');
     }
 
-    // save new socket id
-    sessionActions.setSessionId(SocketUtil.socket.id);
-
     camActions.setCanBroadcast(true);
+    SocketUtil.resume();
+    if (!SocketUtil.socket.connected || SocketUtil.socket.id !== newSocketId) return;
+    clearConnectionNotifications();
 
     addNotification({
       color: 'blue',
       message: 'Chat server reconnected',
     });
 
-    sessionActions.setIsReconnecting(false);
     return cb();
   });
 }
 
 export function initRoom(cb) {
   let disconnectTimeout;
+  let hasConnected = false;
   getSession((err, response) => {
     if (err) {
       return addNotification({
@@ -202,12 +227,18 @@ export function initRoom(cb) {
 
     SocketUtil.authSocket(response.token);
 
-    SocketUtil.listen('connect', () => socketConnect(response, cb));
-
-    SocketUtil.listen('reconnect', () => {
-      console.log('socket reconnected');
+    // Socket.IO 4 emits connect for both initial and recovered namespace sessions.
+    // Its Manager reconnect event can fire before the new socket ID is available.
+    SocketUtil.listen('connect', () => {
       clearTimeout(disconnectTimeout);
-      return reconnect(cb);
+      if (hasConnected) {
+        return reconnect((reconnectError) => {
+          if (reconnectError) cb(reconnectError);
+        });
+      }
+
+      hasConnected = true;
+      return socketConnect(response, cb);
     });
 
     SocketUtil.listen('disconnect', () => {
@@ -219,18 +250,19 @@ export function initRoom(cb) {
         message: 'Chat server disconnected',
       });
 
+      clearTimeout(disconnectTimeout);
       disconnectTimeout = setTimeout(() => {
         window.location.reload();
       }, 1000 * 60);
     });
 
-    SocketUtil.listen('error', (err) => {
+    SocketUtil.listen('connect_error', (err) => {
       console.error(err);
 
       camActions.setCanBroadcast(false);
       addNotification({
         color: 'red',
-        message: 'Unable to establish connection to chat server',
+        message: connectionFailureMessage,
         autoClose: false,
       });
     });

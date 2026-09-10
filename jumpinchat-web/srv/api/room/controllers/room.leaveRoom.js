@@ -28,14 +28,6 @@ export default async function leaveRoom(socketId, cb) {
     janusSessionId,
   } = socketData;
 
-  if (janusSessionId) {
-    try {
-      await janusUtil.destroySession(janusServerId, janusSessionId);
-    } catch (err) {
-      log.fatal({ err }, 'failed to remove janus session');
-    }
-  }
-
   const removeUserCb = async (err, user) => {
     if (err) {
       log.error({ err }, 'error removing user');
@@ -43,7 +35,16 @@ export default async function leaveRoom(socketId, cb) {
     }
 
     if (!user) {
-      return cb(new NotFoundError('user not found'));
+      // Recovery moved the room member before the queued removal executed.
+      return cb(null, socketData.name, null);
+    }
+
+    if (janusSessionId) {
+      try {
+        await janusUtil.destroySession(janusServerId, janusSessionId);
+      } catch (err) {
+        log.fatal({ err }, 'failed to remove janus session');
+      }
     }
 
     log.debug('removed user');

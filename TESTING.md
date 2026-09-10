@@ -35,8 +35,8 @@ Its include pattern is `react-client/**/*.spec.js`; Mocha explicitly selects
 harness compiles the real CamUtil module to CommonJS with esbuild before executing
 it against controlled Janus/browser callbacks; it does not load a React adapter.
 
-After the utility replacement and regression fixes, all 56 Vitest files passed
-(152 tests), alongside 477 server, 120 homepage, 13 email and 9 media tests.
+After the utility replacement and transport recovery fixes, all 58 Vitest files
+passed (170 tests), alongside 505 server, 120 homepage, 13 email and 21 media tests.
 The media cases preserve denial/unreadable/unknown camera failures, retry bounds,
 cancellation, and stale session callback behavior.
 
@@ -124,50 +124,76 @@ Development servers use portable `node --watch`; a disposable Linux Node 24.20.0
 container check verified `.env` loading and restarts when an imported module
 changes. The platform-specific `--watch-path` option is not required.
 
+`RoomUtils.spec.js` covers initial versus recovered connections, repeated
+disconnects, migration requests still in flight when another connection arrives,
+failed migration and connection errors. Server recovery tests cover the 60-second
+transport grace period, atomic membership migration/removal, session ownership,
+cache expiry, private-message routing, and delayed Janus cleanup. Deliberate
+namespace disconnects still leave immediately. Lost sessions trigger a full page
+reload so chat and media are initialized with consistent identities.
+`SocketUtil.spec.js` checks the application event queue across initial connection,
+repeated outages, reentrant sends and a disconnect during draining. Outgoing
+events resume after an outage only once the recovered room mapping is confirmed;
+the transport's connect event alone cannot flush them. Successful recovery clears obsolete connection
+warnings while preserving unrelated notices. `test/client/remoteFeeds.spec.js`
+exercises the real CamUtil module through controlled Janus callbacks: duplicate
+pending/active announcements during renegotiation, transient versus failed ICE,
+hangup/resume, attachment and negotiation failures, unpublish, track cleanup and
+callbacks from departed sessions. A client session keeps at most one pending or active subscriber handle per
+publisher; late callbacks cannot replace or remove its current subscription.
+
 ## Remaining limits
 
 The three formerly pending server cases now execute: private-message cache misses
 for guests and registered users, and reusing the existing Janus room during join
 (room creation owns Janus room allocation). The server suite has no pending cases.
 
-Most frontend tests use jsdom. Real Chrome 152 checks during this migration also
-covered login, account navigation, mounting the built React room, nickname entry,
-chat send/echo and Emoji Mart autocomplete. The room-read response used a seeded
-fixture because the isolated runtime has no live Janus media; Socket.IO chat and
-application authentication ran against real processes. Provider doubles establish
-local application contracts, not live Stripe/SMTP or media compatibility.
+Most frontend tests use jsdom. A separate final deployment check used Chromium
+153.0.8010.12 with real application, Socket.IO, Janus 1.4.1 and coturn 4.18
+processes. Five isolated browser sessions passed 39 checks: room creation/join,
+two-way chat, advancing decoded video and received audio energy, TURN relay on
+every active publisher/subscriber connection, Janus reclaim, Socket.IO recovery,
+permission denial/regrant, and capture-track cleanup. A chat message submitted
+while disconnected arrived exactly once after recovery under the original room
+user ID, without a missing-session error or stale connection-failure notice.
+A separate two-browser run passed 20 checks after physically disconnecting and
+restoring the disposable browser container's network: received media stopped,
+then fresh audio/video and both chat directions resumed. Each browser retained
+exactly one active publisher and one subscriber connection, with no duplicate
+receiver or reopened nickname dialog.
+
+These browser runs use a synthetic camera pattern and microphone tone on one
+isolated container network. They do not establish physical-device compatibility,
+other-browser behavior, production NAT/firewall traversal, or recovery from every
+outage duration. Public ICE servers and unrelated external requests are excluded.
+Real network paths and supported devices/browsers still need a deployment check.
+
+The final disposable lite stack rebuilt web, home, email, nginx, Janus and coturn
+from the repository Dockerfiles with unique image tags, fresh MongoDB/Redis
+volumes, test secrets and a dedicated certificate. Seven application checks
+passed through nginx HTTPS with certificate validation: page rendering,
+registration and room creation, shared authenticated sessions, local SMTP
+verification, persisted avatar/room-cover upload and image readback, and
+logout/returning login. The original deployment's stopped containers and volumes
+were kept separate from these fixtures. Stopping MongoDB made web and homepage
+readiness return 503; stopping Redis made web readiness return 503 while homepage
+readiness stayed 200. Liveness stayed 200 throughout, and readiness recovered
+after each same-container restart without replacing data volumes. After validation,
+all 11 test containers, six owned volumes, the isolated network and ten test image
+tags were removed. The original eight container identities and five original
+volume identities matched the recorded baseline; build caches were preserved.
 
 The email suite also uses real Nodemailer 10 against a disposable loopback SMTP
 peer. It verifies envelope/MIME delivery, waiting for final DATA acceptance, and
 HTTP 502 responses for recipient or DATA rejection. Provider TLS/authentication
-and actual inbox delivery still require the configured SMTP service.
+and actual inbox delivery still require the configured SMTP service. Stripe
+network responses remain doubles; live provider webhooks and historical payment
+reconciliation require the operator's test environment and records.
 
-On the development ARM64 host, native image checks passed for Janus 1.4.1,
-nginx, HAProxy, coturn 4.18 and a fresh MongoDB 8.3 instance. A later pass on the
-same host repaired the local Podman overlay store (truncated layer `link`/`lower`
-metadata and SELinux labels left by a full VM disk), after which
-`podman-compose -f compose.lite.yml build` produced every image (web, home, email,
-janus, nginx; haproxy and turn were built separately) and the lite profile ran
-end to end: homepage and `/health/ready` through nginx TLS, a guest session and
-activity token stored in Redis 8.10 by node-redis 6, Socket.IO websocket
-handshakes accepted with a valid JWT and rejected without one, registration and
-login against MongoDB 8.3 (replica set primary), an authenticated account lookup,
-the login rate limiter returning 429 after ten attempts through rate-limit-redis 6,
-the room page with hashed bundles and locally served Font Awesome, and the
-generated service worker. The Janus image reported version 1.4.1 with the
-VideoRoom plugin over HTTP and WebSocket transports, and the email service
-answered its status probe. Requests that reach nginx from the container gateway
-(a 10.x address) are exempt from rate limiting by design, so that check must run
-with a public `X-Forwarded-For` value. Live two-browser media and provider
-integrations remain manual checks; the runtime/restore harness uses independent
-local binaries and does not replace them.
-
-Before deployment, build all images and verify cold startup, readiness during
-database/Redis loss, termination and reconnect, and a two-browser call including
-permission denial and a temporary network interruption. Check actual keyboard
-focus, floating-menu positioning, scrolling, cropping, and media playback in a
-browser. Follow [RECOVERY.md](RECOVERY.md) for a restore exercise on an isolated
-host.
+The native restore rehearsal uses synthetic MongoDB 8.3 data and uploads. It does
+not replace rehearsing the actual backup through the supported MongoDB major
+upgrade sequence, feature compatibility changes, and production indexes/topology.
+Follow [RECOVERY.md](RECOVERY.md) for that isolated exercise before cutover.
 
 ## Maintained browser libraries
 
@@ -192,13 +218,74 @@ upload/provider service; broader device and browser coverage remains manual.
 `scripts/test-runtime.mjs` uses explicit MongoDB/Redis binary paths, random
 loopback ports and fresh temporary databases. It verifies real account login,
 Mongo/Redis sessions and TTL, EJS/Pug rendering, two-process chat and rate limits.
-It also runs the payment integration suite against real MongoDB with automatic
+It also severs a real Socket.IO transport and recovers the same room member onto
+the other application process, then checks bidirectional chat, private messages,
+Redis cache migration/expiry and a repeated recovery request.
+It also runs 18 payment integration cases against real MongoDB with automatic
 index creation disabled: concurrent deliveries and gifts, failure recovery,
-lease fencing, cancellation ordering, billing periods and private replay markers.
+lease fencing, cancellation ordering, billing periods, private replay markers and
+the legacy reconciliation procedure. Strict mocks replace provider boundaries
+without initializing their original Redis clients. The subprocess receives only
+the fixture's MongoDB/Redis endpoints and must exit without Mocha's `--exit` flag.
 Stripe responses in this suite are provider doubles; no charges are made.
 Supplying Database Tools paths also rehearses synthetic database and local-upload
 restoration. See [RECOVERY.md](RECOVERY.md#synthetic-runtime-and-restore-rehearsal)
 for invocation and its boundary from production data and Compose orchestration.
+
+`scripts/test-deployment.mjs` checks an already-running disposable lite stack over
+loopback HTTPS. It creates synthetic accounts and rooms, verifies shared login
+sessions, follows a locally captured verification email, uploads an avatar and
+room cover, decodes their nginx-served images, and checks logout/returning login.
+It trusts only the supplied test CA and uses the supplied HTTP host name.
+
+```bash
+node scripts/test-deployment.mjs \
+  --origin https://127.0.0.1:8443 --host local.jumpin.chat \
+  --smtp http://127.0.0.1:8081/messages --ca /path/to/test/fullchain.pem \
+  --report /path/to/artifacts/application.json
+```
+
+Provision the stack with fresh volumes, secrets, certificate and unique image
+tags. Point its mail service at a local SMTP capture peer, and provide a local MX
+record for `example.com`, the reserved recipient domain used by the script.
+The capture endpoint must return accepted messages as a JSON array containing
+`to` (an array of envelope recipients) and `mime` (the raw MIME text). No external
+SMTP provider is needed. Teardown belongs to the stack owner: the script leaves
+its synthetic accounts and uploads in that disposable stack for inspection.
+
+`scripts/test-media.mjs` drives the built room UI against the same disposable
+stack. Supply Playwright and its full Chromium installation from a separate test
+directory; the runner adds no application dependency. Default headless-shell
+Chromium is insufficient for these native media checks. The browser must resolve
+and reach the stack's HTTPS, Janus and TURN endpoints. `TLS_SPKI` optionally trusts
+only the dedicated test certificate's public key; omit it for an already-trusted
+certificate. List any additional isolated HTTP/ICE hosts explicitly.
+
+```bash
+PLAYWRIGHT_PACKAGE=/path/to/browser-tools/node_modules/playwright \
+BASE_URL=https://local.jumpin.chat \
+EXTRA_HOSTS=turn.local.jumpin.chat \
+TLS_SPKI="$TEST_CERT_SPKI" \
+OUTPUT_DIR=/path/to/artifacts/media PHASE=all \
+node scripts/test-media.mjs
+```
+
+`PHASE=all` includes normal media, chat/signaling recovery, denied permissions and
+forced TURN relay; `direct`, `relay` and `permissions` select individual groups.
+The runner writes JSON diagnostics, native WebRTC statistics and screenshots.
+It creates disposable guest rooms; the stack owner handles fixture teardown.
+
+`PHASE=network` requires a separate host controller and a fresh shared
+`NETWORK_CONTROL_DIR`. The runner creates that directory and writes `ready.json`
+after media and chat are active. The controller disconnects only the disposable
+browser container, then writes `disconnected.json`. Once the runner has measured
+stopped inbound media, it writes `resume-requested.json`; the controller restores
+the same network/IP and writes `reconnected.json`. Each marker must contain a JSON
+object. The runner checks fresh media progress and both chat directions before
+writing `complete.json`. The controller must restore connectivity in a `finally`
+block and impose its own short maximum outage even if the runner fails; the final
+validation used a 25-second safeguard. Never target the working deployment's
+network or containers.
 
 After a production web build, run `node scripts/check-web-build.mjs`. The checker
 verifies referenced assets, source maps, fonts, media and the service-worker
@@ -218,10 +305,11 @@ homepage has 22 focused payment route/browser cases. All Stripe and notification
 network calls are doubled; no real payment or external account was changed.
 
 The shared runtime harness also runs
-`jumpinchat-web/test/payment/fulfillment.mongo.spec.js`: 14 cases against disposable
+`jumpinchat-web/test/payment/fulfillment.mongo.spec.js`: 18 cases against disposable
 MongoDB 8.3 databases for actual atomic date pipelines, same/different checkout
 concurrency, post-grant failure recovery, expiring/fenced leases, unique index
-creation/enforcement with autoIndex disabled, marker privacy, paid invoice periods
-and cancellation races. See the [payment migration runbook](jumpinchat-web/srv/api/payment/MIGRATION.md)
+creation/enforcement with autoIndex disabled, marker privacy, paid invoice periods,
+cancellation races, and four legacy checkout reconciliation scenarios. See the
+[payment migration runbook](jumpinchat-web/srv/api/payment/MIGRATION.md)
 for standalone invocation, required historical checkout reconciliation and the
 subscription/gift duration behavior change before production cutover.

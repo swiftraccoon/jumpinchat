@@ -126,10 +126,20 @@ function browser(origin) {
 
 function event(socket, name) {
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Socket event timed out: ${name}`)), 6000);
-    socket.once(name, (value) => { clearTimeout(timeout); resolve(value); });
-    socket.once('client::error', (error) => { clearTimeout(timeout); reject(new Error(JSON.stringify(error))); });
-    socket.once('connect_error', (error) => { clearTimeout(timeout); reject(error); });
+    const finish = (error, value) => {
+      clearTimeout(timeout);
+      socket.off(name, received);
+      socket.off('client::error', clientError);
+      socket.off('connect_error', connectionError);
+      if (error) reject(error); else resolve(value);
+    };
+    const received = value => finish(null, value);
+    const clientError = error => finish(new Error(JSON.stringify(error)));
+    const connectionError = error => finish(error);
+    const timeout = setTimeout(() => finish(new Error(`Socket event timed out: ${name}`)), 6000);
+    socket.once(name, received);
+    socket.once('client::error', clientError);
+    socket.once('connect_error', connectionError);
   });
 }
 
@@ -241,6 +251,7 @@ try {
   console.log('PASS connect-mongo 6 session write/read and TTL index creation');
 
   const guests = [];
+  const guestSessions = [];
   for (const target of [webPort, web2Port]) {
     const guest = browser(`http://127.0.0.1:${target}`);
     const first = await guest.request('/api/user/session', {});
@@ -260,11 +271,75 @@ try {
     socket.emit('room::join', { room: 'runtimesmoke' });
     await joined;
     guests.push(socket);
+    guestSessions.push({ browser: guest, token });
   }
   const message = event(guests[1], 'room::message');
   guests[0].emit('room::message', { message: 'runtime migration smoke' });
   assert.equal((await message).message, 'runtime migration smoke');
   console.log('PASS guest session reuse, Socket.IO room join, cross-process Redis adapter chat');
+
+  const oldId = guests[0].id;
+  const beforeRecovery = await Room.findOne({ name: 'runtimesmoke' }).lean();
+  const originalMember = beforeRecovery.users.find(user => user.socket_id === oldId);
+  assert.ok(originalMember);
+  const userListId = String(originalMember._id);
+  const firstPrivateMessage = event(guests[0], 'room::privateMessage');
+  guests[1].emit('room::privateMessage', {
+    room: 'runtimesmoke', userListId, message: 'before transport recovery',
+  });
+  assert.equal((await firstPrivateMessage).message, 'before transport recovery');
+  await until(async () => await redis.get(userListId) === oldId, 'initial private-message target cache');
+
+  // A transport failure preserves the session; a namespace disconnect is an intentional leave.
+  const disconnected = event(guests[0], 'disconnect');
+  guests[0].io.engine.transport.close();
+  await disconnected;
+  await until(async () => Number(await redis.hGet(oldId, 'reconnectUntil')) > Date.now(),
+    'disconnected member recovery window');
+  const replacement = io(`http://127.0.0.1:${web2Port}`, {
+    auth: { token: guestSessions[0].token },
+    extraHeaders: { Cookie: guestSessions[0].browser.cookie(), 'X-Forwarded-Proto': 'https' },
+    transports: ['websocket'], autoConnect: false, reconnection: false,
+  });
+  sockets.push(replacement);
+  const replacementConnected = event(replacement, 'connect');
+  replacement.connect();
+  await replacementConnected;
+  const recoveryRoute = `/api/user/socket/old/${encodeURIComponent(oldId)}/new/${encodeURIComponent(replacement.id)}`;
+  // The HTTP request reaches worker one; the authenticated replacement lives on worker two.
+  response = await guestSessions[0].browser.request(recoveryRoute, {}, 'PUT');
+  assert.equal(response.status, 200, 'Cross-worker session recovery');
+  const afterRecovery = await Room.findOne({ name: 'runtimesmoke' }).lean();
+  assert.equal(afterRecovery.users.length, beforeRecovery.users.length);
+  const recoveredMember = afterRecovery.users.find(user => String(user._id) === userListId);
+  assert.equal(recoveredMember?.socket_id, replacement.id);
+  assert.equal(recoveredMember.session_id, originalMember.session_id);
+  assert.equal(await redis.exists(oldId), 0);
+  const recoveredCache = await redis.hGetAll(replacement.id);
+  assert.equal(recoveredCache.userListId, userListId);
+  assert.equal(recoveredCache.disconnected, 'false');
+  assert.equal(recoveredCache.reconnectUntil, undefined);
+  assert.ok(await redis.ttl(replacement.id) > 0);
+  assert.equal(await redis.get(userListId), replacement.id);
+  assert.ok(await redis.ttl(userListId) > 0);
+
+  for (const [sender, recipient, text] of [
+    [replacement, guests[1], 'recovered sender to room'],
+    [guests[1], replacement, 'room to recovered recipient'],
+  ]) {
+    const delivered = event(recipient, 'room::message');
+    const echoed = event(sender, 'room::message');
+    sender.emit('room::message', { message: text });
+    for (const received of await Promise.all([delivered, echoed])) assert.equal(received.message, text);
+  }
+  const recoveredPrivateMessage = event(replacement, 'room::privateMessage');
+  guests[1].emit('room::privateMessage', {
+    room: 'runtimesmoke', userListId, message: 'private message after recovery',
+  });
+  assert.equal((await recoveredPrivateMessage).message, 'private message after recovery');
+  response = await guestSessions[0].browser.request(recoveryRoute, {}, 'PUT');
+  assert.equal(response.status, 200, 'Recovery retry after the original response was lost');
+  console.log('PASS cross-worker Socket.IO transport recovery: stable member/session, Redis hash/TTL migration, two-way chat, private-message delivery and retry');
 
   const limiter = browser(`http://127.0.0.1:${web2Port}`);
   // Invalid ordinary form submissions exercise the bounded limit without account side effects.

@@ -7,6 +7,7 @@ import logFactory from '../../../utils/logger.util.js';
 import roomController from '../room.controller.js';
 import roomUtils from '../room.utils.js';
 import redisFactory from '../../../lib/redis.util.js';
+import { retainConnectedUsers } from '../../../utils/socketRecovery.util.js';
 const log = logFactory({ name: 'room.sanitize' });
 const redis = redisFactory();
 const clearOldSessionData = (socketId) => {
@@ -32,7 +33,7 @@ export default function sanitizeUserList(name, cb) {
 
     log.debug({ clients, roomName: name }, 'socketio clients');
 
-    roomUtils.getRoomByName(name, (err, room) => {
+    roomUtils.getRoomByName(name, async (err, room) => {
       if (err) {
         log.fatal({ err, room: name }, 'failed to fetch room');
         return cb(err);
@@ -43,7 +44,14 @@ export default function sanitizeUserList(name, cb) {
         return cb(null);
       }
 
+      let retained;
+      try {
+        retained = await retainConnectedUsers(room.users, clients);
+      } catch (err) {
+        return cb(err);
+      }
       const usersToBeRemoved = room.users
+        .filter(user => !retained.includes(user))
         .map(user => user.socket_id)
         .filter(socket => !clients.includes(socket));
 
@@ -74,5 +82,5 @@ export default function sanitizeUserList(name, cb) {
 
       return cb();
     });
-  });
+  }).catch(cb);
 };

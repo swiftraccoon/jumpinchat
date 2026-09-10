@@ -4,21 +4,49 @@
 
 import io from 'socket.io-client';
 
-class SocketUtil {
+export class SocketUtil {
   constructor() {
     this.socket = null;
     this.listeningEvents = [];
+    this.paused = true;
+    this.pendingEvents = [];
+    this.flushing = false;
   }
 
   get isSocketConnected() {
-    return this.socket.connected;
+    return Boolean(this.socket?.connected);
   }
 
   authSocket(token) {
-    this.socket = io({ auth: { token } });
-    this.socket.on('disconnect', () => {
+    this.paused = true;
+    const socket = io({ auth: { token } });
+    this.socket = socket;
+    socket.on('disconnect', () => {
+      if (this.socket === socket) this.paused = true;
       console.warn('socket disconnected');
     });
+  }
+
+  resume() {
+    if (!this.isSocketConnected) {
+      this.paused = true;
+      return;
+    }
+    this.paused = false;
+    this.flushPending();
+  }
+
+  flushPending() {
+    if (this.flushing) return;
+    this.flushing = true;
+    try {
+      while (!this.paused && this.isSocketConnected && this.pendingEvents.length) {
+        const [event, data] = this.pendingEvents.shift();
+        this.socket.emit(event, data);
+      }
+    } finally {
+      this.flushing = false;
+    }
   }
 
   listen(event, cb) {
@@ -29,7 +57,11 @@ class SocketUtil {
   }
 
   emit(event, data = {}) {
-    this.socket.emit(event, data);
+    // Socket.IO flushes its own buffer before connect handlers run. Keep room
+    // events here until the application confirms the recovered session mapping.
+    this.pendingEvents.push([event, data]);
+    if (!this.isSocketConnected) this.paused = true;
+    if (!this.paused) this.flushPending();
   }
 }
 

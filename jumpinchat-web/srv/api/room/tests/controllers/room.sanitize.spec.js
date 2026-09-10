@@ -1,65 +1,55 @@
-/* global describe,it,beforeEach */
-
 import { expect } from 'chai';
 import sinon from 'sinon';
 import esmock from 'esmock';
-let roomSanitize;
-let leaveRoom;
-
-const roomSave = sinon.stub().yields();
-
-let roomMockData;
-
-const ioMock = {
-  in: sinon.stub().returns({
-    fetchSockets: sinon.stub().resolves([{ id: 1 }, { id: 2 }, { id: 3 }]),
-  }),
-};
-
 
 describe('Room Sanitize Controller', () => {
-  let getRoomByName;
-  const disconnectUserSocket = sinon.spy();
-  const getSocketIo = sinon.stub().returns(ioMock);
-
-  let stubs;
+  let sanitize;
+  let leaveRoom;
+  let del;
+  let retained;
+  let retainConnectedUsers;
+  let users;
 
   beforeEach(async () => {
-    roomMockData = {
-      name: 'foo',
-      janus_id: 1234,
-      attrs: { owner: 'foo' },
-      users: [
-        {
-          socket_id: 'socketId',
-        },
-        {
-          socket_id: 'socketId2',
-        },
-      ],
-      save: roomSave,
-    };
-
-    getRoomByName = sinon.stub().yields(null, roomMockData);
+    users = [{ socket_id: 'connected' }, { socket_id: 'recovering' }, { socket_id: 'expired' }];
+    retained = [users[0]];
     leaveRoom = sinon.stub().yields();
-    stubs = {
-      '../../room.controller.js': {
-        getSocketIo,
+    del = sinon.stub().resolves();
+    retainConnectedUsers = sinon.spy(async () => retained);
+    sanitize = await esmock.strict('../../controllers/room.sanitize.js', {
+      '../../room.controller.js': { default: {
+        getSocketIo: () => ({ in: () => ({ fetchSockets: async () => [{ id: 'connected' }] }) }),
         leaveRoom,
+      } },
+      '../../room.utils.js': { default: {
+        getRoomByName: sinon.stub().yields(null, { name: 'fixture', users }),
+      } },
+      '../../../../lib/redis.util.js': { default: () => ({ del }) },
+      '../../../../utils/socketRecovery.util.js': {
+        retainConnectedUsers: (...args) => retainConnectedUsers(...args),
       },
-      '../../room.utils.js': {
-        getRoomByName,
-      },
-      '../../sockets/disconnectUser.socket.js': disconnectUserSocket,
-      '../../../../lib/redis.util.js': () => ({ del: sinon.stub().resolves() }),
-    };
-
-    roomSanitize = await esmock('../../controllers/room.sanitize.js', stubs);
+    });
   });
 
-  it('should call disconnect for each socket not in the global list', (done) => {
-    roomSanitize('room', () => {
-      done();
-    });
+  it('cleans up each disconnected member outside its reconnect grace', async () => {
+    await new Promise((resolve, reject) => sanitize('fixture', err => err ? reject(err) : resolve()));
+    expect(retainConnectedUsers.calledWith(users, ['connected'])).to.equal(true);
+    expect(leaveRoom.getCalls().map(call => call.args[0])).to.eql(['recovering', 'expired']);
+    expect(del.getCalls().map(call => call.args[0])).to.eql(['recovering', 'expired']);
+  });
+
+  it('preserves reconnecting room members and their session hashes', async () => {
+    retained = [users[0], users[1]];
+    await new Promise((resolve, reject) => sanitize('fixture', err => err ? reject(err) : resolve()));
+    expect(leaveRoom.getCalls().map(call => call.args[0])).to.eql(['expired']);
+    expect(del.calledWith('recovering')).to.equal(false);
+  });
+
+  it('does not remove members when reconnect grace cannot be checked', async () => {
+    retainConnectedUsers = sinon.stub().rejects(new Error('cache unavailable'));
+    const error = await new Promise(resolve => sanitize('fixture', resolve));
+    expect(error.message).to.equal('cache unavailable');
+    expect(leaveRoom.called).to.equal(false);
+    expect(del.called).to.equal(false);
   });
 });

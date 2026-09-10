@@ -70,9 +70,8 @@ describe('Get Room', () => {
       cookie: sinon.spy(),
     };
 
-    controller = await esmock('../../controllers/room.getRoom.js', {
+    controller = await esmock.strict('../../controllers/room.getRoom.js', {
       '../../room.utils.js': roomUtilsMock,
-      '../../room.controller.js': roomControllerMock,
       '../../controllers/room.create.js': roomCreateSpy,
     });
   });
@@ -102,9 +101,8 @@ describe('Get Room', () => {
       },
     });
 
-    controller = await esmock('../../controllers/room.getRoom.js', {
+    controller = await esmock.strict('../../controllers/room.getRoom.js', {
       '../../room.utils.js': { default: noRoomUtilsMock, ...noRoomUtilsMock },
-      '../../room.controller.js': roomControllerMock,
       '../../controllers/room.create.js': localRoomCreateSpy,
     });
 
@@ -119,4 +117,33 @@ describe('Get Room', () => {
       sessionId: 'foo',
     });
   });
+  it('does not prune a disconnected member while initializing the room for another visitor', async () => {
+    const member = { _id: 'member', socket_id: 'recovering-socket' };
+    const room = { name: 'foo', attrs: {}, users: [member] };
+    room.toObject = () => ({ name: room.name, attrs: { ...room.attrs }, users: [...room.users] });
+    room.save = sinon.spy(async () => room);
+    const roomUtils = {
+      getRoomByName: sinon.stub().yields(null, room),
+      checkModAssignedBy: () => room.users.map(user => ({ ...user })),
+      createJanusRoom: sinon.stub().yields(null, 123, 'fixture-janus'),
+      filterRoom: value => value,
+    };
+    const getRoom = await esmock.strict('../../controllers/room.getRoom.js', {
+      '../../room.utils.js': { default: roomUtils },
+      '../../controllers/room.create.js': { default: sinon.stub() },
+    });
+    await new Promise((resolve, reject) => {
+      const response = {
+        cookie() {},
+        status(code) {
+          return { send: () => code === 200 ? resolve() : reject(new Error(`HTTP ${code}`)) };
+        },
+      };
+      getRoom(req, response);
+    });
+    expect(room.save.calledOnce).to.equal(true);
+    expect(room.users).to.eql([member]);
+    expect(room.attrs.janus_id).to.equal(123);
+  });
+
 });

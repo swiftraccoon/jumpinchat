@@ -7,7 +7,6 @@ import iconLibrary from '../utils/iconLibrary';
 import Room from './room/Room.react';
 import {
   initRoom,
-  connectToRoom,
 } from '../utils/RoomUtils';
 import RootSaga from '../saga';
 import RootSocket from '../sockets';
@@ -33,8 +32,8 @@ class AppWindow extends Component {
     initRoom((err, roomState) => {
       if (err) {
         if (err === 'ERR_RECONNECT_FAIL') {
-          console.warn('error reconnecting, rejoining room');
-          connectToRoom(this.state);
+          // A lost room session requires fresh chat and Janus identities.
+          window.location.reload();
         }
 
         return;

@@ -7,7 +7,6 @@ import logFactory from '../../../utils/logger.util.js';
 import config from '../../../config/env/index.js';
 import RoomUtils from '../room.utils.js';
 import roomCreate from './room.create.js';
-import roomController from '../room.controller.js';
 const log = logFactory({ name: 'room.getRoom' });
 function initializeJanusRoom(room, cb) {
   const janusRoomId = room.attrs.janus_id;
@@ -38,7 +37,6 @@ function initializeJanusRoom(room, cb) {
 
 
 function setUp(req, res, name) {
-  const io = roomController.getSocketIo();
   let ip;
 
   if (req.headers['x-forwarded-for']) {
@@ -63,12 +61,8 @@ function setUp(req, res, name) {
         users: RoomUtils.checkModAssignedBy(room),
       });
 
-      return io.in(name).fetchSockets().then((sockets) => {
-        const clients = sockets.map(s => s.id);
-
-        room.users = room.users.filter(user => clients.includes(user.socket_id));
-
-        return initializeJanusRoom(roomObj, (err, janusRoomId, janusServerId) => {
+      // Membership cleanup belongs to disconnect/sanitization, not this read.
+      return initializeJanusRoom(roomObj, (err, janusRoomId, janusServerId) => {
           if (err) {
             log.fatal({ err }, 'failed to init janus room');
             return res.status(500).end();
@@ -98,7 +92,6 @@ function setUp(req, res, name) {
               res.status(500).end();
             });
         });
-      });
     }
 
     log.debug({ roomName: name }, 'create new room');

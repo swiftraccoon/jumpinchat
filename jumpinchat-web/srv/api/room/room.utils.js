@@ -19,6 +19,7 @@ import adjectives from '../../lib/adjectives.json' with { type: 'json' };
 import nouns from '../../lib/nouns.json' with { type: 'json' };
 import removeUser from './controllers/room.removeUser.js';
 import selectJanusServer from './utils/selectJanusServer.js';
+import { retainConnectedUsers } from '../../utils/socketRecovery.util.js';
 const log = logFactory({ name: 'room.utils' });
 const removeUserQueue = new Queue(removeUser, 100);
 removeUserQueue.on('done', () => log.debug('remove user queue finished'));
@@ -211,11 +212,13 @@ export async function sanitizeUserList(sockets, roomName, cb) {
       return cb('ERR_NO_ROOM');
     }
 
-    const usersToBeRemoved = room.users.filter(user => !sockets[user.socket_id]);
-
-    room.users = room.users.filter(user => !!sockets[user.socket_id]);
-
-    await room.save();
+    const retained = await retainConnectedUsers(room.users, Object.keys(sockets).filter(id => sockets[id]));
+    const usersToBeRemoved = room.users.filter(user => !retained.includes(user));
+    if (usersToBeRemoved.length) {
+      await RoomModel.updateOne({ _id: room._id }, {
+        $pull: { users: { socket_id: { $in: usersToBeRemoved.map(user => user.socket_id) } } },
+      });
+    }
     return cb(null, usersToBeRemoved);
   } catch (err) {
     return cb(err);

@@ -1,130 +1,59 @@
-
+import jwt from 'jsonwebtoken';
+import config from '../../../config/env/index.js';
 import logFactory from '../../../utils/logger.util.js';
 import RoomUtils from '../../room/room.utils.js';
+import RoomModel from '../../room/room.model.js';
 import UserSocket from '../user.socket.js';
-import redisFactory from '../../../lib/redis.util.js';
-import { NotFoundError } from '../../../utils/error.util.js';
+import redisUtils from '../../../utils/redis.util.js';
+
 const log = logFactory({ name: 'updateSession' });
-const redis = redisFactory();
-function updateRoomSocketInfo(roomName, oldSocket, newSocket, cb) {
-  RoomUtils.getRoomByName(roomName, (err, room) => {
-    if (err) {
-      log.fatal({ err, roomName }, 'failed to get room');
-      return cb(err);
-    }
+const SESSION_TTL_SECONDS = 60 * 60 * 24;
 
-    if (!room) {
-      log.error({ roomName }, 'Room not found');
-      return cb('ERR_NO_ROOM');
-    }
-
-    const userExistsInRoom = room.users.some(u => u.socket_id === oldSocket);
-
-    if (!userExistsInRoom) {
-      return cb(new NotFoundError('Not currently in user list, please refresh to rejoin'));
-    }
-
-    room.users = room.users.map((user) => {
-      if (user.socket_id === oldSocket) {
-        user.socket_id = newSocket;
-      }
-
-      return user;
-    });
-
-    room.save()
-      .then(() => cb(null))
-      .catch((saveErr) => {
-        log.fatal({ err: saveErr }, 'error saving new socket');
-        cb(saveErr);
-      });
-  });
-}
-
-async function setNewId(newId, oldId, roomData, cb) {
-  try {
-    await redis.hSet(newId, roomData);
-  } catch (err) {
-    log.fatal({ err }, 'error pushing room name into redis socket list');
-    return cb(err);
-  }
-
-  try {
-    await redis.del(oldId);
-  } catch (err) {
-    log.fatal({ err }, 'failed to delete old redis session');
-    return cb(err);
-  }
-
-  // rejoin socket into room
-  const io = UserSocket.getIo();
-
-      if (!io) {
-        const error = new Error('ERR_NO_SIO');
-        error.message = 'Socket IO not initialized';
-        log.fatal({ err: error.toString() }, 'socket IO not initialized');
-        return cb(error);
-      }
-
-      io.fetchSockets().then((sockets) => {
-        const clients = sockets.map(s => s.id);
-        const newSocket = clients.find(c => c === newId);
-
-        if (!newSocket) {
-          log.fatal({ newId }, 'new socket connection not found');
-          return cb(new Error('new socket connection not found'));
-        }
-
-        io.in(newId).socketsJoin(roomData.name);
-
-        updateRoomSocketInfo(roomData.name, oldId, newId, (err) => {
-          if (err) {
-            log.fatal({ err }, 'failed to update socket info');
-            return cb(err);
-          }
-
-          log.info({ newId, oldId, room: roomData.name }, 'updated room cache info');
-
-          log.info({ newId, oldId, room: roomData.name }, 'reconnected socket to room');
-
-          return cb();
-        });
-      }).catch((err) => {
-        log.fatal({ err }, 'failed to get connected sockets');
-        return cb(err);
-      });
-}
-
-export default function updateSession(req, res) {
+export default async function updateSession(req, res) {
   const { oldId, newId } = req.params;
+  try {
+    if (!req.sessionID || !oldId || !newId) return res.status(403).send();
+    const io = UserSocket.getIo();
+    if (!io) return res.status(503).send();
+    const sockets = await io.in(newId).fetchSockets();
+    const replacement = sockets.find(socket => socket.id === newId);
+    if (!replacement) return res.status(403).send();
+    const token = jwt.verify(replacement.handshake.auth.token, config.auth.jwt_secret);
+    if (token.session !== req.sessionID) return res.status(403).send();
 
-  RoomUtils.getSocketCacheInfo(oldId, (err, socketData) => {
-    if (err) {
-      log.fatal({ err });
-      res.status(500).send();
-      return;
+    // A response can be lost after migration. Accept its existing new hash/member
+    // on retry, but never recreate a removed member or bypass normal join checks.
+    const oldData = await RoomUtils.getSocketCacheInfo(oldId);
+    const data = oldData || await RoomUtils.getSocketCacheInfo(newId);
+    if (!data?.name || !data.userListId) return res.status(403).send();
+    const room = await RoomUtils.getRoomByName(data.name);
+    const member = room?.users.find(user => String(user._id) === data.userListId
+      && user.session_id === req.sessionID && [oldId, newId].includes(user.socket_id));
+    if (!member) return res.status(403).send();
+
+    const newData = { ...data, disconnected: 'false' };
+    delete newData.reconnectUntil;
+    await redisUtils.callPromise('hmset', newId, newData);
+    await redisUtils.callPromise('hDel', newId, 'reconnectUntil');
+    await redisUtils.callPromise('expire', newId, SESSION_TTL_SECONDS);
+
+    if (member.socket_id !== newId) {
+      const changed = await RoomModel.updateOne({
+        _id: room._id,
+        users: { $elemMatch: { _id: member._id, socket_id: oldId, session_id: req.sessionID } },
+      }, { $set: { 'users.$.socket_id': newId } });
+      if (!changed.matchedCount) return res.status(403).send();
     }
-
-    // save roomData object stored from redis as new obj
-    // to be stored under new id
-    const roomData = {
-      ...socketData,
-      disconnected: false,
-    };
-
-    if (!Object.keys(roomData).length) {
-      log.error({ oldId }, 'no session data for socket');
-      res.status(403).send();
-      return;
-    }
-
-    // set room data in redis under new socket id
-    setNewId(newId, oldId, roomData, (err) => {
-      if (err) {
-        return res.status(403).send();
-      }
-
-      return res.status(200).send();
-    });
-  });
-};
+    replacement.join(data.name);
+    // Adapter broadcasts and its subsequent membership query are ordered.
+    const joined = await io.in(data.name).fetchSockets();
+    if (!joined.some(socket => socket.id === newId)) return res.status(503).send();
+    await redisUtils.callPromise('set', data.userListId, newId, { EX: 60 * 60 });
+    if (oldId !== newId) await redisUtils.callPromise('del', oldId);
+    log.info({ oldId, newId, room: data.name }, 'reconnected socket to room');
+    return res.status(200).send();
+  } catch (err) {
+    log.error({ err, oldId, newId }, 'failed to recover room connection');
+    return res.status(403).send();
+  }
+}

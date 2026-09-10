@@ -38,6 +38,22 @@ let janusMcuPlugin = null;
 let slowlinkTimeout;
 let localMediaStream = null;
 let sessionGeneration = 0;
+const remoteFeeds = new Map();
+
+function releaseRemoteFeed(entry) {
+  if (entry.closed) return;
+  entry.closed = true;
+  if (remoteFeeds.get(entry.key) === entry) remoteFeeds.delete(entry.key);
+  entry.stream?.getTracks().forEach(track => track.stop());
+  entry.stream = null;
+  entry.handle?.detach();
+}
+
+function removeRemoteFeed(id, roomId) {
+  const entry = remoteFeeds.get(`${roomId}:${id}`);
+  if (entry) releaseRemoteFeed(entry);
+  destroyRemoteStream(id);
+}
 
 
 const closeBroadcast = () => {
@@ -332,15 +348,35 @@ function checkVideoSupported() {
 }
 
 export function newRemoteFeed(id, roomId, userId, video, audio) {
+  if (!janus) return;
+  const key = `${roomId}:${id}`;
+  const existing = remoteFeeds.get(key);
+  if (existing) {
+    const pc = existing.handle?.webrtcStuff?.pc;
+    const ended = existing.handle?.detached
+      || ['closed', 'failed'].includes(pc?.connectionState)
+      || ['closed', 'failed'].includes(pc?.iceConnectionState);
+    if (!ended) return;
+    releaseRemoteFeed(existing);
+  }
+  // Publisher announcements can repeat during ICE renegotiation. Reserve the
+  // feed before asynchronous attachment so pending requests are deduplicated too.
+  const entry = { key, generation: sessionGeneration, handle: null, stream: null, closed: false };
+  remoteFeeds.set(key, entry);
+  const isCurrent = () => entry.generation === sessionGeneration && remoteFeeds.get(key) === entry && !entry.closed;
   // A new feed has been published, create a new plugin handle and attach to it as a listener
   let remoteFeed;
-  let remoteStream = null;
   janus.attach(
     {
       plugin: 'janus.plugin.videoroom',
       opaqueId: userId,
       success(pluginHandle) {
+        if (!isCurrent()) {
+          pluginHandle.detach();
+          return;
+        }
         remoteFeed = pluginHandle;
+        entry.handle = pluginHandle;
         const videoSupported = checkVideoSupported();
 
         // We wait for the plugin to send us an offer
@@ -362,6 +398,8 @@ export function newRemoteFeed(id, roomId, userId, video, audio) {
         remoteFeed.send({ message });
       },
       error(error) {
+        if (!isCurrent()) return;
+        releaseRemoteFeed(entry);
         console.error('Error attaching plugin... ', error);
         trackEvent('Error', 'Cam Util', `Error attaching plugin: ${error}`);
 
@@ -371,9 +409,17 @@ export function newRemoteFeed(id, roomId, userId, video, audio) {
         });
       },
       slowLink(uplink) {
+        if (!isCurrent()) return;
         console.warn({ userId, uplink }, 'poor connection to remote feed');
       },
       onmessage(msg, jsep) {
+        if (!isCurrent()) return;
+        if (msg.error !== undefined && msg.error !== null) {
+          releaseRemoteFeed(entry);
+          trackEvent('Error', 'Cam Util', `Remote feed error: ${msg.error}`);
+          addNotification({ color: 'red', message: 'Error receiving broadcast' });
+          return;
+        }
         const event = msg.videoroom;
         console.log({ ...msg });
 
@@ -419,11 +465,14 @@ export function newRemoteFeed(id, roomId, userId, video, audio) {
                 videoSend: false,
               },
               success(jsep) {
+                if (!isCurrent()) return;
                 const message = { request: 'start', room: roomId };
                 remoteFeed.send({ message, jsep });
               },
 
               error(error) {
+                if (!isCurrent()) return;
+                releaseRemoteFeed(entry);
                 console.error('WebRTC error', error);
                 trackEvent('Error', 'Cam Util', `Remote feed error: ${error}`);
 
@@ -438,18 +487,26 @@ export function newRemoteFeed(id, roomId, userId, video, audio) {
       },
 
       webrtcState(on) {
+        if (!isCurrent()) return;
         Janus.log(`Janus says this WebRTC PeerConnection (feed #${remoteFeed.rfindex}) is ${on ? 'up' : 'down'} now`);
         if (on) {
           setFeedLoading(userId, false);
         }
       },
       onremotetrack(track, mid, on) {
-        if (!on) return;
-
-        if (!remoteStream) {
-          remoteStream = new MediaStream();
+        if (!isCurrent()) {
+          if (on) track.stop();
+          return;
         }
-        remoteStream.addTrack(track);
+        if (!on) {
+          entry.stream?.removeTrack(track);
+          return;
+        }
+
+        if (!entry.stream) {
+          entry.stream = new MediaStream();
+        }
+        entry.stream.addTrack(track);
 
         let userClosed = false;
         const { camsDisabled } = camStore.getState();
@@ -459,7 +516,7 @@ export function newRemoteFeed(id, roomId, userId, video, audio) {
 
         addRemoteStream({
           janusId: id,
-          stream: remoteStream,
+          stream: entry.stream,
           remoteFeed,
           roomId,
           userId,
@@ -468,6 +525,12 @@ export function newRemoteFeed(id, roomId, userId, video, audio) {
           video,
           audio,
         });
+      },
+      oncleanup() {
+        releaseRemoteFeed(entry);
+      },
+      ondetached() {
+        releaseRemoteFeed(entry);
       },
     },
   );
@@ -517,6 +580,8 @@ function restartIce() {
 
 export function destroy() {
   sessionGeneration += 1;
+  for (const entry of remoteFeeds.values()) releaseRemoteFeed(entry);
+  remoteFeeds.clear();
   recovery.cancel();
   clearTimeout(slowlinkTimeout);
   slowlinkTimeout = null;
@@ -701,7 +766,7 @@ export function init(roomId, roomName, userId, cb = () => {}) {
                     if (msg.unpublished !== undefined && msg.unpublished !== null) {
                       console.log('remote feed unpublished', msg);
                       // One of the publishers has unpublished?
-                      destroyRemoteStream(msg.unpublished);
+                      removeRemoteFeed(msg.unpublished, roomId);
                     }
 
                     if (msg.error !== undefined && msg.error !== null) {
