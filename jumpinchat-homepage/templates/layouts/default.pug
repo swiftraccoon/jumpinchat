@@ -11,20 +11,20 @@ html(lang="en")
 
     meta(property="fb:app_id", content="235461346984404")
     meta(property="og:type", content="website")
-    meta(property="og:image", content="https://jumpin.chat/images/jiclogo_320x320.png")
+    meta(property="og:image", content=`${publicBaseUrl}/images/jiclogo_320x320.png`)
     meta(property="og:title", content="Simple video chatrooms | JumpInChat")
-    meta(property="og:url", content="https://jumpin.chat/")
+    meta(property="og:url", content=canonicalUrl)
     meta(property="og:description", content=description)
 
     meta(name="twitter:title", content="Simple video chatrooms | JumpInChat")
     meta(name="twitter:description", content=description)
     meta(name="twitter:card", content="summary")
-    meta(name="twitter:image", content="https://jumpin.chat/images/jiclogo_320x320.png")
-    meta(name="twitter:url", content="https://jumpin.chat/")
+    meta(name="twitter:image", content=`${publicBaseUrl}/images/jiclogo_320x320.png`)
+    meta(name="twitter:url", content=canonicalUrl)
 
     title= section + ' | JumpInChat'
 
-    link(rel="canonical", href="https://jumpin.chat" + path)
+    link(rel="canonical", href=canonicalUrl)
 
     link(rel="preconnect", href="https://fonts.gstatic.com/", crossorigin)
     link(media="(min-width: 768px)",

@@ -183,7 +183,7 @@ server {
   listen [::]:443 ssl;
   http2 on;
 
-  server_name "~^172\.\d{1,3}\.\d{1,3}\.\d{1,3}\$" "~^10\.136\.\d{1,3}\.\d{1,3}\$" jumpin.chat local.jumpin.chat jumpinchat.com;
+  server_name "~^172\.\d{1,3}\.\d{1,3}\.\d{1,3}\$" "~^10\.136\.\d{1,3}\.\d{1,3}\$" jumpin.chat local.jumpin.chat jumpinchat.com localhost 127.0.0.1;
   client_max_body_size 10M;
 
   gzip on;

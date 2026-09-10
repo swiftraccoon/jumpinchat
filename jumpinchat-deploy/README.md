@@ -44,6 +44,15 @@ profiles does not perform that migration.
 For rootless Podman boot startup, run `../scripts/enable-boot-start.sh` once per
 host and check `systemctl --user status podman-restart.service`.
 
+Set `PUBLIC_BASE_URL` to the public HTTPS origin, including a nonstandard port if
+used, on both web and homepage services. Account emails, canonical/social links,
+sitemaps and room structured data use this value; the default is
+`https://jumpin.chat`. Paths, credentials, queries and fragments are rejected.
+For a custom hostname, configure the proxy's server names and matching TLS
+certificate as well. The proxy also accepts `localhost` and `127.0.0.1` for local
+HTTPS installations. When Stripe is absent, support pages explain availability
+and gift links do not offer an unusable checkout.
+
 ## Runtime versions and builds
 
 | Component | Maintained release |

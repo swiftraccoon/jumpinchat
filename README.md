@@ -64,6 +64,7 @@ placeholder secrets even for local use. Edit `.env` to configure your deployment
 
 | Variable | What it does |
 |---|---|
+| `PUBLIC_BASE_URL` | Public HTTPS origin for account emails and page links; defaults to `https://jumpin.chat` |
 | `JWT_SECRET` | Signs auth tokens |
 | `COOKIE_SECRET` | Signs session cookies |
 | `SHARED_SECRET` | Auth between web and email services |

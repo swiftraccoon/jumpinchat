@@ -10,21 +10,36 @@ describe('Checkout payment view', () => {
   let req;
   let res;
   let products;
+  let getUserById;
 
   beforeEach(async () => {
     axios = sinon.stub().resolves({ status: 200, data: { id: 'cs_test', url: 'https://checkout.stripe.com/c/pay/test' } });
     products = { onetime: { amount: 300 }, monthly: { amount: 500 } };
+    getUserById = sinon.stub().resolves({ username: 'gift-recipient' });
     payment = await esmock.strict('./payment.js', {
       axios: { default: axios },
       jsonwebtoken: { default: { sign: sinon.stub().returns('owner-token') } },
       '../../config/index.js': { default: { auth: { jwtSecret: 'test' } } },
       '../../constants/constants.js': { api: 'http://api', errors: { ERR_SRV: 'Server error' }, products },
-      '../../utils/userUtils.js': { getUserById: sinon.stub().resolves({ username: 'gift-recipient' }) },
+      '../../utils/userUtils.js': { getUserById },
       '../../utils/logger.js': { default: () => ({ warn() {}, debug() {}, fatal() {} }) },
     });
     req = { method: 'GET', params: {}, query: { productId: 'monthly' }, body: {}, user: { _id: 'owner' } };
-    res = { locals: {}, status: sinon.stub().returnsThis(), send: sinon.spy(), redirect: sinon.spy(), render: sinon.spy() };
+    res = { locals: { supportEnabled: true }, status: sinon.stub().returnsThis(), send: sinon.spy(), redirect: sinon.spy(), render: sinon.spy() };
   });
+
+  for (const method of ['GET', 'POST']) {
+    it(`redirects disabled ${method} checkout to the support explanation without API work`, async () => {
+      req.method = method;
+      req.query = { productId: 'onetime', amount: '300', beneficiary: 'recipient' };
+      res.locals.supportEnabled = false;
+      await payment(req, res);
+      expect(res.redirect.calledOnceWithExactly('/support')).to.equal(true);
+      expect(axios.called).to.equal(false);
+      expect(getUserById.called).to.equal(false);
+      expect(res.render.called).to.equal(false);
+    });
+  }
 
   it('renders the Checkout URL and authenticates one session creation request', async () => {
     await payment(req, res);

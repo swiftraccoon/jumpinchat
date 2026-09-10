@@ -1,5 +1,7 @@
 
 import logFactory from '../../utils/logger.util.js';
+import { getPublicBaseUrl } from '../publicUrl.js';
+const publicBaseUrl = getPublicBaseUrl();
 const log = logFactory({ name: 'emailTemplates' });
 const findMissingVars = (expected, received) => Object
   .keys(received)
@@ -89,7 +91,7 @@ const commonStyles = `
 `;
 
 const header = `
-  <div class="header"><a href="https://jumpin.chat">JumpInChat</a></div>
+  <div class="header"><a href="${publicBaseUrl}">JumpInChat</a></div>
 `;
 
 export const senders = {
@@ -120,13 +122,13 @@ export function signUpTemplate(vars) {
           </p>
 
           <div class="buttonContainer">
-            <a href="https://jumpin.chat/verify-email/${vars.token}" class="button">Verify your email address</a>
+            <a href="${publicBaseUrl}/verify-email/${vars.token}" class="button">Verify your email address</a>
           </div>
 
           <p>
             or visit
             <br />
-            <a href="https://jumpin.chat/verify-email/${vars.token}">https://jumpin.chat/verify-email/${vars.token}</a>
+            <a href="${publicBaseUrl}/verify-email/${vars.token}">${publicBaseUrl}/verify-email/${vars.token}</a>
           </p>
 
           <p>
@@ -140,12 +142,12 @@ export function signUpTemplate(vars) {
           <h3>Your new room</h3>
           <p>
             Your new chatroom is up and running, check it out:
-            <a href="https://jumpin.chat/${vars.username}">https://jumpin.chat/${vars.username}</a>
+            <a href="${publicBaseUrl}/${vars.username}">${publicBaseUrl}/${vars.username}</a>
           </p>
 
           <p>
-            You can also change your <a href="https://jumpin.chat/settings/room">room settings</a> and
-            create a simple bio for your public profile in your <a href="https://jumpin.chat/settings/profile">profile settings</a>.
+            You can also change your <a href="${publicBaseUrl}/settings/room">room settings</a> and
+            create a simple bio for your public profile in your <a href="${publicBaseUrl}/settings/profile">profile settings</a>.
           </p>
         </div>
       </div>
@@ -179,7 +181,7 @@ export function resetPasswordTemplate(vars) {
           </p>
 
           <div class="buttonContainer">
-            <a href="https://jumpin.chat/password-reset/reset/${vars.token}" class="button">Reset password</a>
+            <a href="${publicBaseUrl}/password-reset/reset/${vars.token}" class="button">Reset password</a>
           </div>
 
           <p class="text--muted">
@@ -200,7 +202,7 @@ export function reportTemplate(vars) {
         ${header}
         <div class="content">
           <p>
-            Report for ${vars.reason} in room <a href="https://jumpin.chat/admin/rooms/${vars.room.name}">${vars.room.name}</a> at ${vars.createdAt}
+            Report for ${vars.reason} in room <a href="${publicBaseUrl}/admin/rooms/${vars.room.name}">${vars.room.name}</a> at ${vars.createdAt}
           </p>
 
           <h3>Description</h3>
@@ -217,7 +219,7 @@ export function reportTemplate(vars) {
             <dd>${vars.target.userListId}</dd>
 
             <dh>user ID</dh>
-            <dd><a href="https://jumpin.chat/admin/users/${vars.target.userId}">${vars.target.userId}</a></dd>
+            <dd><a href="${publicBaseUrl}/admin/users/${vars.target.userId}">${vars.target.userId}</a></dd>
           </dl>
 
           <h3>Reporting user</h3>
@@ -229,11 +231,11 @@ export function reportTemplate(vars) {
             <dd>${vars.reporter.userListId}</dd>
 
             <dh>user ID</dh>
-            <dd><a href="https://jumpin.chat/admin/users/${vars.reporter.userId}">${vars.reporter.userId}</a></dd>
+            <dd><a href="${publicBaseUrl}/admin/users/${vars.reporter.userId}">${vars.reporter.userId}</a></dd>
           </dl>
 
           <div class="buttonContainer">
-            <a href="https://jumpin.chat/admin/reports/${vars._id}" class="button">Open report</a>
+            <a href="${publicBaseUrl}/admin/reports/${vars._id}" class="button">Open report</a>
           </div>
         </div>
       </div>
@@ -270,7 +272,7 @@ export function siteModReportTemplate(vars) {
             <dd>${vars.reporter.handle}</dd>
 
           <div class="buttonContainer">
-            <a href="https://jumpin.chat/sitemod/reports/${vars._id}" class="button">Open report</a>
+            <a href="${publicBaseUrl}/sitemod/reports/${vars._id}" class="button">Open report</a>
           </div>
         </div>
       </div>
@@ -293,7 +295,7 @@ export function messageReportTemplate(vars) {
 
 
           <div class="buttonContainer">
-            <a href="https://jumpin.chat/admin/reports/messages/${vars._id}" class="button">Open report</a>
+            <a href="${publicBaseUrl}/admin/reports/messages/${vars._id}" class="button">Open report</a>
           </div>
         </div>
       </div>
@@ -371,7 +373,7 @@ export function ageVerifyRejectedTemplate({ user, reason }) {
 
           <p>
             Please make sure the photos clearly show the required information and
-            <a href="https://jumpin.chat/ageverify">resubmit your request</a>.
+            <a href="${publicBaseUrl}/ageverify">resubmit your request</a>.
           </p>
         </div>
       </div>
@@ -434,8 +436,8 @@ export function customEmail(vars) {
         </div>
         <footer class="content footer">
           If you no longer wish to receive email updates,
-          <a href="https://jumpin.chat/api/user/unsubscribe/${vars.unsubToken}">you can unsubscribe</a>, or disable email
-          communications in your <a href="https://jumpin.chat/settings/user">user settings</a> page.
+          <a href="${publicBaseUrl}/api/user/unsubscribe/${vars.unsubToken}">you can unsubscribe</a>, or disable email
+          communications in your <a href="${publicBaseUrl}/settings/user">user settings</a> page.
         </footer>
       </div>
     </div>
@@ -459,12 +461,12 @@ export function newMessageTemplate({ user, sender }) {
           </p>
 
           <div class="buttonContainer">
-            <a href="https://jumpin.chat/messages/${sender.username}" class="button">Open inbox</a>
+            <a href="${publicBaseUrl}/messages/${sender.username}" class="button">Open inbox</a>
           </div>
         </div>
         <footer class="content footer">
           If you no longer wish to receive message notifications you can
-          update your email preferences in your <a href="https://jumpin.chat/settings/user">user settings</a> page.
+          update your email preferences in your <a href="${publicBaseUrl}/settings/user">user settings</a> page.
         </footer>
       </div>
     </div>

@@ -3,6 +3,7 @@
  */
 
 import { deepMerge } from '../utils/objects.js';
+import { getPublicBaseUrl } from '../utils/publicBaseUrl.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -13,6 +14,7 @@ const env = process.env.NODE_ENV || 'development';
 const all = {
   env,
   port: process.env.PORT || 3000,
+  publicBaseUrl: getPublicBaseUrl(),
 
   // Root path of server
   root: path.normalize(`${__dirname}/../..`),

@@ -37,6 +37,8 @@ export function initLocals(req, res, next) {
   res.locals.unreadMessages = req.unreadMessages;
   res.locals.stripeKey = config.stripe.publicKey;
   res.locals.supportEnabled = Boolean(config.stripe.publicKey);
+  res.locals.publicBaseUrl = config.publicBaseUrl;
+  res.locals.canonicalUrl = `${config.publicBaseUrl}${req.path}`;
   res.locals.asset = function asset(path) {
     if (process.env.NODE_ENV === 'production') {
       const revPath = path.replace(/^\//, '');

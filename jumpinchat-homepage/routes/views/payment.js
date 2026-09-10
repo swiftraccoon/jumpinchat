@@ -13,6 +13,10 @@ const log = logFactory({ name: 'routes.support' });
 export default async function payment(req, res) {
   const { locals } = res;
 
+  if (!locals.supportEnabled) {
+    return res.redirect('/support');
+  }
+
   const productIdMap = Object
     .keys(products)
     .reduce((acc, current) => ({ ...acc, [current]: current }), {});

@@ -28,6 +28,7 @@ services:
       - COOKIE_SECRET=$COOKIE_SECRET
       - SHARED_SECRET=$SHARED_SECRET
       - DEPLOY_LOCATION=local
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-https://jumpin.chat}
       - JANUS_HTTP_URI=/janus/http
       - JANUS_HTTPS_URI=/janus/http
       - JANUS_WS_URI=/janus/ws
@@ -81,6 +82,7 @@ services:
     image: echo.research.clinic/home
     environment:
       - DEPLOY_LOCATION=local
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-https://jumpin.chat}
       - COOKIE_SECRET=$COOKIE_SECRET
       - JWT_SECRET=$JWT_SECRET
       - SHARED_SECRET=$SHARED_SECRET

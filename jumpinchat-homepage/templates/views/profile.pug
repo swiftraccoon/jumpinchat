@@ -43,9 +43,10 @@ block content
               if username
                 aside.profile__Container.profile__Container--clear
                   a(href=`/messages/${profileUser.username}`).button.button--black-transparent.profile__Action Message
-                  a(href=`/support/payment?productId=onetime&amount=300&beneficiary=${profileUser._id}`).button.button--red.profile__Action
-                    i.fa.fa-heart.button__Icon
-                    | Gift Support
+                  if supportEnabled
+                    a(href=`/support/payment?productId=onetime&amount=300&beneficiary=${profileUser._id}`).button.button--red.profile__Action
+                      i.fa.fa-heart.button__Icon
+                      | Gift Support
               aside.profile__Container
                 h2.profile__ContainerTitle trophies
                 .profile__TrophyWrapper

@@ -6,7 +6,7 @@ import { colours, errors } from '../../constants/constants.js';
 
 const log = logFactory({ name: 'views.home' });
 
-const generateLdJson = rooms => ({
+const generateLdJson = (rooms, publicBaseUrl) => ({
   '@context': 'http://schema.org',
   '@type': 'ItemList',
   itemListElement: rooms.map((room, index) => ({
@@ -14,9 +14,9 @@ const generateLdJson = rooms => ({
     position: index + 1,
     name: room.name,
     image: room.settings.display
-      ? `/uploads/${room.settings.display}`
+      ? `${publicBaseUrl}/uploads/${room.settings.display}`
       : undefined,
-    url: `https://jumpin.chat/${room.name}`,
+    url: `${publicBaseUrl}/${room.name}`,
     description: room.settings.description,
   })),
 });
@@ -69,7 +69,7 @@ export default async function index(req, res) {
 
       const { rooms } = data;
       locals.rooms = rooms;
-      locals.ldJson = generateLdJson(rooms);
+      locals.ldJson = generateLdJson(rooms, locals.publicBaseUrl);
       return resolve();
     });
   }).catch(() => {

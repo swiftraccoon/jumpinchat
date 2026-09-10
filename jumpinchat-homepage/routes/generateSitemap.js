@@ -2,6 +2,7 @@ import { SitemapStream, streamToPromise } from 'sitemap';
 import { Readable } from 'stream';
 import logFactory from '../utils/logger.js';
 import { Room } from '../models/index.js';
+import config from '../config/index.js';
 
 const log = logFactory({ name: 'generateSitemap' });
 
@@ -46,7 +47,7 @@ export default async function generateSitemap(req, res) {
       }),
     ];
 
-    const stream = new SitemapStream({ hostname: 'https://jumpin.chat' });
+    const stream = new SitemapStream({ hostname: config.publicBaseUrl });
     const xml = await streamToPromise(Readable.from(links).pipe(stream));
     res.header('Content-Type', 'application/xml');
     return res.status(200).send(xml.toString());

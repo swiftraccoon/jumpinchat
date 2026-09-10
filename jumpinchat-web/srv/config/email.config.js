@@ -4,10 +4,11 @@ import inlineCss from 'inline-css';
 import logFactory from '../utils/logger.util.js';
 import config from './env/index.js';
 import emailUtils from '../api/email/email.utils.js';
+import { getPublicBaseUrl } from './publicUrl.js';
 const log = logFactory({ name: 'email.config' });
 const prepareEmail = function prepareEmail(html, cb) {
   const opts = {
-    url: 'https://jumpin.chat',
+    url: getPublicBaseUrl(),
   };
 
   return inlineCss(html, opts)
