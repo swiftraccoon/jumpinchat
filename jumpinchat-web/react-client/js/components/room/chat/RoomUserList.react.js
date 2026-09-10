@@ -4,7 +4,7 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-import classnames from 'classnames';
+import classnames from '../../../utils/classNames';
 import { withState } from '../../../utils/withState';
 import RoomUserListItem from './RoomUserListItem.react';
 import ScrollArea from '../../elements/ScrollArea.react';

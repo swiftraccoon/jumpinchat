@@ -1,5 +1,5 @@
 import Store from '../Store';
-import * as uuid from 'uuid';
+import uuid from '../../utils/uuid';
 import { PmDispatcher } from '../../dispatcher/AppDispatcher';
 import * as types from '../../constants/ActionTypes';
 import {
@@ -214,7 +214,7 @@ export class PmStore extends Store {
           },
           messages: [{
             status: true,
-            id: uuid.v4(),
+            id: uuid(),
             message: `${PM_START_MESSAGE} ${chatStore.getHandleByUserId(userListId)}`,
           }],
         },
@@ -238,7 +238,7 @@ export class PmStore extends Store {
             messages = [
               ...messages,
               {
-                id: uuid.v4(),
+                id: uuid(),
                 message: 'Conversation resumed',
                 status: true,
               },
@@ -297,7 +297,7 @@ export class PmStore extends Store {
               messages: [
                 ...convo.messages,
                 {
-                  id: uuid.v4(),
+                  id: uuid(),
                   message: 'User has left, convesation has been closed.',
                   status: true,
                 },

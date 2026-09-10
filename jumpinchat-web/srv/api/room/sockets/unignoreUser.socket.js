@@ -1,6 +1,5 @@
 
-import _ from 'lodash';
-const { omit } = _;
+import { omit } from '../../../utils/object.util.js';
 import logFactory from '../../../utils/logger.util.js';
 import unignoreUserController from '../controllers/room.unignoreUser.js';
 import utils from '../../../utils/utils.js';

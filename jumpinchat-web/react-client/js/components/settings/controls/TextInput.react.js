@@ -1,6 +1,6 @@
 import React, { useId } from 'react';
 import PropTypes from 'prop-types';
-import classNames from 'classnames';
+import classNames from '../../../utils/classNames';
 
 const TextInput = React.forwardRef(({
   className = '',

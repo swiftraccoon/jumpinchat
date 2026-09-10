@@ -1,9 +1,9 @@
 /* global document */
 
 import Store from '../Store';
-import debounce from 'lodash/debounce';
+import { debounce } from '../../utils/lang';
 import { formatRelative } from 'date-fns';
-import * as uuid from 'uuid';
+import uuid from '../../utils/uuid';
 import { ChatDispatcher } from '../../dispatcher/AppDispatcher';
 import * as types from '../../constants/ActionTypes';
 import { chatTabs } from '../../constants/RoomConstants';
@@ -31,13 +31,13 @@ function handleRetrieveMessages(room) {
     const timestampString = formatRelative(new Date(messagesTimestamp), new Date());
     const timestampMessage = [
       {
-        id: uuid.v4(),
+        id: uuid(),
         message: `Messages restored from ${timestampString}`,
         status: true,
         timestamp: new Date().toISOString(),
       },
       {
-        id: uuid.v4(),
+        id: uuid(),
         message: ' ',
         status: true,
         timestamp: new Date().toISOString(),

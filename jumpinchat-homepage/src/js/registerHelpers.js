@@ -1,33 +1,48 @@
-import $ from 'jquery';
+import { onReady } from './dom.js';
 
-const usernameInput = $('#register-form [name="username"]');
-const usernameText = $('#register-form .register__UsernameText');
-const registerSubmit = $('#register-form [type="submit"]');
-const checkUsername = (username, cb) => {
-  $.ajax({
-    method: 'get',
-    url: `/api/user/checkusername/${username}`,
-  })
-    .fail(res => cb(res.responseJSON))
-    .done(cb);
-};
+async function checkUsername(username) {
+  const response = await fetch(`/api/user/checkusername/${encodeURIComponent(username)}`, {
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+  });
 
+  try {
+    return await response.json();
+  } catch (err) {
+    return undefined;
+  }
+}
 
-usernameInput.on('change', function onUsernameInputChange() {
-  const elem = $(this);
-  checkUsername(elem.val(), (data) => {
-    if (data && data.error) {
-      registerSubmit.prop('disabled', true);
-      return usernameText
-        .removeClass('text--green')
-        .addClass('text--red')
-        .html(data.message);
+export function initRegisterHelpers(root = document) {
+  const usernameInput = root.querySelector('#register-form [name="username"]');
+  const usernameText = root.querySelector('#register-form .register__UsernameText');
+  const registerSubmit = root.querySelector('#register-form [type="submit"]');
+
+  if (!usernameInput || !usernameText || !registerSubmit) {
+    return;
+  }
+
+  usernameInput.addEventListener('change', async () => {
+    let data;
+    try {
+      data = await checkUsername(usernameInput.value);
+    } catch (err) {
+      data = undefined;
     }
 
-    registerSubmit.prop('disabled', false);
-    return usernameText
-      .removeClass('text--red')
-      .addClass('text--green')
-      .html('Username available!');
+    if (data && data.error) {
+      registerSubmit.disabled = true;
+      usernameText.classList.remove('text--green');
+      usernameText.classList.add('text--red');
+      usernameText.textContent = data.message;
+      return;
+    }
+
+    registerSubmit.disabled = false;
+    usernameText.classList.remove('text--red');
+    usernameText.classList.add('text--green');
+    usernameText.textContent = 'Username available!';
   });
-});
+}
+
+onReady(() => initRegisterHelpers());

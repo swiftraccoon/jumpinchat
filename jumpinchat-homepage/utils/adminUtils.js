@@ -1,6 +1,5 @@
 import { startOfHour, startOfDay, isAfter } from 'date-fns';
-import lodash from 'lodash';
-const { groupBy } = lodash;
+import { groupBy } from './objects.js';
 import createLogger from './logger.js';
 import request from './request.js';
 import { api } from '../constants/constants.js';

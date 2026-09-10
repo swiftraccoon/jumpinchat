@@ -3,7 +3,6 @@
 
 import { expect } from 'chai';
 import sinon from 'sinon';
-import _ from 'lodash';
 import _room_mock_json from '../room.mock.json' with { type: 'json' };
 import esmock from 'esmock';
 

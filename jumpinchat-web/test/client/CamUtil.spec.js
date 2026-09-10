@@ -48,7 +48,7 @@ describe('camera failure handling', () => {
     Janus.isWebrtcSupported = () => true;
     Janus.useDefaultDependencies = () => ({});
     const mocks = {
-      uuid: {},
+      './uuid': () => 'test-uuid',
       axios: { get: async url => ({ data: url.endsWith('token')
         ? { token: 'test' } : url.includes('turn') ? { uris: [] } : [] }) },
       'janus-gateway': Janus,

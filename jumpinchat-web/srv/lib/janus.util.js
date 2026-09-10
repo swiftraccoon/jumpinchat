@@ -4,14 +4,14 @@
 
 
 import axios from 'axios';
-import * as uuid from 'uuid';
+import { generateId } from '../utils/id.util.js';
 import crypto from 'crypto';
 import logFactory from '../utils/logger.util.js';
 import config from '../config/env/index.js';
 import { JanusError } from '../utils/error.util.js';
 const log = logFactory({ name: 'janus' });
 function generateTransactionString() {
-  return uuid.v4();
+  return generateId();
 }
 
 function getJanusToken() {

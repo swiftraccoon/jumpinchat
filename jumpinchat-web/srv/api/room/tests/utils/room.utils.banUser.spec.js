@@ -4,7 +4,6 @@
 import jwt from 'jsonwebtoken';
 import { expect } from 'chai';
 import sinon from 'sinon';
-import _ from 'lodash';
 import roomMockJson from '../room.mock.json' with { type: 'json' };
 import esmock from 'esmock';
 
@@ -28,7 +27,7 @@ describe('banUser', () => {
         },
       },
     };
-    roomMock = _.cloneDeep(roomMockJson);
+    roomMock = structuredClone(roomMockJson);
     roomSaveStub = sinon.stub().resolves();
 
     roomMock.save = roomSaveStub;

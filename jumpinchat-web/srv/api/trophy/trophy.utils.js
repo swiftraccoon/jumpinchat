@@ -1,5 +1,5 @@
 import { differenceInYears, getDate, getMonth, getYear } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
+import { zonedDateParts } from '../../utils/date.util.js';
 import logFactory from '../../utils/logger.util.js';
 import trophyModel from './trophy.model.js';
 import { types } from './trophies.js';
@@ -53,8 +53,8 @@ function checkMembershipDuration(userJoinDate, trophies) {
 export { checkMembershipDuration };
 
 function checkOccasion(trophies) {
-  const dateMax = toZonedTime(new Date(), 'Pacific/Kiritimati');
-  const dateMin = toZonedTime(new Date(), 'Pacific/Niue');
+  const dateMax = zonedDateParts(new Date(), 'Pacific/Kiritimati');
+  const dateMin = zonedDateParts(new Date(), 'Pacific/Niue');
 
   return trophies
     .filter(t => t.type === types.TYPE_OCCASION)
@@ -67,13 +67,13 @@ function checkOccasion(trophies) {
         },
       } = t.conditions;
 
-      const matchesMax = day === getDate(dateMax)
-        && month === getMonth(dateMax) + 1
-        && year === getYear(dateMax);
+      const matchesMax = day === dateMax.day
+        && month === dateMax.month
+        && year === dateMax.year;
 
-      const matchesMin = day === getDate(dateMin)
-        && month === getMonth(dateMin) + 1
-        && year === getYear(dateMin);
+      const matchesMin = day === dateMin.day
+        && month === dateMin.month
+        && year === dateMin.year;
 
       return matchesMin || matchesMax;
     });

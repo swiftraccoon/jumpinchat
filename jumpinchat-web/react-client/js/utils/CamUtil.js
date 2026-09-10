@@ -4,7 +4,7 @@
 
 /* global MediaStream */
 
-import * as uuid from 'uuid';
+import uuid from './uuid';
 import axios from 'axios';
 import Janus from 'janus-gateway';
 import adapter from 'webrtc-adapter';
@@ -464,7 +464,7 @@ export function newRemoteFeed(id, roomId, userId, video, audio) {
           roomId,
           userId,
           userClosed,
-          token: uuid.v4(),
+          token: uuid(),
           video,
           audio,
         });
@@ -742,7 +742,7 @@ export function init(roomId, roomName, userId, cb = () => {}) {
                 // Audio track arrives first and would set video: false
                 // permanently since the store ignores subsequent calls.
                 if (track.kind === 'video') {
-                  addLocalStream({ stream: localMediaStream, token: uuid.v4(), isLocal: true });
+                  addLocalStream({ stream: localMediaStream, token: uuid(), isLocal: true });
                 }
               },
 

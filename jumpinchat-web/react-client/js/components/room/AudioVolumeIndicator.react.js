@@ -4,7 +4,7 @@
 
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import hark from 'hark';
+import createAudioLevelMonitor from '../../utils/audioLevel';
 import VolumeMeter from './VolumeMeter.react';
 
 class AudioVolumeIndicator extends Component {
@@ -13,7 +13,7 @@ class AudioVolumeIndicator extends Component {
     this.state = {
       volume: 0,
     };
-    this.hark = null;
+    this.audioLevel = null;
   }
 
   componentDidMount() {
@@ -23,8 +23,8 @@ class AudioVolumeIndicator extends Component {
       audioContext,
     };
 
-    this.hark = hark(localStream.stream, options);
-    this.hark.on('volume_change', (v) => {
+    this.audioLevel = createAudioLevelMonitor(localStream.stream, options);
+    this.audioLevel.on('volume_change', (v) => {
       let volume;
       if (v <= -100) {
         volume = 0;
@@ -37,7 +37,7 @@ class AudioVolumeIndicator extends Component {
   }
 
   componentWillUnmount() {
-    this.hark.stop();
+    this.audioLevel.stop();
   }
 
   render() {

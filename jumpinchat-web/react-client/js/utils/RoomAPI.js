@@ -1,7 +1,7 @@
 /* global window */
 
 import axios from 'axios';
-import * as uuid from 'uuid';
+import uuid from './uuid';
 import { trackEvent } from './AnalyticsUtil';
 import SocketUtil from './SocketUtil';
 
@@ -320,7 +320,7 @@ export function sendReport(room, reporterId, targetId, reason, description, mess
           if (err.response.status === 429) {
             return chatActions.addMessage({
               message,
-              id: uuid.v4(),
+              id: uuid(),
               timestamp: Date.now(),
               status: true,
               type: 'warning',

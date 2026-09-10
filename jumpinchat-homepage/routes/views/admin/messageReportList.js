@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { isBefore, formatRelative } from 'date-fns';
-import Pagination from 'pagination-object';
+import { createPagination } from '../../../utils/pagination.js';
 import logFactory from '../../../utils/logger.js';
 import config from '../../../config/index.js';
 import { getMessageReports } from '../../../utils/reportUtils.js';
@@ -46,7 +46,7 @@ export default async function messageReportList(req, res) {
       const { reports, count } = result;
 
       if (count > 0) {
-        locals.pagination = new Pagination({
+        locals.pagination = createPagination({
           currentPage: Number(locals.page),
           totalItems: count,
           itemsPerPage: config.admin.userList.itemsPerPage,

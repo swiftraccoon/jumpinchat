@@ -9,7 +9,7 @@ import roomUtils from '../../room/room.utils.js';
 import { getMediaByRoomId } from '../playlist.utils.js';
 const redis = redisFactory();
 const log = logFactory({ name: 'playVideo.controller' });
-import { toSeconds, parse } from 'iso8601-duration';
+import { isoDurationToSeconds } from '../../../utils/duration.util.js';
 import { PermissionError } from '../../../utils/error.util.js';
 
 import { TYPE_YOUTUBE } from '../../../config/constants/mediaTypes.js';
@@ -138,7 +138,7 @@ class PlayVideo {
           return cb(new Error('ERR_YT_NO_DETAILS'));
         }
 
-        const duration = toSeconds(parse(contentDetails.duration));
+        const duration = isoDurationToSeconds(contentDetails.duration);
         const videoInformation = {
           mediaId: videoId,
           channelId: snippet.channelId,

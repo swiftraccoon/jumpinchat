@@ -1,12 +1,24 @@
-import $ from 'jquery';
+import { onReady } from './dom.js';
 
-let modal;
-$('.modal-trigger').on('click', function openModal(e) {
-  const target = $(this).attr('data-target');
-  modal = $(`#${target}`);
-  modal.addClass('open');
-});
+export function initModals(root = document) {
+  let modal = null;
 
-$('.modal-btn-close').on('click', (e) => {
-  modal.removeClass('open');
-});
+  root.querySelectorAll('.modal-trigger').forEach((trigger) => {
+    trigger.addEventListener('click', () => {
+      modal = root.querySelector(`#${trigger.dataset.target}`);
+      if (modal) {
+        modal.classList.add('open');
+      }
+    });
+  });
+
+  root.querySelectorAll('.modal-btn-close').forEach((button) => {
+    button.addEventListener('click', () => {
+      if (modal) {
+        modal.classList.remove('open');
+      }
+    });
+  });
+}
+
+onReady(() => initModals());

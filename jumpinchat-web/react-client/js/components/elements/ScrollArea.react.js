@@ -1,5 +1,5 @@
 import React, { createContext, forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
-import classnames from 'classnames';
+import classnames from '../../utils/classNames';
 
 export const ScrollAreaContext = createContext({ scrollBottom: () => {} });
 

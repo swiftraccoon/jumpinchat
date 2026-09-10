@@ -35,9 +35,10 @@ Its include pattern is `react-client/**/*.spec.js`; Mocha explicitly selects
 harness compiles the real CamUtil module to CommonJS with esbuild before executing
 it against controlled Janus/browser callbacks; it does not load a React adapter.
 
-At migration validation, all 52 Vitest files passed (129 tests), and all 9 media
-callback/recovery cases passed. The latter preserve denial/unreadable/unknown
-camera failures, retry bounds, cancellation, and stale session callback behavior.
+After the utility replacement and regression fixes, all 56 Vitest files passed
+(152 tests), alongside 477 server, 120 homepage, 13 email and 9 media tests.
+The media cases preserve denial/unreadable/unknown camera failures, retry bounds,
+cancellation, and stale session callback behavior.
 
 ## Historical frontend inventory
 
@@ -102,9 +103,26 @@ Paths below are relative to `jumpinchat-web/react-client/js/`.
 
 Additional specs cover Tooltip focus/description/Escape, real Emoji Mart 5 data
 and shortcode adaptation, nested dispatcher FIFO ordering/error recovery, and
-Zustand subscription cleanup/publication. Network APIs and provider callbacks are
+Zustand subscription cleanup/publication. The in-house replacements for removed
+packages have their own specs: `react-client/js/utils/{classNames,lang,uuid,audioLevel}.spec.js`
+(class joining, debounce with `maxWait`, path setting, RegExp escaping, UUID
+fallbacks, analyser-based volume/speaking events), `RoomChatShare.spec.js`
+(async clipboard success and failure), server `srv/utils/{id,ip,date,duration,object,string}.util.spec.js`
+(client-IP precedence, zoned calendar dates, ISO 8601 durations incl. the
+invalid `P1S` case, deep merge/pick/omit/groupBy semantics), and homepage
+`utils/{objects,pagination,ip}.spec.js` plus `src/js/settingsScripts.spec.js`
+(the former jQuery page scripts against JSDOM with a stubbed `fetch`: username
+availability, form-encoded DELETE requests, verification rate limiting, modals,
+one-shot buttons). Regression cases additionally cover forwarded IPv4 addresses
+with ports, preserved IPv6 addresses, elapsed time across both daylight-saving
+transitions (including the repeated hour), and copying the complete HTTPS room
+URL through the legacy clipboard fallback. Network APIs and provider callbacks are
 mocked at explicit boundaries; native DOM controls, focus, portals, scroll events,
 React rendering, and ordinary store state transitions execute for real.
+
+Development servers use portable `node --watch`; a disposable Linux Node 24.20.0
+container check verified `.env` loading and restarts when an imported module
+changes. The platform-specific `--watch-path` option is not required.
 
 ## Remaining limits
 
@@ -125,11 +143,24 @@ HTTP 502 responses for recipient or DATA rejection. Provider TLS/authentication
 and actual inbox delivery still require the configured SMTP service.
 
 On the development ARM64 host, native image checks passed for Janus 1.4.1,
-nginx, HAProxy, coturn 4.18 and a fresh MongoDB 8.3 instance. Completing the
-Compose build was blocked by a local Podman storage failure (`readlink` under
-`overlay/l`: `invalid argument`), including the email image's base-image pull.
-The runtime/restore harness uses independent local binaries; it does not replace
-the remaining Compose, deployment-architecture and live media checks.
+nginx, HAProxy, coturn 4.18 and a fresh MongoDB 8.3 instance. A later pass on the
+same host repaired the local Podman overlay store (truncated layer `link`/`lower`
+metadata and SELinux labels left by a full VM disk), after which
+`podman-compose -f compose.lite.yml build` produced every image (web, home, email,
+janus, nginx; haproxy and turn were built separately) and the lite profile ran
+end to end: homepage and `/health/ready` through nginx TLS, a guest session and
+activity token stored in Redis 8.10 by node-redis 6, Socket.IO websocket
+handshakes accepted with a valid JWT and rejected without one, registration and
+login against MongoDB 8.3 (replica set primary), an authenticated account lookup,
+the login rate limiter returning 429 after ten attempts through rate-limit-redis 6,
+the room page with hashed bundles and locally served Font Awesome, and the
+generated service worker. The Janus image reported version 1.4.1 with the
+VideoRoom plugin over HTTP and WebSocket transports, and the email service
+answered its status probe. Requests that reach nginx from the container gateway
+(a 10.x address) are exempt from rate limiting by design, so that check must run
+with a public `X-Forwarded-For` value. Live two-browser media and provider
+integrations remain manual checks; the runtime/restore harness uses independent
+local binaries and does not replace them.
 
 Before deployment, build all images and verify cold startup, readiness during
 database/Redis loss, termination and reconnect, and a two-browser call including

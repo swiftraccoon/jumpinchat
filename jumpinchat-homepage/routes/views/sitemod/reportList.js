@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { isBefore } from 'date-fns';
-import Pagination from 'pagination-object';
+import { createPagination } from '../../../utils/pagination.js';
 import logFactory from '../../../utils/logger.js';
 import config from '../../../config/index.js';
 import { getReports } from '../../../utils/reportUtils.js';
@@ -50,7 +50,7 @@ export default async function sitemodReportList(req, res) {
       const { reports, count } = body;
 
       if (count > 0) {
-        locals.pagination = new Pagination({
+        locals.pagination = createPagination({
           currentPage: Number(locals.pageNumber),
           totalItems: count,
           itemsPerPage: config.admin.userList.itemsPerPage,

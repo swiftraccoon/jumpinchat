@@ -1,6 +1,6 @@
 import React, { Fragment, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import classNames from 'classnames';
+import classNames from '../../utils/classNames';
 
 const SettingsMenu = ({
   onChange,

@@ -1,7 +1,7 @@
 import url from 'url';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
-import Pagination from 'pagination-object';
+import { createPagination } from '../../../utils/pagination.js';
 import logFactory from '../../../utils/logger.js';
 import config from '../../../config/index.js';
 import { errors, successMessages, api } from '../../../constants/constants.js';
@@ -61,7 +61,7 @@ export default async function messageInbox(req, res) {
       });
 
       if (response.data.count > 0) {
-        locals.pagination = new Pagination({
+        locals.pagination = createPagination({
           currentPage: Number(locals.page),
           totalItems: response.data.count,
           itemsPerPage: config.admin.userList.itemsPerPage,

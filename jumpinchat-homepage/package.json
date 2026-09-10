@@ -20,17 +20,13 @@
     "express-session": "^1.19.0",
     "helmet": "^8.3.0",
     "joi": "^18.2.8",
-    "jquery": "^4.0.0",
     "jsonwebtoken": "^9.0.3",
-    "lodash": "^4.18.1",
     "marked": "^18.0.12",
     "mongodb": "^7.6.0",
     "mongoose": "^9.9.5",
     "multer": "^2.3.0",
-    "pagination-object": "^1.2.2",
     "pino": "^10.3.1",
     "pug": "^3.0.4",
-    "request-ip": "^3.3.0",
     "sanitize-html": "^2.17.7",
     "sitemap": "^9.0.1"
   },
@@ -43,13 +39,12 @@
     "globals": "^17.12.0",
     "jsdom": "^30.0.1",
     "mocha": "^12.0.0",
-    "nodemon": "^3.1.14",
     "sass": "^1.104.0",
     "sinon": "^22.1.0"
   },
   "scripts": {
     "start": "node --env-file-if-exists=.env app.js",
-    "dev": "nodemon --exec \"node --env-file-if-exists=.env\" app.js",
+    "dev": "node --watch --env-file-if-exists=.env app.js",
     "build": "node build.js",
     "test": "NODE_ENV=test mocha --loader=esmock --exit -t 3000 'routes/**/*.spec.js' 'utils/**/*.spec.js' 'src/**/*.spec.js'",
     "lint": "eslint ."

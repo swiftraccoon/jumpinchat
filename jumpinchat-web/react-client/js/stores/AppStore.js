@@ -1,5 +1,5 @@
 import Store from './Store';
-import lodashSet from 'lodash/set.js';
+import { setPath as lodashSet } from '../utils/lang';
 import { get, set } from '../utils/localStorage';
 import { ApplicationDispatcher } from '../dispatcher/AppDispatcher';
 import * as actionTypes from '../constants/ActionTypes';

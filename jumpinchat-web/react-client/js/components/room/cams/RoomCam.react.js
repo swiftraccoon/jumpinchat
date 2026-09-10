@@ -4,8 +4,8 @@
 
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import classnames from 'classnames';
-import hark from 'hark';
+import classnames from '../../../utils/classNames';
+import createAudioLevelMonitor from '../../../utils/audioLevel';
 import withErrorBoundary from '../../../utils/withErrorBoundary';
 import chatStore from '../../../stores/ChatStore/ChatStore';
 import {
@@ -37,7 +37,7 @@ export class RoomCam extends Component {
     this._getHandle = this._getHandle.bind(this);
     this.handleFullscreen = this.handleFullscreen.bind(this);
     this.handleReport = this.handleReport.bind(this);
-    this.hark = null;
+    this.audioLevel = null;
   }
 
   componentDidMount() {
@@ -134,9 +134,9 @@ export class RoomCam extends Component {
       this._attachStream();
     }
 
-    if (this.hark && !streamData.stream) {
-      this.hark.stop();
-      this.hark = null;
+    if (this.audioLevel && !streamData.stream) {
+      this.audioLevel.stop();
+      this.audioLevel = null;
     }
 
     if (!this._isStreamLocal() && streamData.stream) {
@@ -163,12 +163,12 @@ export class RoomCam extends Component {
   }
 
   componentWillUnmount() {
-    if (this.hark) {
-      this.hark.stop();
+    if (this.audioLevel) {
+      this.audioLevel.stop();
     }
   }
 
-  initHark() {
+  initAudioLevel() {
     const { streamData, audioContext, feed } = this.props;
 
     if (!streamData.stream) {
@@ -176,14 +176,14 @@ export class RoomCam extends Component {
     }
 
     const audioTrack = streamData.stream.getAudioTracks()[0];
-    if (!streamData.isLocal && streamData.stream && !this.hark && audioTrack) {
+    if (!streamData.isLocal && streamData.stream && !this.audioLevel && audioTrack) {
       const options = {
         interval: 250,
         audioContext,
       };
 
-      this.hark = hark(streamData.stream, options);
-      this.hark.on('volume_change', (volume) => {
+      this.audioLevel = createAudioLevelMonitor(streamData.stream, options);
+      this.audioLevel.on('volume_change', (volume) => {
         const normalizedVolume = volume + 100;
         const audioActive = normalizedVolume > 30;
 
@@ -198,7 +198,7 @@ export class RoomCam extends Component {
     const { streamData } = this.props;
     const vidElem = this.stream;
     vidElem.srcObject = streamData.stream;
-    this.initHark();
+    this.initAudioLevel();
   }
 
   _isStreamLocal() {

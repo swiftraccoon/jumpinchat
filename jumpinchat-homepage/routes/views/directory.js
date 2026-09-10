@@ -1,4 +1,4 @@
-import Pagination from 'pagination-object';
+import { createPagination } from '../../utils/pagination.js';
 import logFactory from '../../utils/logger.js';
 import { getRoomList, getRoomCount } from '../../utils/roomUtils.js';
 
@@ -31,7 +31,7 @@ export default async function directory(req, res) {
       const { rooms, count } = data;
 
       if (count > 0) {
-        locals.pagination = new Pagination({
+        locals.pagination = createPagination({
           currentPage: Number(locals.page),
           totalItems: count,
           itemsPerPage: resultsPerPage,

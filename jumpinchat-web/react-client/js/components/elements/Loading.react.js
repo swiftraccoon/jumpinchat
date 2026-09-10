@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import classnames from 'classnames';
+import classnames from '../../utils/classNames';
 
 const Loading = ({ loading, title = '', fullHeight = false }) => (
   <div className={classnames('loading__Wrapper', { 'loading__Wrapper--fullHeight': fullHeight })}>

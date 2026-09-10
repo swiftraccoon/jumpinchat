@@ -9,7 +9,7 @@ import ytApiQuery from '../utils/ytApiQuery.js';
 import getCurrentCred from '../utils/getCurrentCred.js';
 const log = logFactory({ name: 'searchYoutube.controller' });
 const redis = redisFactory();
-import { toSeconds, parse } from 'iso8601-duration';
+import { isoDurationToSeconds } from '../../../utils/duration.util.js';
 
 const youtubeIdRe = /^[a-zA-Z0-9_-]{11}$/;
 class SearchYoutube {
@@ -136,7 +136,7 @@ class SearchYoutube {
             contentDetails,
             snippet,
           } = items[0];
-          const duration = toSeconds(parse(contentDetails.duration));
+          const duration = isoDurationToSeconds(contentDetails.duration);
           const videoInformation = {
             mediaId: term,
             channelId: snippet.channelId,

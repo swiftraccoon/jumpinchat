@@ -1,4 +1,4 @@
-import * as uuid from 'uuid';
+import { generateId } from '../../utils/id.util.js';
 import crypto from 'crypto';
 import logFactory from '../../utils/logger.util.js';
 import config from '../../config/env/index.js';
@@ -20,7 +20,7 @@ export async function createEmailVerification(user, cb = () => {}) {
     return cb(err);
   }
 
-  const token = crypto.createHash('sha256').update(uuid.v4()).digest('hex');
+  const token = crypto.createHash('sha256').update(generateId()).digest('hex');
 
   try {
     const verifyEntry = await VerifyModel.create({
@@ -54,7 +54,7 @@ export async function createPasswordReset(user, cb = () => {}) {
     return cb(err);
   }
 
-  const token = crypto.createHash('sha256').update(uuid.v4()).digest('hex');
+  const token = crypto.createHash('sha256').update(generateId()).digest('hex');
 
   try {
     const verifyEntry = await VerifyModel.create({

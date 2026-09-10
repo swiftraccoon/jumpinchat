@@ -4,7 +4,7 @@
  * @param {String} socketId - socket ID of the user who wants to ignore the target
  * @param {String} targetListId - user list ID of the user to be ignored in the room
  */
-import * as uuid from 'uuid';
+import { generateId } from '../../../utils/id.util.js';
 import logFactory from '../../../utils/logger.util.js';
 import { getRoomByName } from '../room.utils.js';
 import { getUserById } from '../../user/user.utils.js';
@@ -36,7 +36,7 @@ export default async function ignoreUser(roomName, socketId, targetListId, cb) {
     const user = await getUserById(initiatingUser.user_id, { lean: false });
 
     const ignoreData = {
-      id: uuid.v4(),
+      id: generateId(),
       handle: targetUser.handle,
       userListId: targetUser._id,
       userId: targetUser.user_id,

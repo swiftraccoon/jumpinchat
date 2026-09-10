@@ -32,7 +32,7 @@ describe('verify.utils', () => {
     resetPasswordTemplateStub = sinon.stub().returns('<html>reset</html>');
 
     const mod = await esmock('./verify.utils.js', {
-      'uuid': { v4: () => 'mock-uuid-v4' },
+      '../../utils/id.util.js': { generateId: () => 'mock-uuid-v4' },
       '../../utils/logger.util.js': { default: logStub },
       '../../config/env/index.js': {
         default: {

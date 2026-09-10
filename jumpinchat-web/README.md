@@ -43,11 +43,12 @@ To run just the web server for development:
 3. Run the dev server:
 
 ```bash
-npx nodemon
+npm run dev:server
 ```
 
 Set local environment variables in `.env`; Node loads them before importing the
-server. `nodemon.json` watches server source changes.
+server and restarts it when the entry point or imported modules change
+(`node --watch`, supported on Linux, macOS and Windows).
 
 ### Client development
 

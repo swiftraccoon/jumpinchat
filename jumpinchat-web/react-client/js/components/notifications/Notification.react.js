@@ -4,7 +4,7 @@
 
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import classnames from 'classnames';
+import classnames from '../../utils/classNames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import NotificationWrapper from './NotificationWrapper.react';
 

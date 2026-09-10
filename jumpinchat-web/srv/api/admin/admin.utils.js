@@ -1,7 +1,6 @@
 
 import { startOfHour, startOfDay } from 'date-fns';
-import _ from 'lodash';
-const { groupBy } = _;
+import { groupBy } from '../../utils/object.util.js';
 import config from '../../config/env/index.js';
 import logFactory from '../../utils/logger.util.js';
 import redisFactory from '../../lib/redis.util.js';

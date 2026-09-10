@@ -2,7 +2,7 @@
  * Created by Zaccary on 20/03/2017.
  */
 
-import _ from 'lodash';
+import { deepMerge } from '../utils/objects.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -46,4 +46,4 @@ const all = {
 };
 
 const envModule = await import(`./env/${env}.js`);
-export default _.merge(all, envModule.default);
+export default deepMerge(all, envModule.default);

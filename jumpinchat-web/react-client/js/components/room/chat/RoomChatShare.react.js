@@ -1,9 +1,11 @@
-/* global location, window */
+/* global window */
 
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import Clipboard from 'clipboard';
 import { addNotification } from '../../../actions/NotificationActions';
+
+const copiedNotification = { color: 'green', message: 'Room link copied!' };
+const failedNotification = { color: 'yellow', message: 'Could not copy link' };
 
 class RoomChatShare extends Component {
   static hasShareAPI() {
@@ -13,39 +15,13 @@ class RoomChatShare extends Component {
   constructor(props) {
     super(props);
     this.link = `jumpin.chat/${props.roomName}`;
-    if (!RoomChatShare.hasShareAPI()) {
-      this.clipboard = new Clipboard('.chat__ShareCopy', {
-        target: () => this.input,
-        text: () => `https://${this.link}`,
-      });
-    } else {
-      this.handleShare = this.handleShare.bind(this);
-    }
-  }
-
-  componentDidMount() {
-    if (this.clipboard) {
-      this.clipboard.on('success', () => addNotification({
-        color: 'green',
-        message: 'Room link copied!',
-      }));
-
-      this.clipboard.on('error', () => addNotification({
-        color: 'yellow',
-        message: 'Could not copy link',
-      }));
-    }
-  }
-
-  componentWillUnmount() {
-    if (this.clipboard) {
-      this.clipboard.destroy();
-    }
+    this.handleShare = this.handleShare.bind(this);
+    this.handleCopy = this.handleCopy.bind(this);
   }
 
   handleShare() {
     if (!RoomChatShare.hasShareAPI()) {
-      return;
+      return this.handleCopy();
     }
 
     const { roomName } = this.props;
@@ -55,12 +31,9 @@ class RoomChatShare extends Component {
       url: `https://${this.link}`,
     });
 
-    sharePromise.then(() => addNotification({
-      color: 'green',
-      message: 'Room link copied!',
-    }));
+    sharePromise.then(() => addNotification(copiedNotification));
 
-    sharePromise.catch((err) => {
+    return sharePromise.catch((err) => {
       console.error({ err });
 
       if (err.name === 'AbortError') {
@@ -68,11 +41,47 @@ class RoomChatShare extends Component {
         return null;
       }
 
-      return addNotification({
-        color: 'yellow',
-        message: 'Could not copy link',
-      });
+      return addNotification(failedNotification);
     });
+  }
+
+  handleCopy() {
+    const url = `https://${this.link}`;
+    const { clipboard } = window.navigator;
+
+    if (clipboard && typeof clipboard.writeText === 'function') {
+      return clipboard.writeText(url)
+        .then(() => addNotification(copiedNotification))
+        .catch(() => addNotification(failedNotification));
+    }
+
+    const { document } = window;
+    if (typeof document.execCommand !== 'function') {
+      return addNotification(failedNotification);
+    }
+
+    // Select the absolute URL for the legacy clipboard API, then restore the
+    // displayed link and the user's focus and selection.
+    const { input } = this;
+    const { value, selectionStart, selectionEnd, selectionDirection } = input;
+    const { activeElement } = document;
+    let copied = false;
+    try {
+      input.value = url;
+      input.focus({ preventScroll: true });
+      input.select();
+      copied = document.execCommand('copy');
+    } catch (err) {
+      copied = false;
+    } finally {
+      input.value = value;
+      input.setSelectionRange(selectionStart, selectionEnd, selectionDirection);
+      if (activeElement && activeElement !== input && typeof activeElement.focus === 'function') {
+        activeElement.focus({ preventScroll: true });
+      }
+    }
+
+    return addNotification(copied === true ? copiedNotification : failedNotification);
   }
 
   render() {
@@ -99,12 +108,7 @@ class RoomChatShare extends Component {
 }
 
 RoomChatShare.propTypes = {
-  roomName: '',
-};
-
-RoomChatShare.propTypes = {
   roomName: PropTypes.string,
 };
-
 
 export default RoomChatShare;

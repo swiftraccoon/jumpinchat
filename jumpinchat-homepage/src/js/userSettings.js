@@ -1,22 +1,21 @@
-import $ from 'jquery';
+import { onReady, sendForm } from './dom.js';
 
-const userIgnoreRemove = $('.settings__UserIgnoreRemove');
+export function initUserSettings(root = document) {
+  root.querySelectorAll('.settings__UserIgnoreRemove').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const { id, username } = button.dataset;
+      let response;
+      try {
+        response = await sendForm('/settings/ignore', 'DELETE', { id, username });
+      } catch (err) {
+        return;
+      }
 
-const removeIgnore = (id, username, element) => {
-  $.ajax({
-    method: 'delete',
-    url: '/settings/ignore',
-    data: {
-      id,
-      username,
-    },
-  })
-    .done(() => {
-      element.remove();
+      if (response.ok) {
+        button.parentElement.remove();
+      }
     });
-};
+  });
+}
 
-userIgnoreRemove.on('click', function handleRemoveIgnore() {
-  const elem = $(this);
-  removeIgnore(elem.data('id'), elem.data('username'), elem.parent());
-});
+onReady(() => initUserSettings());

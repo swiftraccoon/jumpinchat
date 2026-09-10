@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
-import classnames from 'classnames';
+import classnames from '../../../utils/classNames';
 import RoomCamOptions from '../RoomCamOptions.react';
 import {
   setRoomMessageSounds,

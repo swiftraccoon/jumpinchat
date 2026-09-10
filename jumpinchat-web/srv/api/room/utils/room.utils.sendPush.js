@@ -1,10 +1,9 @@
 
 import webPush from 'web-push';
-import * as uuid from 'uuid';
+import { generateId } from '../../../utils/id.util.js';
 import config from '../../../config/env/index.js';
 import logFactory from '../../../utils/logger.util.js';
-import _ from 'lodash';
-const { escapeRegExp } = _;
+import { escapeRegExp } from '../../../utils/string.util.js';
 const log = logFactory({ name: 'sendPush' });
 function push(endpoint, TTL, p256dh, auth, payload) {
   if (!endpoint) {
@@ -58,7 +57,7 @@ export default async function sendPush(message, senderData, recipientSocketId, o
       return;
     }
 
-    const id = uuid.v4();
+    const id = generateId();
     const mentioned = new RegExp(`@${escapeRegExp(pushData.handle)}`).test(message);
     const renotify = options.renotify || mentioned;
     const payload = JSON.stringify({

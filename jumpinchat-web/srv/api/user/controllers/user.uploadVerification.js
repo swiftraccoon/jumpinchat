@@ -1,6 +1,6 @@
 import Busboy from 'busboy';
 import { formatDistance } from 'date-fns';
-import * as uuid from 'uuid';
+import { generateId } from '../../../utils/id.util.js';
 import logFactory from '../../../utils/logger.util.js';
 import { getUserById } from '../user.utils.js';
 import AgeVerificationModel from '../../ageVerification/ageVerification.model.js';
@@ -182,7 +182,7 @@ export default async function uploadVerificationImages(req, res) {
           }
 
           // Use server-generated filename instead of client-provided one
-          const safeFileName = `${uuid.v4()}.${getExtFromMime(mimeType)}`;
+          const safeFileName = `${generateId()}.${getExtFromMime(mimeType)}`;
 
           processedImages.push({
             imageData: convertedImage,

@@ -4,7 +4,7 @@
 
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
-import _ from 'lodash';
+import { deepMerge } from '../../utils/object.util.js';
 import path from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -97,4 +97,4 @@ const all = {
 // (production.js accesses env vars that don't exist in dev/test)
 const envModule = await import(`./${all.env}.js`);
 
-export default _.merge(all, envModule.default || {});
+export default deepMerge(all, envModule.default || {});

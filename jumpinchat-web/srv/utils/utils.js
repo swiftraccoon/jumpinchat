@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { Jimp, HorizontalAlign, VerticalAlign } from 'jimp';
-import * as uuid from 'uuid';
-import requestIp from 'request-ip';
+import { generateId } from './id.util.js';
+import { getClientIp } from './ip.util.js';
 import logFactory from './logger.util.js';
 import config from '../config/env/index.js';
 import errors from '../config/constants/errors.js';
@@ -98,7 +98,7 @@ export function verifyInternalSecret(req, res, next) {
 export function messageFactory(msg) {
   const commonMessageOpts = {
     timestamp: new Date(),
-    id: uuid.v4(),
+    id: generateId(),
   };
 
   return { ...msg, ...commonMessageOpts };
@@ -255,8 +255,7 @@ export function getExtFromMime(mimeType) {
 };
 
 export function getRemoteIpFromReq(req) {
-  const ip = requestIp.getClientIp(req);
-  return ip;
+  return getClientIp(req);
 };
 
 export function createNotification(type, level, message, opts = {}) {

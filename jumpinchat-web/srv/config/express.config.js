@@ -4,11 +4,9 @@
 
 
 import express from 'express';
-import methodOverride from 'method-override';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import helmet from 'helmet';
-import errorHandler from 'errorhandler';
 import { createClient as createRedisClient } from 'redis';
 import { RedisStore } from 'connect-redis';
 import path from 'path';
@@ -86,14 +84,12 @@ export default function expressConfig(app, io) {
         "'self'",
         "'unsafe-inline'",
         'https://fonts.googleapis.com',
-        'https://use.fontawesome.com',
         'https://maxcdn.bootstrapcdn.com',
         'https://unpkg.com',
       ],
       fontSrc: [
         "'self'",
         'https://fonts.gstatic.com',
-        'https://use.fontawesome.com',
       ],
       imgSrc: [
         "'self'",
@@ -123,7 +119,6 @@ export default function expressConfig(app, io) {
   app.use('/api/payment/stripe/event', express.raw({ type: '*/*' }));
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
-  app.use(methodOverride());
 
   app.use(express.static(path.join(config.root, config.appPath)));
   app.set('appPath', config.root + config.appPath);
@@ -131,8 +126,6 @@ export default function expressConfig(app, io) {
   if (env === 'development') {
     log.debug({ staticPath: path.join(config.root, '.tmp') });
     app.use(express.static(path.join(config.root, '.tmp')));
-    app.use(express.static(path.join(config.root, 'node_modules')));
-    app.use(errorHandler());
   }
 
   return sessionRedisClient;

@@ -4,7 +4,7 @@
 
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import classnames from 'classnames';
+import classnames from '../../../utils/classNames';
 import RoomChatHeader from './RoomChatHeader.react';
 import RoomUserList from './RoomUserList.react';
 import RoomChatFeed from './RoomChatFeed.react';

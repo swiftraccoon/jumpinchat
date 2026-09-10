@@ -1,7 +1,0 @@
-{
-  "watch": [
-    "srv"
-  ],
-  "ext": "js,json",
-  "exec": "node --env-file-if-exists=.env srv/index.js"
-}

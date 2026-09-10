@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useDrag, useDrop } from 'react-dnd';
-import classNames from 'classnames';
+import classNames from '../../../utils/classNames';
 
 const SortItem = ({
   children,

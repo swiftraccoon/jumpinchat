@@ -1,12 +1,14 @@
-import $ from 'jquery';
+import { onReady } from './dom.js';
 
-$(document).ready(() => {
-  const button = $('button.disableOnClick');
-  button.each(function () {
-    $(this).on('click', function () {
+export function initDisableOnClick(root = document) {
+  root.querySelectorAll('button.disableOnClick').forEach((button) => {
+    button.addEventListener('click', () => {
+      // Disable after the click has submitted the form.
       setTimeout(() => {
-        $(this).prop('disabled', true);
+        button.disabled = true;
       });
     });
   });
-});
+}
+
+onReady(() => initDisableOnClick());

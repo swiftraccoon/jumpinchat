@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import Pagination from 'pagination-object';
+import { createPagination } from '../../../utils/pagination.js';
 import logFactory from '../../../utils/logger.js';
 import config from '../../../config/index.js';
 import {
@@ -35,7 +35,7 @@ export default async function adminModActivity(req, res) {
   }
 
   if (locals.activity.count > 0) {
-    locals.pagination = new Pagination({
+    locals.pagination = createPagination({
       currentPage: Number(locals.pageNumber),
       totalItems: locals.activity.count,
       itemsPerPage: config.admin.userList.itemsPerPage,

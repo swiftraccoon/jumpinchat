@@ -2,9 +2,8 @@
  */
 
 import jwt from 'jsonwebtoken';
-import _ from 'lodash';
-const { omit, pick } = _;
-import * as uuid from 'uuid';
+import { omit, pick } from '../../utils/object.util.js';
+import { generateId } from '../../utils/id.util.js';
 import Queue from '../../utils/queue.util.js';
 import RoomModel from './room.model.js';
 import RoomHistoryModel from './roomHistory.model.js';
@@ -168,7 +167,7 @@ export function getChatColor(currentColor) {
 };
 
 function _createUniqueIntegerId() {
-  return uuid.v4();
+  return generateId();
 }
 
 export const createUniqueIntegerId = _createUniqueIntegerId;

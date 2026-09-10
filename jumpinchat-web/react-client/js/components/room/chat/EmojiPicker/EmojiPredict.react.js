@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Emoji from '../../../elements/Emoji.react';
-import cx from 'classnames';
+import cx from '../../../../utils/classNames';
 
 const EmojiPredict = ({
   query,

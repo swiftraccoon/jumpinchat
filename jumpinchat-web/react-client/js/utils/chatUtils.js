@@ -1,4 +1,4 @@
-import escapeRegExp from 'lodash/escapeRegExp';
+import { escapeRegExp } from './lang';
 
 export const getUserMentioned = (message, handle, username) => {
   let usernameReg = '';

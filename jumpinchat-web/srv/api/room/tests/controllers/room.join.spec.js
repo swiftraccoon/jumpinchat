@@ -3,7 +3,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import jwt from 'jsonwebtoken';
-import _ from 'lodash';
 import roomMockJson from '../room.mock.json' with { type: 'json' };
 import config from '../../../../config/env/index.js';
 import { PermissionError } from '../../../../utils/error.util.js';
@@ -76,7 +75,7 @@ describe('Room Join Controller', () => {
       callPromise: sinon.stub().returns(Promise.resolve()),
     };
 
-    roomMock = _.cloneDeep(roomMockJson);
+    roomMock = structuredClone(roomMockJson);
     roomMock.users = roomMock.users.map(u => Object.assign({}, u, {
       toObject: sinon.stub().returns(u),
     }));

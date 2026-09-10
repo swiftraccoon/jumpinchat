@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import Joi from 'joi';
 import axios from 'axios';
-import Pagination from 'pagination-object';
+import { createPagination } from '../../utils/pagination.js';
 import { isBefore, formatRelative } from 'date-fns';
 import logFactory from '../../utils/logger.js';
 import config from '../../config/index.js';
@@ -105,7 +105,7 @@ export default async function admin(req, res) {
           const { rooms, count } = roomList;
 
           if (count > 0) {
-            locals.pagination = new Pagination({
+            locals.pagination = createPagination({
               currentPage: Number(locals.pageNumber),
               totalItems: count,
               itemsPerPage: config.admin.userList.itemsPerPage,
@@ -130,7 +130,7 @@ export default async function admin(req, res) {
               return resolve();
             }
 
-            locals.pagination = new Pagination({
+            locals.pagination = createPagination({
               currentPage: Number(locals.pageNumber),
               totalItems: users.length,
               itemsPerPage: config.admin.userList.itemsPerPage,
@@ -156,7 +156,7 @@ export default async function admin(req, res) {
 
             const { users, count } = result;
 
-            locals.pagination = new Pagination({
+            locals.pagination = createPagination({
               currentPage: Number(locals.pageNumber),
               totalItems: count,
               itemsPerPage: config.admin.userList.itemsPerPage,
@@ -194,7 +194,7 @@ export default async function admin(req, res) {
           const { reports, count } = result;
 
           if (count > 0) {
-            locals.pagination = new Pagination({
+            locals.pagination = createPagination({
               currentPage: Number(locals.pageNumber),
               totalItems: count,
               itemsPerPage: config.admin.userList.itemsPerPage,

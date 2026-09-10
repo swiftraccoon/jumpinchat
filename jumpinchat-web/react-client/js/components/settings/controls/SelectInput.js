@@ -1,6 +1,6 @@
 import React, { useId } from 'react';
 import PropTypes from 'prop-types';
-import classNames from 'classnames';
+import classNames from '../../../utils/classNames';
 
 const SelectInput = React.forwardRef(({
   className = '',

@@ -3,7 +3,7 @@
  */
 
 import Store from './Store';
-import * as uuid from 'uuid';
+import uuid from '../utils/uuid';
 import { NotificationDispatcher } from '../dispatcher/AppDispatcher';
 import {
   ADD_NOTIFICATION,
@@ -128,7 +128,7 @@ export class NotificationStore extends Store {
       }
     }
 
-    this.notifications = [{ ...notification, id: uuid.v4() }, ...this.notifications];
+    this.notifications = [{ ...notification, id: uuid() }, ...this.notifications];
 
     // only re-initialize the timer if it's not
     // already initialized.

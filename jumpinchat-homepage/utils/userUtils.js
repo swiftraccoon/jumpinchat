@@ -3,7 +3,7 @@
  */
 
 import bcrypt from 'bcrypt';
-import requestIp from 'request-ip';
+import { getClientIp } from './ip.js';
 import createLogger from './logger.js';
 import request from './request.js';
 import { api, errors } from '../constants/constants.js';
@@ -12,8 +12,7 @@ import User from '../models/User.js';
 const log = createLogger({ name: 'utils.userUtils' });
 
 export function getRemoteIpFromReq(req) {
-  const ip = requestIp.getClientIp(req);
-  return ip;
+  return getClientIp(req);
 }
 
 /**

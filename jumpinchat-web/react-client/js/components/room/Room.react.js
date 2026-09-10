@@ -2,7 +2,7 @@
 
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import classnames from 'classnames';
+import classnames from '../../utils/classNames';
 import { destroy as destroyMedia } from '../../utils/CamUtil';
 import { connectToRoom } from '../../utils/RoomUtils';
 import * as chatActions from '../../actions/ChatActions';

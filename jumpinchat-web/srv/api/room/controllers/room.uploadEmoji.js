@@ -1,5 +1,5 @@
 import Busboy from 'busboy';
-import * as uuid from 'uuid';
+import { generateId } from '../../../utils/id.util.js';
 import logFactory from '../../../utils/logger.util.js';
 import { getRoomByName } from '../room.utils.js';
 import { getUserHasRolePermissions } from '../../role/role.utils.js';
@@ -126,7 +126,7 @@ export default function uploadEmoji(req, res) {
 
         try {
           const room = await getRoomByName(roomName);
-          const newFileName = uuid.v4();
+          const newFileName = generateId();
           const filePath = `room-emoji/${newFileName}.${getExtFromMime(mimeType)}`;
 
           log.debug('uploading image');

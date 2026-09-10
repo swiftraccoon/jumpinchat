@@ -1,5 +1,5 @@
 
-import * as uuid from 'uuid';
+import { generateId } from '../../../utils/id.util.js';
 import logFactory from '../../../utils/logger.util.js';
 import email from '../../../config/email.config.js';
 const log = logFactory({ name: 'user.verifyEmail' });
@@ -15,7 +15,7 @@ export default function contactForm(req, res) {
     to: 'contact@example.com',
     from: 'no-reply@jumpin.chat',
     replyTo: `${name ? `${name} ` : ''}${from}`,
-    subject: `${option}: ${uuid.v4()}`,
+    subject: `${option}: ${generateId()}`,
     text: message,
   }, (err) => {
     if (err) {

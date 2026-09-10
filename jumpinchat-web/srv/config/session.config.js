@@ -1,6 +1,5 @@
 
-import _ from 'lodash';
-const { merge } = _;
+import { deepMerge as merge } from '../utils/object.util.js';
 import logFactory from '../utils/logger.util.js';
 const log = logFactory({ name: 'session.config' });
 export function initialSession(session) {

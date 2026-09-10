@@ -2,8 +2,7 @@
  * Created by Zaccary on 19/03/2017.
  */
 
-import lodash from 'lodash';
-const { pick, omit } = lodash;
+import { pick, omit } from './objects.js';
 
 const filterRoomUser = function filterRoomUser(user) {
   return pick(user, [

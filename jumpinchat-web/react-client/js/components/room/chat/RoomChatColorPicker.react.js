@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import classnames from 'classnames';
+import classnames from '../../../utils/classNames';
 import { trackEvent } from '../../../utils/AnalyticsUtil';
 import { setChatColor } from '../../../utils/RoomAPI';
 

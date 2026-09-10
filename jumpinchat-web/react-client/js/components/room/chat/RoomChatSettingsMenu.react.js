@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import classnames from 'classnames';
+import classnames from '../../../utils/classNames';
 import FloatingLayer from '../../elements/FloatingLayer.react';
 import { sendOperatorAction } from '../../../utils/RoomAPI';
 import WrappedListItems from '../../elements/ListItems.react';

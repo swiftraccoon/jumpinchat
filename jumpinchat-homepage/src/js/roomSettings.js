@@ -1,19 +1,21 @@
-import $ from 'jquery';
+import { onReady, sendForm } from './dom.js';
 
-const removeModButton = $('.settings__RoomModRemove');
+export function initRoomSettings(root = document) {
+  root.querySelectorAll('.settings__RoomModRemove').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const { username } = button.dataset;
+      let response;
+      try {
+        response = await sendForm('/settings/moderator', 'DELETE', { username });
+      } catch (err) {
+        return;
+      }
 
-const removeMod = (username, element) => {
-  $.ajax({
-    method: 'delete',
-    url: '/settings/moderator',
-    data: { username },
-  })
-    .done(() => {
-      element.remove();
+      if (response.ok) {
+        button.parentElement.remove();
+      }
     });
-};
+  });
+}
 
-removeModButton.on('click', function handleRemoveMod() {
-  const elem = $(this);
-  removeMod(elem.data('username'), elem.parent());
-});
+onReady(() => initRoomSettings());

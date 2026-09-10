@@ -1,6 +1,6 @@
 import React, { PureComponent, Fragment } from 'react';
 import PropTypes from 'prop-types';
-import classnames from 'classnames';
+import classnames from '../../utils/classNames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import RoomChatSettingsMenu from './chat/RoomChatSettingsMenu.react';
 import { selectChatTab } from '../../actions/ChatActions';

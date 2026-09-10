@@ -1,5 +1,5 @@
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import logFactory from './logger.util.js';
 const log = logFactory({ name: 'queue.util' });
 class Queue extends EventEmitter {
