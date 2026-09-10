@@ -10,15 +10,23 @@ import { parseArgs } from 'node:util';
 
 const { values } = parseArgs({ options: {
   origin: { type: 'string' }, host: { type: 'string' }, smtp: { type: 'string' },
+  mailpit: { type: 'string' }, 'public-origin': { type: 'string' },
   ca: { type: 'string' }, report: { type: 'string' },
 } });
-assert.ok(values.origin && values.host && values.smtp && values.ca,
-  'Supply --origin https://127.0.0.1:PORT --host HOST --smtp http://127.0.0.1:PORT/messages --ca CERT [--report FILE]');
+assert.ok(values.origin && values.host && values.ca && Boolean(values.smtp) !== Boolean(values.mailpit),
+  'Supply --origin https://127.0.0.1:PORT --host HOST --ca CERT and either --smtp CAPTURE_URL or --mailpit MAILPIT_ORIGIN');
 const origin = new URL(values.origin);
 assert.equal(origin.protocol, 'https:');
 assert.equal(origin.hostname, '127.0.0.1');
+const publicOrigin = new URL(values['public-origin'] || origin.origin);
+if (!values['public-origin']) {
+  const hostOrigin = new URL(`https://${values.host}`);
+  publicOrigin.hostname = hostOrigin.hostname;
+  if (hostOrigin.port) publicOrigin.port = hostOrigin.port;
+}
+assert.equal(publicOrigin.protocol, 'https:');
 const ca = await readFile(values.ca);
-const sink = new URL(values.smtp);
+const sink = new URL(values.smtp || values.mailpit);
 assert.equal(sink.hostname, '127.0.0.1');
 assert.equal(sink.protocol, 'http:');
 const require = createRequire(new URL('../jumpinchat-web/package.json', import.meta.url));
@@ -104,15 +112,29 @@ status(roomPage, 200, 'Room page');
 assert.match(roomPage.text(), /<html/i);
 pass('Registered session is shared between homepage and room application');
 
-const mailResponse = await fetch(sink, { signal: AbortSignal.timeout(10000) });
+const mailURL = values.mailpit ? new URL('/api/v1/search', sink) : sink;
+if (values.mailpit) mailURL.searchParams.set('query', `to:${email}`);
+const mailResponse = await fetch(mailURL, { signal: AbortSignal.timeout(10000), redirect: 'error' });
 assert.equal(mailResponse.status, 200);
 const messages = await mailResponse.json();
-const message = messages.find(value => value.to.some(recipient => recipient.includes(email)));
+const message = values.mailpit
+  ? messages.messages.find(value => value.To.some(recipient => recipient.Address === email))
+  : messages.find(value => value.to.some(recipient => recipient.includes(email)));
 assert.ok(message, 'Registration must deliver a verification email to the local SMTP sink');
-const mime = message.mime.replace(/=\r?\n/g, '').replace(/=([0-9a-f]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
-const verification = mime.match(/\/verify-email\/([0-9a-f]{64})/);
+let raw = message.mime;
+if (values.mailpit) {
+  const rawResponse = await fetch(new URL(`/api/v1/message/${encodeURIComponent(message.ID)}/raw`, sink), {
+    signal: AbortSignal.timeout(10000), redirect: 'error',
+  });
+  assert.equal(rawResponse.status, 200);
+  raw = await rawResponse.text();
+}
+const mime = raw.replace(/=\r?\n/g, '').replace(/=([0-9a-f]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+const verification = mime.match(/https:\/\/[^\s"<>]+\/verify-email\/[0-9a-f]{64}/);
 assert.ok(verification, 'Captured MIME must contain a verification link');
-const verified = await request(`/verify-email/${verification[1]}`);
+const verificationURL = new URL(verification[0]);
+assert.equal(verificationURL.origin, publicOrigin.origin, 'Verification email must link to this configured deployment');
+const verified = await request(verificationURL.pathname);
 status(verified, 200, 'Email verification');
 assert.match(verified.text(), /Your email has been verified, thanks!/);
 pass('Registration mail reaches local SMTP and its link verifies the account');

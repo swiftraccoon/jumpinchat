@@ -5,15 +5,24 @@ import os from 'node:os';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 
 const smokeRequire = createRequire(import.meta.url);
-const { chromium } = smokeRequire(process.env.PLAYWRIGHT_PACKAGE ? path.resolve(process.env.PLAYWRIGHT_PACKAGE) : 'playwright');
+const { chromium, firefox } = smokeRequire(process.env.PLAYWRIGHT_PACKAGE ? path.resolve(process.env.PLAYWRIGHT_PACKAGE) : 'playwright');
+const browserName = process.env.BROWSER || 'chromium';
+assert.ok(['chromium', 'firefox'].includes(browserName), 'BROWSER must be chromium or firefox');
+const mediaMode = process.env.MEDIA_MODE || 'synthetic';
+assert.equal(mediaMode, 'synthetic', 'This room smoke currently requires MEDIA_MODE=synthetic');
 assert.ok(process.env.BASE_URL, 'BASE_URL must identify the disposable deployment');
 const baseURL = process.env.BASE_URL.replace(/\/$/, '');
 const origin = new URL(baseURL).origin;
+const firefoxLoopbackIce = process.env.FIREFOX_LOOPBACK_ICE === '1';
+assert.ok(!firefoxLoopbackIce || (browserName === 'firefox' && ['localhost', '127.0.0.1', '[::1]'].includes(new URL(baseURL).hostname)), 'FIREFOX_LOOPBACK_ICE=1 is only for a Firefox loopback deployment');
 const outputDir = process.env.OUTPUT_DIR ? path.resolve(process.env.OUTPUT_DIR) : await fs.mkdtemp(path.join(os.tmpdir(), 'jic-media-smoke-'));
 const phase = process.env.PHASE || 'all';
 assert.ok(['all', 'direct', 'relay', 'permissions', 'network'].includes(phase), 'PHASE must be all, direct, relay, permissions or network');
+assert.ok(browserName !== 'firefox' || phase !== 'permissions', 'Playwright Firefox cannot grant/revoke camera permissions; use Chromium for PHASE=permissions');
 const stamp = process.env.ROOM_SUFFIX || String(Date.now()).slice(-8);
 const permittedHosts = [...new Set([new URL(baseURL).hostname, ...(process.env.EXTRA_HOSTS || '').split(',').filter(Boolean)])];
 await fs.mkdir(outputDir, { recursive: true });
@@ -27,13 +36,41 @@ wave.writeUInt32LE(sampleRate, 24); wave.writeUInt32LE(sampleRate * 2, 28);
 wave.writeUInt16LE(2, 32); wave.writeUInt16LE(16, 34); wave.write('data', 36); wave.writeUInt32LE(sampleCount * 2, 40);
 for (let index = 0; index < sampleCount; index += 1) wave.writeInt16LE(Math.round(Math.sin(2 * Math.PI * 440 * index / sampleRate) * 8000), 44 + index * 2);
 await fs.writeFile(tonePath, wave);
-const result = { startedAt: new Date().toISOString(), phase, baseURL, checks: [], clients: [], limits: ['Synthetic camera test pattern and generated 440Hz microphone tone; no real hardware.', 'The observer filters non-isolated ICE servers, including the hardcoded public Google STUN server.', 'Relay phase changes only RTCPeerConnection iceTransportPolicy to relay; all app, Socket.IO and Janus traffic is real.'] };
+const result = { startedAt: new Date().toISOString(), phase, baseURL, browserName, mediaMode, audioOutputMuted: true, checks: [], skipped: [], clients: [], limits: [browserName === 'chromium' ? 'Synthetic camera test pattern and generated 440Hz microphone tone; no real hardware.' : 'Firefox native synthetic media devices; no real hardware. Camera permission automation is unavailable in the Playwright Firefox backend.', 'Browser speaker output is muted; native RTP and decoded audio-energy checks remain active.', 'The observer filters non-isolated ICE servers, including the hardcoded public Google STUN server.', 'Relay phase changes only RTCPeerConnection iceTransportPolicy to relay; all app, Socket.IO and Janus traffic is real.'] };
 const clients = [];
-const browser = await chromium.launch({
-  headless: true,
-  ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : { channel: 'chromium' }),
-  args: [...(process.env.TLS_SPKI ? [`--ignore-certificate-errors-spki-list=${process.env.TLS_SPKI}`] : []), '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required', `--use-file-for-fake-audio-capture=${tonePath}`, '--disable-dev-shm-usage'],
-});
+result.firefoxLoopbackIce = firefoxLoopbackIce;
+if (firefoxLoopbackIce) result.limits.push('Firefox loopback ICE is enabled in this fresh local test profile; ordinary Firefox defaults reject these localhost candidates.');
+let firefoxProfile;
+let browser;
+try {
+  if (browserName === 'firefox') {
+    const options = {
+      headless: true,
+      ...(process.env.FIREFOX_PATH ? { executablePath: process.env.FIREFOX_PATH } : {}),
+      // This string preference scales only native speaker output, after decoding.
+      firefoxUserPrefs: { 'media.navigator.streams.fake': true, 'media.navigator.permission.disabled': true, 'media.autoplay.default': 0, 'media.peerconnection.ice.loopback': firefoxLoopbackIce, 'media.volume_scale': '0.0' },
+    };
+    if (process.env.TLS_CA) {
+      firefoxProfile = await fs.mkdtemp(path.join(os.tmpdir(), 'jic-firefox-profile-'));
+      const run = promisify(execFile);
+      await run(process.env.CERTUTIL_PATH || 'certutil', ['-N', '--empty-password', '-d', `sql:${firefoxProfile}`]);
+      await run(process.env.CERTUTIL_PATH || 'certutil', ['-A', '-d', `sql:${firefoxProfile}`, '-n', 'JumpInChat local validation', '-t', 'C,,', '-i', path.resolve(process.env.TLS_CA)]);
+      const context = await firefox.launchPersistentContext(firefoxProfile, options);
+      browser = context.browser();
+    } else {
+      browser = await firefox.launch(options);
+    }
+  } else {
+    browser = await chromium.launch({
+      headless: true,
+      ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : { channel: 'chromium' }),
+      args: [...(process.env.TLS_SPKI ? [`--ignore-certificate-errors-spki-list=${process.env.TLS_SPKI}`] : []), '--mute-audio', '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required', `--use-file-for-fake-audio-capture=${tonePath}`, '--disable-dev-shm-usage'],
+    });
+  }
+} catch (error) {
+  if (firefoxProfile) await fs.rm(firefoxProfile, { recursive: true, force: true });
+  throw error;
+}
 console.log('BROWSER', browser.version());
 result.browserVersion = browser.version();
 
@@ -108,7 +145,7 @@ async function observe(context, relay) {
 }
 
 async function createClient(name, room, relay = false) {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, permissions: ['camera', 'microphone'] });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, ...(browserName === 'chromium' ? { permissions: ['camera', 'microphone'] } : {}) });
   await observe(context, relay);
   const data = { name, room, relay, errors: [], consoleErrors: [], failedRequests: [], roomResponses: [], blockedExternalRequests: [] };
   await context.route('**/*', route => {
@@ -135,7 +172,9 @@ async function createClient(name, room, relay = false) {
   await dialog.waitFor({ state: 'hidden' });
   await page.getByRole('button', { name: /Start Broadcasting/ }).waitFor();
   await page.waitForFunction(() => [...document.querySelectorAll('button')].some(button => button.textContent.includes('Start Broadcasting') && !button.disabled), null, { timeout: 40000 });
-  check(`${name}: joined room and initialized Janus`, { roomResponses: data.roomResponses });
+  const roomURL = await page.locator('.chat__ShareInput').inputValue();
+  assert.equal(roomURL, `${origin}/${encodeURIComponent(room)}`, 'The displayed share URL must preserve this deployment origin and port');
+  check(`${name}: joined room and initialized Janus`, { roomResponses: data.roomResponses, roomURL });
   return client;
 }
 
@@ -446,7 +485,12 @@ try {
     await Promise.all([mediaProgress(alice, first[0], 'media counters advancing'), mediaProgress(bob, first[1], 'media counters advancing')]);
     await reconnectJanus(bob);
     await reconnect(alice, bob);
-    await deniedPermission(room);
+    if (browserName === 'chromium') {
+      await deniedPermission(room);
+    } else {
+      result.skipped.push('Native camera permission denial/regrant: Playwright Firefox does not implement camera/microphone permission grants');
+      console.log('SKIP', result.skipped.at(-1));
+    }
     await alice.page.screenshot({ path: path.join(outputDir, 'direct-alice.png'), fullPage: true });
     await bob.page.screenshot({ path: path.join(outputDir, 'direct-bob.png'), fullPage: true });
     await alice.context.close(); await bob.context.close();
@@ -497,7 +541,11 @@ try {
   try {
     await fs.writeFile(path.join(outputDir, `result-${phase}.json`), JSON.stringify(result, null, 2));
   } finally {
-    await browser.close();
+    try {
+      await browser.close();
+    } finally {
+      if (firefoxProfile) await fs.rm(firefoxProfile, { recursive: true, force: true });
+    }
   }
   console.log('RESULT', result.status, path.join(outputDir, `result-${phase}.json`));
 }

@@ -20,6 +20,22 @@ job. Retention deletion should be configured only after a restore has succeeded.
 
 ## Create a local-storage backup
 
+For an installation created by `scripts/local.py`, the launcher supplies its
+project and Compose configuration:
+
+```bash
+python3 scripts/local.py backup
+```
+
+The command briefly stops application services and saves the two archives and
+manifest under `jumpinchat-deploy/.local/backups/`. It prints the resulting path.
+Use `--destination /secure/backups/new-directory` to select another new directory;
+its parent must exist. Keep the local state directory, including its secrets and
+TLS files, separately protected. Backups on the same machine do not cover loss of
+that machine.
+
+For manually configured deployments, use the underlying utility:
+
 Use the actual Compose project name shown by your deployment. The destination's
 parent directory must exist; the destination itself must not exist.
 
@@ -38,6 +54,13 @@ instances that were running before it started. It uses the existing web image to
 read the upload volume without networking. All application writers must use this
 deployment; stop external writers separately before starting. Requests and calls
 can be interrupted during maintenance.
+
+Container discovery uses both project and service labels. Before dumping, the
+utility verifies that every selected writer actually stopped. Recovery starts
+the recorded containers individually and runs their configured health probes
+with bounded retries; a stale container health label cannot make a failed
+restart appear successful. Recovery failures return a nonzero exit status even
+when the archives were written successfully.
 
 A successful directory contains two archives and a checksummed version-2 manifest.
 The manifest records the source MongoDB version, FCV and Database Tools version.
@@ -95,6 +118,22 @@ source project, database URI, upload volume, or S3 bucket.
 7. Record backup age, restore duration, application revision, results, and any
    manual steps. Compare them with the recovery targets. Keep production running
    separately; switching users to the restored deployment is a separate decision.
+
+## Local container rehearsal
+
+The September 2026 localhost check exercised the real backup utility's
+maintenance stop/start sequence, then restored its archives into fresh MongoDB
+and upload volumes in containers with no network access. Three account documents,
+three saved room documents, index definitions for all 26 collections and four public
+image files matched the source snapshot taken after application writers stopped.
+The source web/home containers resumed with the same identities. Temporary
+restore resources were removed, and the source installation remained running.
+The `local.py backup` command also completed successfully.
+
+This verifies fresh local data and container backup orchestration. It did not
+boot another application stack against the restored volumes, migrate existing
+MongoDB 4.4 data, restore S3 objects or validate provider accounts. The complete
+isolated-deployment procedure above remains necessary for a production cutover.
 
 ## S3 and split-server deployments
 

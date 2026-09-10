@@ -14,7 +14,7 @@ class RoomChatShare extends Component {
 
   constructor(props) {
     super(props);
-    this.link = `jumpin.chat/${props.roomName}`;
+    this.link = `${window.location.origin}/${encodeURIComponent(props.roomName)}`;
     this.handleShare = this.handleShare.bind(this);
     this.handleCopy = this.handleCopy.bind(this);
   }
@@ -28,7 +28,7 @@ class RoomChatShare extends Component {
     const sharePromise = window.navigator.share({
       title: window.document.title,
       text: `Come and join my chat room: ${roomName}!`,
-      url: `https://${this.link}`,
+      url: this.link,
     });
 
     sharePromise.then(() => addNotification(copiedNotification));
@@ -46,7 +46,7 @@ class RoomChatShare extends Component {
   }
 
   handleCopy() {
-    const url = `https://${this.link}`;
+    const url = this.link;
     const { clipboard } = window.navigator;
 
     if (clipboard && typeof clipboard.writeText === 'function') {

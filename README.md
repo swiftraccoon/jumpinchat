@@ -9,10 +9,48 @@ separate coturn service.
 
 - **Podman** (rootless) + **podman-compose** (`pip install podman-compose`), or Docker + Docker Compose
 - Node 24 LTS for local development and the configuration scripts (`nvm use` in each app)
-- A machine with a LAN IP (or a VPS with a public IP)
-- Ports: 8080 (HTTP), 8443 (HTTPS), 20000-20200/udp (WebRTC media)
+- Python 3.11+ and OpenSSL for the local launcher and backup tooling
+- For LAN/public deployment: a reachable server address and open HTTP, HTTPS and media ports
 
-## Quick Start
+## Run locally
+
+With Podman and `podman-compose` installed and the Podman machine running, run
+from the repository root:
+
+```bash
+python3 scripts/local.py up
+python3 scripts/local.py status
+python3 scripts/local.py open
+```
+
+The launcher builds the application, initializes a fresh MongoDB replica set,
+and starts HTTPS, a local Mailpit inbox and a TURN relay. It prints the selected
+URLs; the preferred ports are `https://localhost:8443` and
+`http://localhost:8025`. All published listeners bind to loopback. Mail is captured
+locally, and payment checkout stays disabled until a separate deployment is
+configured with Stripe.
+
+`open` launches Chrome or Chromium with a separate profile that trusts this
+installation's certificate. It does not change your usual browser profile or
+system certificate store. With another browser, use the URL and certificate
+printed by `status`. Rebuild after application changes with
+`python3 scripts/local.py up --build`; this restarts the local stack after the
+builds finish.
+
+Configuration, secrets and TLS files live in the ignored
+`jumpinchat-deploy/.local/` directory. Database, uploads and inbox data use this
+installation's named volumes. This setup does not import an existing deployment.
+Repeated `up` calls reuse the installation; stop it without deleting its data:
+
+```bash
+python3 scripts/local.py down
+```
+
+Use `python3 scripts/local.py backup` to save a coordinated database-and-upload
+backup under `.local/backups/`. This briefly stops application services. See
+[backup and recovery](RECOVERY.md) for restore verification and off-host copies.
+
+## LAN or public server setup
 
 Everything runs from the `jumpinchat-deploy/` directory.
 

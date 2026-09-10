@@ -6,6 +6,8 @@ import { addNotification } from '../../../actions/NotificationActions';
 vi.mock('../../../actions/NotificationActions', () => ({ addNotification: vi.fn() }));
 
 describe('room sharing', () => {
+  const originalLocation = window.location.href;
+  const roomURL = 'https://chat.example.test/friends';
   const browserAPIs = [
     [navigator, 'share'],
     [navigator, 'clipboard'],
@@ -13,6 +15,7 @@ describe('room sharing', () => {
   ].map(([object, key]) => ({ object, key, descriptor: Object.getOwnPropertyDescriptor(object, key) }));
 
   afterEach(() => {
+    globalThis.jsdom.reconfigure({ url: originalLocation });
     browserAPIs.forEach(({ object, key, descriptor }) => {
       if (descriptor) Object.defineProperty(object, key, descriptor);
       else delete object[key];
@@ -21,9 +24,20 @@ describe('room sharing', () => {
 
   it('shares the room URL with the native share API', async () => {
     const share = vi.fn().mockResolvedValue(); Object.defineProperty(navigator, 'share', { configurable: true, value: share });
-    render(<RoomChatShare roomName="friends" />); expect(screen.getByRole('textbox')).toHaveValue('jumpin.chat/friends');
+    render(<RoomChatShare roomName="friends" />); expect(screen.getByRole('textbox')).toHaveValue(roomURL);
     fireEvent.click(screen.getByRole('button'));
-    expect(share).toHaveBeenCalledWith(expect.objectContaining({ url: 'https://jumpin.chat/friends' }));
+    expect(share).toHaveBeenCalledWith(expect.objectContaining({ url: roomURL }));
+    await waitFor(() => expect(addNotification).toHaveBeenCalledWith(expect.objectContaining({ color: 'green' })));
+  });
+  it('preserves the current deployment port and encodes the room as one path segment', async () => {
+    globalThis.jsdom.reconfigure({ url: 'https://localhost:8443/old-room?from=test' });
+    const share = vi.fn().mockResolvedValue();
+    Object.defineProperty(navigator, 'share', { configurable: true, value: share });
+    render(<RoomChatShare roomName="friends/side room" />);
+    const expectedURL = 'https://localhost:8443/friends%2Fside%20room';
+    expect(screen.getByRole('textbox')).toHaveValue(expectedURL);
+    fireEvent.click(screen.getByRole('button'));
+    expect(share).toHaveBeenCalledWith(expect.objectContaining({ url: expectedURL }));
     await waitFor(() => expect(addNotification).toHaveBeenCalledWith(expect.objectContaining({ color: 'green' })));
   });
   it('copies the room URL with the async clipboard when sharing is unavailable', async () => {
@@ -32,7 +46,7 @@ describe('room sharing', () => {
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
     render(<RoomChatShare roomName="friends" />);
     fireEvent.click(screen.getByRole('button'));
-    expect(writeText).toHaveBeenCalledWith('https://jumpin.chat/friends');
+    expect(writeText).toHaveBeenCalledWith(roomURL);
     await waitFor(() => expect(addNotification).toHaveBeenCalledWith(expect.objectContaining({ color: 'green' })));
   });
 
@@ -63,8 +77,8 @@ describe('room sharing', () => {
     fireEvent.click(button);
 
     expect(execCommand).toHaveBeenCalledWith('copy');
-    expect(copiedText).toBe('https://jumpin.chat/friends');
-    expect(input).toHaveValue('jumpin.chat/friends');
+    expect(copiedText).toBe(roomURL);
+    expect(input).toHaveValue(roomURL);
     expect([input.selectionStart, input.selectionEnd, input.selectionDirection]).toEqual([2, 8, 'backward']);
     expect(button).toHaveFocus();
     expect(addNotification).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ color: 'green' }));
@@ -86,7 +100,7 @@ describe('room sharing', () => {
 
     fireEvent.click(button);
 
-    expect(input).toHaveValue('jumpin.chat/friends');
+    expect(input).toHaveValue(roomURL);
     expect([input.selectionStart, input.selectionEnd]).toEqual([1, 4]);
     expect(button).toHaveFocus();
     expect(addNotification).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ color: 'yellow' }));

@@ -11,14 +11,18 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import time
 
 DEPLOY = Path(__file__).resolve().parent.parent / 'jumpinchat-deploy'
 ARCHIVES = ('database.archive.gz', 'uploads.tar.gz')
 
 
-def run(args, output=None):
-    result = subprocess.run(args, cwd=DEPLOY, stdout=output or subprocess.PIPE,
-                            stderr=subprocess.PIPE, check=False)
+def run(args, output=None, timeout=None):
+    try:
+        result = subprocess.run(args, cwd=DEPLOY, stdout=output or subprocess.PIPE,
+                                stderr=subprocess.PIPE, check=False, timeout=timeout)
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError(f'{args[0]} operation timed out') from error
     if result.returncode:
         # Never echo environment values or raw service errors into backup logs.
         raise RuntimeError(f'{args[0]} operation failed (exit {result.returncode})')
@@ -47,6 +51,54 @@ def verify(directory):
     print('Both backup archives match the manifest. A restore exercise is still required.')
 
 
+def restore_services(engine, containers, running):
+    failed = []
+    started = []
+    for name in running:
+        identity = containers[name]['Id']
+        try:
+            # Starting the service group through podman-compose can return zero
+            # even when its dependency-graph handling leaves a service stopped.
+            run([engine, 'start', identity], timeout=30)
+            current = json.loads(run([engine, 'inspect', identity], timeout=10))[0]
+            if not current['State']['Running']:
+                raise RuntimeError('Container remained stopped')
+            started.append(name)
+        except (OSError, RuntimeError, ValueError, KeyError, IndexError):
+            failed.append(name)
+    for name in started:
+        identity = containers[name]['Id']
+        probe = (containers[name]['Config'].get('Healthcheck') or {}).get('Test') or []
+        if probe and probe[0] != 'NONE':
+            if probe[0] == 'CMD-SHELL' and len(probe) == 2:
+                command = ['sh', '-c', probe[1]]
+            elif probe[0] == 'CMD' and len(probe) > 1:
+                command = probe[1:]
+            else:
+                failed.append(name)
+                continue
+            deadline = time.monotonic() + 90
+            while True:
+                try:
+                    # Stored health status can still say healthy after a failed
+                    # restart. Run a fresh probe with a bounded execution time.
+                    run([engine, 'exec', identity, *command], timeout=10)
+                    break
+                except (OSError, RuntimeError):
+                    if time.monotonic() >= deadline:
+                        failed.append(name)
+                        break
+                    time.sleep(1)
+        try:
+            current = json.loads(run([engine, 'inspect', identity], timeout=10))[0]
+            if not current['State']['Running']:
+                failed.append(name)
+        except (OSError, RuntimeError, ValueError, KeyError, IndexError):
+            failed.append(name)
+    if failed:
+        raise RuntimeError('Could not restore healthy services after backup: ' + ', '.join(dict.fromkeys(failed)))
+
+
 def backup(args):
     if not args.maintenance:
         raise ValueError('--maintenance is required: backup temporarily stops application services')
@@ -63,7 +115,12 @@ def backup(args):
     for service in ('web', 'web2', 'home', 'home2'):
         if service not in services:
             continue
-        ids = run(compose + ['ps', '-a', '-q', service]).splitlines()
+        # podman-compose ps does not support Docker Compose's -a/service
+        # arguments. Both engines expose the standard Compose labels, including
+        # on deliberately stopped containers that must stay stopped afterward.
+        ids = run([args.engine, 'ps', '-a', '-q',
+                   '--filter', f'label=com.docker.compose.project={args.project}',
+                   '--filter', f'label=com.docker.compose.service={service}']).splitlines()
         if len(ids) != 1:
             raise ValueError(f'Expected exactly one existing container for {service}')
         containers[service] = json.loads(run([args.engine, 'inspect', ids[0]]))[0]
@@ -94,6 +151,10 @@ def backup(args):
     try:
         if running:
             run(compose + ['stop', '-t', '20', *running])
+        for name in running:
+            current = json.loads(run([args.engine, 'inspect', containers[name]['Id']], timeout=10))[0]
+            if current['State']['Running']:
+                raise RuntimeError(f'Could not stop service before backup: {name}')
         with (args.directory / ARCHIVES[0]).open('xb') as output:
             run(compose + ['exec', '-T', 'mongodb', 'mongodump', '--db', args.database,
                            '--archive', '--gzip'], output)
@@ -113,8 +174,7 @@ def backup(args):
         (args.directory / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
     finally:
         # Preserve services that were deliberately stopped before the backup.
-        if running:
-            run(compose + ['start', *running])
+        restore_services(args.engine, containers, running)
     verify(args.directory)
 
 

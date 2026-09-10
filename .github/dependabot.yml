@@ -28,6 +28,7 @@ updates:
       - /jumpinchat-deploy/janus
       - /jumpinchat-deploy/nginx
       - /jumpinchat-deploy/haproxy
+      - /jumpinchat-deploy/local
     schedule:
       interval: weekly
     groups:

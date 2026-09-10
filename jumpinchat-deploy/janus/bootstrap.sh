@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-JANUS_DIR="/opt/janus"
+JANUS_DIR="${JANUS_DIR:-/opt/janus}"
 
 if [ -z "${JANUS_TOKEN_SECRET:-}" ]; then
   echo "janus token secret is missing" >&2
@@ -25,6 +25,15 @@ if [ -z "${ENABLE_EVENTS:-}" ]; then
 fi
 
 : "${NAT_1_1_IP:?Set NAT_1_1_IP to the media server address}"
+KEEP_PRIVATE_HOST="${KEEP_PRIVATE_HOST:-false}"
+RTP_PORT_MIN="${RTP_PORT_MIN:-20000}"
+RTP_PORT_MAX="${RTP_PORT_MAX:-20100}"
+if [[ ! "$KEEP_PRIVATE_HOST" =~ ^(true|false)$ ]] ||
+   [[ ! "$RTP_PORT_MIN" =~ ^[0-9]{4,5}$ ]] || [[ ! "$RTP_PORT_MAX" =~ ^[0-9]{4,5}$ ]] ||
+   (( 10#$RTP_PORT_MIN < 1024 || 10#$RTP_PORT_MAX > 65535 || 10#$RTP_PORT_MIN > 10#$RTP_PORT_MAX )); then
+  echo 'Invalid private-host or RTP port-range configuration' >&2
+  exit 1
+fi
 JANUS_EVENTS_URL="${JANUS_EVENTS_URL:-http://haproxy/api/janus/events}"
 STUN_CONFIG=""
 if [[ -n "${STUN_SERVER-stun1.l.google.com}" ]]; then
@@ -56,8 +65,7 @@ nat: {
   full_trickle = true
   ice_enforce_list = "eth0"
   nat_1_1_mapping = "${NAT_1_1_IP}"
-  rtp_port_range = "${RTP_PORT_MIN:-20000}-${RTP_PORT_MAX:-20100}"
-  nice_debug = false
+  keep_private_host = ${KEEP_PRIVATE_HOST}
 }
 
 certificates: {
@@ -66,6 +74,7 @@ certificates: {
 }
 
 media: {
+  rtp_port_range = "${RTP_PORT_MIN}-${RTP_PORT_MAX}"
   no_media_timer = 5
 }
 

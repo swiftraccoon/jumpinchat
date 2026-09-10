@@ -8,6 +8,7 @@ node_modules/
 
 # Data / volumes
 jumpinchat-deploy/data/
+jumpinchat-deploy/.local/
 
 # IDE
 .idea/

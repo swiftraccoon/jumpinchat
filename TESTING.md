@@ -36,7 +36,7 @@ harness compiles the real CamUtil module to CommonJS with esbuild before executi
 it against controlled Janus/browser callbacks; it does not load a React adapter.
 
 After the utility replacement and transport recovery fixes, all 58 Vitest files
-passed (170 tests), alongside 505 server, 120 homepage, 13 email and 21 media tests.
+passed (171 tests), alongside 510 server, 134 homepage, 13 email and 21 media tests.
 The media cases preserve denial/unreadable/unknown camera failures, retry bounds,
 cancellation, and stale session callback behavior.
 
@@ -162,11 +162,37 @@ then fresh audio/video and both chat directions resumed. Each browser retained
 exactly one active publisher and one subscriber connection, with no duplicate
 receiver or reopened nickname dialog.
 
-These browser runs use a synthetic camera pattern and microphone tone on one
+Those browser runs use a synthetic camera pattern and microphone tone on one
 isolated container network. They do not establish physical-device compatibility,
 other-browser behavior, production NAT/firewall traversal, or recovery from every
 outage duration. Public ICE servers and unrelated external requests are excluded.
 Real network paths and supported devices/browsers still need a deployment check.
+
+The subsequent persistent localhost profile was checked from the Mac host with
+Chrome 152 (39 checks) and Playwright Firefox 155 (31 checks). Both verified
+received audio energy, decoded video, chat/session recovery, Janus reclaim and
+TURN relay. Chrome also verified native permission denial/regrant and selected
+non-relay peer-reflexive candidates through Podman forwarding. Firefox required
+its explicit local ICE preference and selected TURN under the default ICE policy;
+this is not evidence of a direct Firefox path. Its unsupported permission-grant
+automation is recorded as skipped. These runs used synthetic devices only.
+After the full local restart and certificate correction, both engines passed a
+further ten forced-relay checks with speaker output muted and fresh increases in
+received audio energy and video frames. All test browser processes were closed.
+
+The local launcher also passed strict-CA application readiness, local Mailpit readiness and
+the seven account/email/upload smoke checks. Repeating `up` preserved all ten
+container identities. A complete `down`/`up` cycle preserved configuration,
+secrets, TLS files and named-volume identities; a saved account still logged in
+with the same user ID, an avatar retained identical bytes, and the captured email
+remained in Mailpit. Unrelated containers and volumes kept their identities and
+the running/stopped states recorded immediately before that cycle.
+The coordinated local backup also restored into new, network-isolated MongoDB
+and upload volumes: three account records, three saved room records, index
+definitions for all 26 collections and four uploaded image files matched. The source
+web/home containers restarted with their original identities, and the temporary
+restore container and volumes were removed. This was fresh local test data,
+not an existing production backup or an old MongoDB upgrade.
 
 The final disposable lite stack rebuilt web, home, email, nginx, Janus and coturn
 from the repository Dockerfiles with unique image tags, fresh MongoDB/Redis
@@ -237,6 +263,10 @@ loopback HTTPS. It creates synthetic accounts and rooms, verifies shared login
 sessions, follows a locally captured verification email, uploads an avatar and
 room cover, decodes their nginx-served images, and checks logout/returning login.
 It trusts only the supplied test CA and uses the supplied HTTP host name.
+Configure the deployment's `PUBLIC_BASE_URL` to that public HTTPS origin; the
+verification email must link to it, including the port. `--public-origin` can
+supply the expected origin explicitly when the loopback connection uses a
+separate forwarded port.
 
 ```bash
 node scripts/test-deployment.mjs \
@@ -250,7 +280,9 @@ tags. Point its mail service at a local SMTP capture peer, and provide a local M
 record for `example.com`, the reserved recipient domain used by the script.
 The capture endpoint must return accepted messages as a JSON array containing
 `to` (an array of envelope recipients) and `mime` (the raw MIME text). No external
-SMTP provider is needed. Teardown belongs to the stack owner: the script leaves
+SMTP provider is needed. Alternatively, use `--mailpit http://127.0.0.1:8025`
+instead of `--smtp` to read the matching recipient's message through Mailpit's
+search and raw-message APIs. Teardown belongs to the stack owner: the script leaves
 its synthetic accounts and uploads in that disposable stack for inspection.
 
 `scripts/test-media.mjs` drives the built room UI against the same disposable
@@ -260,6 +292,19 @@ Chromium is insufficient for these native media checks. The browser must resolve
 and reach the stack's HTTPS, Janus and TURN endpoints. `TLS_SPKI` optionally trusts
 only the dedicated test certificate's public key; omit it for an already-trusted
 certificate. List any additional isolated HTTP/ICE hosts explicitly.
+
+For the localhost launcher, use `BASE_URL=https://localhost:8443` and
+`EXTRA_HOSTS=127.0.0.1` (substitute the port printed by `local.py status`).
+`CHROME_PATH` can select an installed Chrome binary. `BROWSER=firefox` selects
+Playwright's patched Firefox; install its matching browser in the separate test
+directory. For the local launcher, set `TLS_CA` to `.local/tls/ca.pem` beneath
+`jumpinchat-deploy/` and
+provide NSS `certutil` through `PATH` or `CERTUTIL_PATH`. The runner imports that
+certificate only into its temporary Firefox profile, which is removed on exit.
+For this loopback profile, also set `FIREFOX_LOOPBACK_ICE=1`; the runner accepts
+that override only for a Firefox localhost origin. Firefox otherwise rejects
+loopback ICE endpoints, as covered by
+[Mozilla's localhost policy tests](https://searchfox.org/firefox-main/source/dom/media/webrtc/tests/mochitests/test_peerConnection_localhostPolicy.html).
 
 ```bash
 PLAYWRIGHT_PACKAGE=/path/to/browser-tools/node_modules/playwright \
@@ -274,6 +319,13 @@ node scripts/test-media.mjs
 forced TURN relay; `direct`, `relay` and `permissions` select individual groups.
 The runner writes JSON diagnostics, native WebRTC statistics and screenshots.
 It creates disposable guest rooms; the stack owner handles fixture teardown.
+Browser speaker output is muted for both engines. Audio validation uses received
+RTP and decoded energy counters, so the generated test tones need not play
+through the host speakers.
+The room smoke accepts only `MEDIA_MODE=synthetic`. Firefox uses its native fake
+devices and explicitly skips the permission revoke/regrant case because
+Playwright's Firefox backend does not support camera permission grants;
+`PHASE=permissions` requires Chromium.
 
 `PHASE=network` requires a separate host controller and a fresh shared
 `NETWORK_CONTROL_DIR`. The runner creates that directory and writes `ready.json`
@@ -295,6 +347,14 @@ CI runs clean installs, validates peers and audits dependencies, then runs all
 application tests, blocking lint, production builds, Compose generation and
 operational tests. `./scripts/lint.sh` reports correctness errors; running ESLint
 without `--quiet` also shows the historical unused-variable and cleanup warnings.
+
+`srv/config/publicUrl.spec.js` and `constants/emailTemplates.spec.js` cover
+origin validation and account links on a custom HTTPS host/port. Homepage tests
+check rendered canonical/social URLs, absolute sitemap/room data, and disabled
+checkout and gift links. Both packages preserve the existing public origin when
+no override is configured.
+Room sharing uses the current browser origin and preserves a nonstandard port
+for native sharing, asynchronous clipboard writes and the selection fallback.
 
 ## Stripe migration validation
 

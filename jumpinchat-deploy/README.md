@@ -5,6 +5,25 @@ MongoDB replica-set member, Redis and email service behind nginx. The full profi
 adds second web/home/media/database instances and HAProxy. See the
 [root README](../README.md) for application setup and TLS preparation.
 
+## Local development installation
+
+From the repository root, `python3 scripts/local.py up` prepares and starts a
+persistent localhost installation. It derives the application services from
+`compose.lite.yml`, adds local Mailpit and TURN services, creates private TLS and
+environment files, and initializes its own MongoDB replica set. Use
+`python3 scripts/local.py status` for the selected URLs and service state.
+`python3 scripts/local.py open` launches Chrome/Chromium with a separate profile
+and trust scoped to this installation's certificate; other browsers can use the
+certificate path printed by `status`. `up --build` rebuilds the local images after
+source changes. `backup` creates a coordinated database-and-upload backup; see
+[recovery instructions](../RECOVERY.md).
+
+This profile has separate named volumes and stores its configuration under
+`.local/`. `python3 scripts/local.py down` removes its containers and network
+while preserving those volumes and configuration for the next `up`. Published
+ports bind to loopback; the mail inbox captures messages locally. Use the
+deployment instructions below when configuring a LAN or public server.
+
 ## Existing installations
 
 The data image is MongoDB 8.3. **Do not start it on a MongoDB 4.4 data directory.**
@@ -64,10 +83,13 @@ and gift links do not offer an unusable checkout.
 | Cache/session bus | Redis 8.10.1 |
 | Media server | Janus 1.4.1 on Ubuntu 26.04 LTS |
 | Optional TURN relay | Upstream coturn 4.18 |
+| Local mail inbox | Mailpit 1.31.1 |
 | Reverse proxy / load balancer | Current stable nginx / HAProxy 3.4 |
 
-Upstream images are pinned by digest in Dockerfiles/Compose and recorded in
-`images.lock.json`. Janus source is pinned by release and SHA-256. Its build uses
+Core deployment images are pinned by digest in Dockerfiles/Compose and recorded
+in `images.lock.json`. The local Mailpit pin lives in `local/Dockerfile` and is
+included in the weekly dependency-update configuration. Janus source is pinned
+by release and SHA-256. Its build uses
 Ubuntu's maintained OpenSSL, SRTP, libnice and WebSocket packages, compiling only
 VideoRoom, HTTP/WebSocket transports and HTTP event handling. Package repository
 updates are intentionally consumed when rebuilding. Builds are not claimed to be
