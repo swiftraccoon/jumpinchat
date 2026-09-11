@@ -13,7 +13,6 @@ import removeRoomRole from './connectors/removeRoomRole.connector.js';
 import getRoomUserRoleList from './connectors/getRoomUserRoleList.connector.js';
 import removeUserFromRole from './connectors/removeUserFromRole.connector.js';
 import getUserHasPermissions from './connectors/getUserHasPermissions.connector.js';
-import migrateDefaultRoles from '../../migrations/roles/defaultRoles.js';
 const router = express.Router();
 
 router.get('/room/:roomName', utils.validateSession, getRoomRole);
@@ -28,10 +27,5 @@ router.post('/', utils.validateAccount, createRole);
 router.post('/enroll', utils.validateAccount, addUserToRole);
 router.delete('/room/:roomName/enrollment/:enrollmentId', utils.validateAccount, removeUserFromRole);
 router.get('/permission/:userId/room/:roomName', getUserHasPermissions);
-
-router.post('/migrate/defaultRoles', (req, res) => {
-  migrateDefaultRoles();
-  return res.status(200).send();
-});
 
 export default router;

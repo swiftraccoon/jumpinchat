@@ -59,8 +59,6 @@ export default async function updateRolesController(body) {
     throw rolesErr;
   }
 
-  // TODO: check user has permissions to update role
-
   let room;
 
   try {

@@ -5,11 +5,11 @@
 
 import express from 'express';
 import controller from './turn.controller.js';
+import utils from '../../utils/utils.js';
 const router = express.Router();
 
 
-// TODO require an active session (unless request is from an internal address, e.g. janus)
-router.get('/', controller.getTurnCreds);
-router.post('/', controller.getTurnCreds);
+router.get('/', utils.validateSession, controller.getTurnCreds);
+router.post('/', utils.validateSession, controller.getTurnCreds);
 
 export default router;
