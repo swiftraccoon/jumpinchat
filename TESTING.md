@@ -285,6 +285,13 @@ instead of `--smtp` to read the matching recipient's message through Mailpit's
 search and raw-message APIs. Teardown belongs to the stack owner: the script leaves
 its synthetic accounts and uploads in that disposable stack for inspection.
 
+`--fixture-output /private/fixture.json` also saves the synthetic login credentials,
+original account/room identities, room settings and upload hashes for recovery
+verification. This file is created exclusively with mode 0600 and must remain
+outside published artifacts. `--restore-fixture /private/fixture.json` checks that
+same account and room in a restored deployment using a fresh session; it does not
+register replacement data or require a captured mailbox.
+
 `scripts/test-media.mjs` drives the built room UI against the same disposable
 stack. Supply Playwright and its full Chromium installation from a separate test
 directory; the runner adds no application dependency. Default headless-shell
@@ -347,6 +354,49 @@ CI runs clean installs, validates peers and audits dependencies, then runs all
 application tests, blocking lint, production builds, Compose generation and
 operational tests. `./scripts/lint.sh` reports correctness errors; running ESLint
 without `--quiet` also shows the historical unused-variable and cleanup warnings.
+
+The separate deployment job builds a fresh local profile with Docker, verifies
+account registration, captured email and uploads, and runs Chromium chat/media
+checks with synthetic devices and muted speaker output. It then restores the
+backup into a second complete stack and checks the original account, room, image
+bytes, two-way chat and advancing audio/video counters. `ROOM_NAME` selects the
+existing restored room for `PHASE=relay`; the default still uses a fresh room.
+
+Run the same orchestration locally with Docker or Podman and externally installed
+Playwright/full Chromium:
+
+```bash
+python3 scripts/ci-deployment.py run --engine podman \
+  --work-dir /path/to/new-private-test-directory \
+  --playwright-package /path/to/tools/node_modules/playwright --node /path/to/node24
+```
+
+Use `--chrome-path /path/to/chrome` to reuse an installed Chrome executable;
+the same synthetic-device and speaker-muting options remain mandatory.
+
+The work directory must not already exist. The runner removes its source and
+restored containers, volumes, networks and image tags on completion or failure;
+an ownership-checked `cleanup --work-dir PATH` command can retry cleanup. The
+workflow also invokes cleanup with `always()`. Upload only `reports/`: its
+allowlisted summaries and redacted logs exclude credentials, certificates,
+archives and raw browser diagnostics. GitHub retains those reports for seven
+days. The normal `.local` installation is separate from these fixtures.
+
+The local rehearsal exposed intermittent startup 502s in the inner web proxy:
+an early readiness probe failed against both IPv4 and IPv6 addresses resolved
+from `localhost`, and that nginx worker temporarily had no available upstream.
+The proxy now targets a single IPv4 loopback address on Node's configured port.
+Nginx does not temporarily exclude the sole server in an upstream group.
+([Nginx upstream documentation](https://nginx.org/en/docs/http/ngx_http_upstream_module.html#server))
+Failure evidence includes bounded service state and logs captured before teardown;
+raw request diagnostics remain private, and published logs redact credentials,
+session identifiers and query strings.
+
+The final local orchestration passed with Podman and Chrome: seven application
+checks, 41 source browser checks, and complete recovery including 12 browser
+checks in the restored room. Neither browser run recorded an HTTP error. Scoped
+cleanup and its standalone retry passed. The GitHub Docker job is configured;
+this local validation did not execute a hosted workflow or push a commit.
 
 `srv/config/publicUrl.spec.js` and `constants/emailTemplates.spec.js` cover
 origin validation and account links on a custom HTTPS host/port. Homepage tests

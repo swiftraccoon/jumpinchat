@@ -104,7 +104,7 @@ source project, database URI, upload volume, or S3 bucket.
    With the fresh web container ID and its built image, restore uploads:
 
    ```bash
-   podman run --rm --network=none --volumes-from FRESH_WEB_CONTAINER \
+   podman run --rm -i --network=none --volumes-from FRESH_WEB_CONTAINER \
      --entrypoint tar WEB_IMAGE -C /data/uploads -xzf - \
      < /secure/backups/jic-2026-09-08/uploads.tar.gz
    ```
@@ -130,10 +130,35 @@ The source web/home containers resumed with the same identities. Temporary
 restore resources were removed, and the source installation remained running.
 The `local.py backup` command also completed successfully.
 
-This verifies fresh local data and container backup orchestration. It did not
-boot another application stack against the restored volumes, migrate existing
-MongoDB 4.4 data, restore S3 objects or validate provider accounts. The complete
-isolated-deployment procedure above remains necessary for a production cutover.
+That initial check verified fresh local data and container backup orchestration
+without booting an application against the restored volumes.
+
+`scripts/ci-deployment.py` now orchestrates a complete disposable source and
+restored application. Its `test-recovery.py` stage captures the actual backup
+utility's stopped-writer baseline, restores into empty MongoDB and upload volumes,
+and compares account/room documents, collection indexes and image bytes before
+starting web/home. It reuses the exact source application images, retains the
+application signing configuration and generates separate TLS certificates.
+The original synthetic account must log in with its original password and ID;
+its reserved room must retain its database ID, owner and settings. Two fresh
+browser sessions then verify chat and TURN media in that saved room with speaker
+output muted. Redis sessions and Mailpit mail are outside this backup; fresh
+login is expected. Janus media rooms are initialized anew.
+
+The rehearsal creates a separate named-volume project and cleans it up afterward.
+It refuses an existing work directory or nonempty restore database. Its private
+fixture, backup and raw logs are excluded from CI artifacts. To run the entire
+flow, see [deployment integration checks](TESTING.md). This synthetic exercise
+does not migrate existing MongoDB 4.4 data, restore S3 objects or validate provider
+accounts. The isolated-deployment procedure above remains necessary for a
+production cutover.
+
+The complete rehearsal passed locally with Podman and Chrome: one account,
+three room documents, all 26 collection index sets and two uploaded files matched
+before application startup. The original login and saved room checks passed,
+followed by 12 muted browser checks for chat and TURN media in that restored room.
+The recovery stage took about 45 seconds including startup, browser checks and
+cleanup. Both disposable projects and their resources were removed afterward.
 
 ## S3 and split-server deployments
 

@@ -21,6 +21,8 @@ const firefoxLoopbackIce = process.env.FIREFOX_LOOPBACK_ICE === '1';
 assert.ok(!firefoxLoopbackIce || (browserName === 'firefox' && ['localhost', '127.0.0.1', '[::1]'].includes(new URL(baseURL).hostname)), 'FIREFOX_LOOPBACK_ICE=1 is only for a Firefox loopback deployment');
 const outputDir = process.env.OUTPUT_DIR ? path.resolve(process.env.OUTPUT_DIR) : await fs.mkdtemp(path.join(os.tmpdir(), 'jic-media-smoke-'));
 const phase = process.env.PHASE || 'all';
+const restoredRoom = process.env.ROOM_NAME;
+assert.ok(!restoredRoom || (phase === 'relay' && /^[a-z0-9]{1,32}$/.test(restoredRoom)), 'ROOM_NAME requires PHASE=relay and a lowercase alphanumeric room');
 assert.ok(['all', 'direct', 'relay', 'permissions', 'network'].includes(phase), 'PHASE must be all, direct, relay, permissions or network');
 assert.ok(browserName !== 'firefox' || phase !== 'permissions', 'Playwright Firefox cannot grant/revoke camera permissions; use Chromium for PHASE=permissions');
 const stamp = process.env.ROOM_SUFFIX || String(Date.now()).slice(-8);
@@ -147,7 +149,7 @@ async function observe(context, relay) {
 async function createClient(name, room, relay = false) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, ...(browserName === 'chromium' ? { permissions: ['camera', 'microphone'] } : {}) });
   await observe(context, relay);
-  const data = { name, room, relay, errors: [], consoleErrors: [], failedRequests: [], roomResponses: [], blockedExternalRequests: [] };
+  const data = { name, room, relay, errors: [], consoleErrors: [], failedRequests: [], httpErrors: [], roomResponses: [], blockedExternalRequests: [] };
   await context.route('**/*', route => {
     const url = new URL(route.request().url());
     if (permittedHosts.includes(url.hostname) || ['data:', 'blob:'].includes(url.protocol)) return route.continue();
@@ -160,13 +162,29 @@ async function createClient(name, room, relay = false) {
   page.on('console', message => { if (message.type() === 'error') data.consoleErrors.push(message.text()); });
   page.on('requestfailed', request => data.failedRequests.push({ url: request.url().split('?')[0], reason: request.failure()?.errorText }));
   page.on('response', response => {
-    if (new URL(response.url()).pathname === `/api/rooms/${room}`) data.roomResponses.push(response.status());
+    const url = new URL(response.url());
+    if (url.pathname === `/api/rooms/${room}`) data.roomResponses.push(response.status());
+    if (response.status() >= 400) data.httpErrors.push({ method: response.request().method(), url: url.origin + url.pathname, status: response.status() });
   });
   const client = { context, page, data };
   clients.push(client);
   result.clients.push(data);
   await page.goto(`${baseURL}/${room}`, { waitUntil: 'domcontentloaded' });
   const dialog = page.getByRole('dialog', { name: 'Change handle' });
+  if (restoredRoom) {
+    // Saved rooms may assign a nickname and close the initial prompt. Accept a
+    // visible prompt immediately; otherwise wait for the real join to finish.
+    await page.waitForFunction(() => {
+      const prompt = document.querySelector('[role="dialog"][aria-label="Change handle"]');
+      return (prompt && prompt.getClientRects().length > 0)
+        || [...document.querySelectorAll('button')].some(button => button.textContent.includes('Start Broadcasting') && !button.disabled);
+    }, null, { timeout: 40000 });
+    if (!await dialog.isVisible()) {
+      await page.locator('.userList__UserHandle-current').click();
+      data.handleSelection = 'participant control';
+    }
+  }
+  // Fresh-room scenarios must still show their automatic nickname prompt.
   await dialog.getByRole('textbox').fill(name);
   await dialog.getByRole('button', { name: 'Go', exact: true }).click();
   await dialog.waitFor({ state: 'hidden' });
@@ -514,15 +532,18 @@ try {
     await peer.context.close();
   }
   if (phase === 'all' || phase === 'relay') {
-    const room = `relay${stamp}`;
+    const room = restoredRoom || `relay${stamp}`;
     const alice = await createClient('RelayAlice', room, true);
     const bob = await createClient('RelayBob', room, true);
     await publish(alice); await publish(bob);
     const first = await Promise.all([waitMedia(alice, true), waitMedia(bob, true)]);
     await Promise.all([mediaProgress(alice, first[0], 'TURN media counters advancing'), mediaProgress(bob, first[1], 'TURN media counters advancing')]);
+    await chat(alice, bob, `relay-${stamp}-alice`);
+    await chat(bob, alice, `relay-${stamp}-bob`);
     await alice.page.screenshot({ path: path.join(outputDir, 'relay-alice.png'), fullPage: true });
     await alice.context.close(); await bob.context.close();
   }
+  assert.ok(result.clients.every(client => client.httpErrors.every(response => response.status < 500)), 'Unexpected server HTTP failure; inspect private client.httpErrors diagnostics');
   assert.ok(result.clients.every(client => client.errors.length === 0), 'Unexpected browser page errors occurred; inspect the client diagnostics');
   result.status = 'passed';
 } catch (error) {

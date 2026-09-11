@@ -1,8 +1,11 @@
 from pathlib import Path
+import ipaddress
 import os
+import re
 import subprocess
 import tempfile
 import unittest
+from urllib.parse import urlsplit
 
 SCRIPT = Path(__file__).with_name('conf') / 'site.conf.sh'
 
@@ -41,6 +44,23 @@ class UploadProxyConfigurationTests(unittest.TestCase):
                 result, config = self.generate(STORAGE_BACKEND='s3', S3_PUBLIC_BASE_URL=base)
                 self.assertEqual(result.returncode, 1)
                 self.assertEqual(config, '')
+
+
+class ApplicationProxyConfigurationTests(unittest.TestCase):
+    def test_node_upstream_is_one_loopback_address_on_the_image_runtime_port(self):
+        deployment = Path(__file__).resolve().parent.parent
+        config = (deployment / 'srv/conf/site.conf').read_text()
+        image = (deployment / 'srv/Dockerfile').read_text()
+        proxy = re.search(r'location @proxy\s*\{.*?proxy_pass\s+(http://[^;\s]+);', config, re.S)
+        self.assertIsNotNone(proxy)
+        target = urlsplit(proxy[1])
+        # A DNS hostname can expand into multiple independently failed peers.
+        address = ipaddress.ip_address(target.hostname)
+        self.assertIsInstance(address, ipaddress.IPv4Address)
+        self.assertTrue(address.is_loopback)
+        port = re.search(r'^ENV\s+.*\bPORT=(\d+)\b', image, re.M)
+        self.assertIsNotNone(port)
+        self.assertEqual(target.port, int(port[1]))
 
 
 if __name__ == '__main__':
