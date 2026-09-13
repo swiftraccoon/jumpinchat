@@ -23,7 +23,7 @@
     "jsonwebtoken": "^9.0.3",
     "marked": "^18.0.12",
     "mongodb": "^7.6.0",
-    "mongoose": "^9.9.5",
+    "mongoose": "^9.10.0",
     "multer": "^2.3.0",
     "pino": "^10.3.1",
     "pug": "^3.0.4",
