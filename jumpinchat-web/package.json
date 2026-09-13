@@ -103,7 +103,7 @@
     "eslint-plugin-import-x": "^4.17.1",
     "@eslint-react/eslint-plugin": "^5.19.0",
     "postcss": "^8.5.28",
-    "autoprefixer": "^10.5.5",
+    "autoprefixer": "^10.5.6",
     "babel-plugin-polyfill-corejs3": "^1.0.0"
   }
 }
