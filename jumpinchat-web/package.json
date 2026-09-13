@@ -47,7 +47,7 @@
     "joi": "^18.2.8",
     "jsonwebtoken": "^9.0.3",
     "marked": "^18.0.12",
-    "mongoose": "^9.9.5",
+    "mongoose": "^9.10.0",
     "otplib": "^13.5.0",
     "prop-types": "^15.8.1",
     "pug": "^3.0.4",
