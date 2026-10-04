@@ -160,7 +160,7 @@ services:
       retries: 3
       start_period: 30s
     # Override only with a release validated against the application Redis client.
-    image: ${REDIS_IMAGE:-docker.io/library/redis:8.10.1@sha256:298e5b3bc566bade82f46ad5511777a4a07a294097ce16ada2f6a42be5239df5}
+    image: ${REDIS_IMAGE:-docker.io/library/redis:8.10.2@sha256:6f81e8915c60b065a524e6967e0ad1c639ba6efa84d669f823683ea04d9150ee}
     expose:
       - "6379"
     logging:
