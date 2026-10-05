@@ -5,7 +5,7 @@
 
   &__Header {
     background: {
-      color: variables.$color-dark4;
+      color: variables.$color-dark1;
     }
   }
 
@@ -16,8 +16,15 @@
   }
 
   &__SubText {
-    color: variables.$color-light4;
+    color: variables.$color-light2;
+  }
+
+  &__Body,
+  &__SubText {
+    a:hover,
+    a:focus {
+      color: variables.$color-blue-04;
+    }
   }
 }
-
 

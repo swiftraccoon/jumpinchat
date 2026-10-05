@@ -18,6 +18,7 @@ import config from './config/env/index.js';
 import { getHostDomain } from './utils/utils.js';
 import roomUtils from './api/room/room.utils.js';
 import logFactory from './utils/logger.util.js';
+import getInitialAccountDarkTheme from './utils/roomTheme.js';
 const log = logFactory({ name: 'routes' });
 export default function routes(app) {
   app.use('/api/user', user);
@@ -127,8 +128,8 @@ export default function routes(app) {
           },
         ],
         start_url: `/${roomName}/?utm_source=${roomName}&utm_medium=homescreen`,
-        background_color: '#22ADD5',
-        theme_color: '#22ADD5',
+        background_color: '#282828',
+        theme_color: '#282828',
         display: 'standalone',
       };
 
@@ -157,7 +158,7 @@ export default function routes(app) {
 
         const roomTitle = `${roomName} | JumpInChat`;
 
-        roomUtils.getRoomByName(roomName, (err, existingRoom) => {
+        roomUtils.getRoomByName(roomName, async (err, existingRoom) => {
           if (err) {
             log.fatal({ err, room: roomName }, 'error getting room');
             return res.redirect(302, '/500');
@@ -184,6 +185,9 @@ export default function routes(app) {
             roomDisplay = `${getHostDomain(req)}/uploads/${roomObj.settings.display}`;
           }
 
+          const initialAccountDarkTheme = await getInitialAccountDarkTheme(req);
+          // The initial appearance can depend on the signed-in account.
+          res.set('Cache-Control', 'private, no-store');
           return res.render(path.join(config.root, config.appPath, 'index.ejs'),
             {
               roomTitle,
@@ -192,6 +196,7 @@ export default function routes(app) {
               room: roomObj,
               sentryDsn: config.sentry.dsn,
               supportEnabled: Boolean(config.payment.stripe.secretKey),
+              initialAccountDarkTheme,
             }, (err, html) => {
               if (err) {
                 log.fatal({ err }, 'error rendering room');

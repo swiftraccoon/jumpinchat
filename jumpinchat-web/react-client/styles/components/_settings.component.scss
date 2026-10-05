@@ -6,9 +6,13 @@
     --menu-bg: #{variables.$color-dark1};
     --menu-item-hover: #{rgba(255,255,255,0.15)};
     --control-bg: #{variables.$color-dark3};
-    --control-selected: #{variables.$color-light0};
-    --control-selected-bg: #{variables.$color-blue-02};
+    --control-selected: #{variables.$color-dark0-hard};
+    --control-selected-bg: #{variables.$theme-bright-blue};
     --chat-preview-bg: #{variables.$color-dark2};
+    &__Title {
+      opacity: 1;
+    }
+
     &__Color {
       &-redalt {
         background-color: variables.$theme-bright-red;

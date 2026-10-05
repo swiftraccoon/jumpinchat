@@ -6,10 +6,19 @@ import Store from './Store';
 import { UserDispatcher } from '../dispatcher/AppDispatcher';
 import * as types from '../constants/ActionTypes';
 import { set, get } from '../utils/localStorage';
+import { getGuestDarkTheme, getInitialDarkTheme } from '../utils/theme';
 
 const STORAGE_KEY_HANDLE = 'handle';
 const STORAGE_KEY_THEME_DARK = 'darkTheme';
 const STORAGE_KEY_VIDEOS = 'playYtVideos';
+
+function getPreference(key, fallback) {
+  try {
+    return get(key, fallback);
+  } catch {
+    return fallback;
+  }
+}
 
 export class UserStore extends Store {
   constructor() {
@@ -24,7 +33,7 @@ export class UserStore extends Store {
         is_client_user: true,
         restoredHandle: null,
         settings: {
-          darkTheme: false,
+          darkTheme: getInitialDarkTheme(),
           playYtVideos: true,
           pushNotificationsEnabled: true,
         },
@@ -34,19 +43,28 @@ export class UserStore extends Store {
     };
 
     this._activityToken = null;
+    this._initialAccountTheme = typeof window.INITIAL_ACCOUNT_DARK_THEME === 'boolean';
   }
 
   setUser(user) {
-    let { darkTheme, playYtVideos, pushNotificationsEnabled } = this.state.user.settings;
+    let { darkTheme, playYtVideos } = this.state.user.settings;
 
-    const restoredHandle = get(STORAGE_KEY_HANDLE) || null;
+    const restoredHandle = getPreference(STORAGE_KEY_HANDLE, null);
 
-    if (!this.state.user.user_id && !user.user_id) {
-      darkTheme = get(STORAGE_KEY_THEME_DARK) || false;
+    if (Object.hasOwn(user, 'user_id')) {
+      if (user.user_id !== this.state.user.user_id) {
+        darkTheme = user.user_id ? (this._initialAccountTheme ? darkTheme : true) : getGuestDarkTheme();
+      } else if (!user.user_id) {
+        darkTheme = getGuestDarkTheme();
+      }
+      this._initialAccountTheme = false;
+    } else if (!this.state.user.user_id && !this._initialAccountTheme) {
+      darkTheme = getGuestDarkTheme();
     }
+    if (typeof user.settings?.darkTheme === 'boolean') darkTheme = user.settings.darkTheme;
 
     if (!this.state.user.user_id && !user.user_id) {
-      const storedPlayVideos = get(STORAGE_KEY_VIDEOS);
+      const storedPlayVideos = getPreference(STORAGE_KEY_VIDEOS, null);
       playYtVideos = storedPlayVideos !== null ? storedPlayVideos : true;
     }
 
@@ -58,9 +76,9 @@ export class UserStore extends Store {
         restoredHandle,
         settings: {
           ...this.state.user.settings,
-          darkTheme,
           playYtVideos,
           ...user.settings,
+          darkTheme,
         },
       },
     };
@@ -117,7 +135,11 @@ export class UserStore extends Store {
     };
 
     if (!this.state.user.user_id) {
-      set(STORAGE_KEY_THEME_DARK, darkTheme);
+      try {
+        set(STORAGE_KEY_THEME_DARK, darkTheme);
+      } catch {
+        // A storage restriction must not prevent switching the current page.
+      }
     }
   }
 

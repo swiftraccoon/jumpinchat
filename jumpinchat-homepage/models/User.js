@@ -28,7 +28,7 @@ const userSchema = new Schema({
     pushNotificationsEnabled: { type: Boolean, default: true },
     receiveMessageNotifications: { type: Boolean, default: true },
     receiveUpdates: { type: Boolean, default: false },
-    darkTheme: { type: Boolean, default: false },
+    darkTheme: { type: Boolean, default: true },
     videoQuality: { type: String, default: videoQuality.VIDEO_240.id },
     ignoreList: [
       {

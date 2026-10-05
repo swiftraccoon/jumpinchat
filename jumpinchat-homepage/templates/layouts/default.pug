@@ -1,9 +1,28 @@
 doctype html
-html(lang="en")
+- const accountDarkTheme = !user || !user.settings || user.settings.darkTheme !== false;
+html(lang="en", data-theme=accountDarkTheme ? 'dark' : 'light', data-theme-account=user ? String(accountDarkTheme) : undefined, data-theme-user-id=user ? String(user._id) : undefined)
 
   //- HTML HEADER
   head
     meta(charset="utf-8")
+    meta(name="theme-color", content=accountDarkTheme ? '#282828' : '#f7f7f7')
+    style.
+      html[data-theme="dark"] { background: #282828; color: #fbf1c7; color-scheme: dark; }
+      html[data-theme="light"] { background: #f7f7f7; color: #3c434c; color-scheme: light; }
+      body { background: inherit; color: inherit; }
+    //- Apply the guest preference before loading styles; account preferences win.
+    script.
+      (function () {
+        var root = document.documentElement;
+        if (!root.hasAttribute('data-theme-account')) {
+          try {
+            root.dataset.theme = JSON.parse(localStorage.getItem('darkTheme')) === false ? 'light' : 'dark';
+          } catch (error) {
+            root.dataset.theme = 'dark';
+          }
+        }
+        document.querySelector('meta[name="theme-color"]').content = root.dataset.theme === 'dark' ? '#282828' : '#f7f7f7';
+      }());
     meta(name="description", content=description)
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
     meta(http-equiv="X-UA-Compatible" content="IE=edge")

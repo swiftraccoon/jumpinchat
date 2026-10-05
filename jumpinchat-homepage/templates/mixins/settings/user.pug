@@ -10,8 +10,8 @@ mixin settingsUser(user)
 
       .form__InputContainer
         .form__RadioContainer
-          input.form__Input-checkbox(type="checkbox", value="true", id="darkTheme", name="darkTheme", checked=user.settings.darkTheme)
-          label(for="darkTheme") Use dark theme for chat rooms
+          input.form__Input-checkbox(type="checkbox", value="true", id="darkTheme", name="darkTheme", checked=user.settings.darkTheme !== false)
+          label(for="darkTheme") Use dark theme
 
       .form__InputContainer
         span.form__Label
@@ -111,4 +111,3 @@ mixin settingsUser(user)
 
         div.text--green.form__Success.imageUpload__Status--success.u-hidden Image uploaded successfully
         div.text--green.form__Error.imageUpload__Status--error.u-hidden Image upload failed
-

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark" style="color-scheme: dark">
 <head>
   <meta charset="utf-8">
   <meta http-equiv="x-ua-compatible" content="ie=edge">
@@ -9,7 +9,28 @@
     name="description"
     content="<%= roomDescription %>"
   >
-  <meta name="theme-color" content="#22ADD5">
+  <meta name="theme-color" content="#282828">
+  <script>
+    (function () {
+      var accountTheme = <%- JSON.stringify(typeof initialAccountDarkTheme === 'boolean' ? initialAccountDarkTheme : null) %>;
+      window.INITIAL_ACCOUNT_DARK_THEME = accountTheme;
+      var dark = accountTheme;
+      if (typeof dark !== 'boolean') {
+        try {
+          var saved = JSON.parse(window.localStorage.getItem('darkTheme'));
+          dark = typeof saved === 'boolean' ? saved : true;
+        } catch (error) { dark = true; }
+      }
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+      document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#282828' : '#ffffff');
+    }());
+  </script>
+  <style>
+    html { background: #282828; color: #ebdbb2; }
+    html[data-theme="light"] { background: #ffffff; color: #282828; }
+    body { background: inherit; color: inherit; }
+  </style>
 
 
   <link rel="icon" href="/img/favicon.png">
@@ -88,7 +109,8 @@
   <link rel="stylesheet" href="/styles/main.css"/>
   <!-- endbuild -->
 </head>
-<body>
+<body class="dark">
+<script>document.body.classList.toggle('dark', document.documentElement.getAttribute('data-theme') !== 'light');</script>
 <section id="app" class="app">
   <div class="loading">
     <img src="/img/loading.svg" alt="loading page" class="loading__Spinner">

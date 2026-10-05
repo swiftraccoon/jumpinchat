@@ -10,7 +10,8 @@ export default function settings(req, res) {
     pushNotificationsEnabled: Joi.boolean().default(false),
     receiveUpdates: Joi.boolean().default(false),
     receiveMessageNotifications: Joi.boolean().default(false),
-    darkTheme: Joi.boolean().default(false),
+    // Omitted fields must not erase an explicitly saved light preference.
+    darkTheme: Joi.boolean(),
   });
 
   const { error, value: validated } = schema.validate(req.body);
@@ -35,6 +36,7 @@ export default function settings(req, res) {
 
     user.settings = {
       ...user.settings,
+      darkTheme: user.settings?.darkTheme !== false,
       ...validated,
     };
 

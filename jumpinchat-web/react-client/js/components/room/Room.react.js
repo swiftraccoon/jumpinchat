@@ -38,6 +38,7 @@ import SettingsModal from '../settings/SettingsModal.react';
 import NotificationContainer from '../notifications/NotificationContainer.react';
 import { layouts } from '../../constants/RoomConstants';
 import { requestWakeLock, releaseWakeLock } from '../../utils/wakelock';
+import { applyTheme } from '../../utils/theme';
 
 function getDefaultState() {
   return {
@@ -80,6 +81,7 @@ class Room extends Component {
   }
 
   async componentDidMount() {
+    applyTheme(this.state.userState.user?.settings?.darkTheme);
     connectToRoom(this.props);
     const { room } = this.props;
     appStore.addChangeListener(this._onChange);
@@ -108,17 +110,7 @@ class Room extends Component {
   }
 
   componentDidUpdate() {
-    const { userState } = this.state;
-    let darkTheme = false;
-    if (userState.user) {
-      ({ darkTheme } = userState.user.settings);
-    }
-
-    if (darkTheme) {
-      document.body.classList.add('dark');
-    } else {
-      document.body.classList.remove('dark');
-    }
+    applyTheme(this.state.userState.user?.settings?.darkTheme);
   }
 
   componentWillUnmount() {

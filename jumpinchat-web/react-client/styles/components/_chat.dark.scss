@@ -63,7 +63,7 @@
     }
 
     &-success {
-      color: variables.$green-01;
+      color: variables.$theme-bright-green;
     }
 
     &-alert {
@@ -71,11 +71,11 @@
     }
 
     &-warning {
-      color: variables.$red-01;
+      color: variables.$theme-bright-red;
     }
 
     &-error {
-      color: variables.$red-01;
+      color: variables.$theme-bright-red;
     }
   }
 
@@ -107,7 +107,7 @@
     }
 
     &::placeholder {
-      color: variables.$color-light4;
+      color: variables.$color-light2;
     }
   }
 

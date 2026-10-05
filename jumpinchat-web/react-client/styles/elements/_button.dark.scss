@@ -10,18 +10,18 @@
   }
 
   &-blue {
-    background-color: variables.$theme-blue;
-    color: variables.$color-light0-soft;
+    background-color: variables.$theme-bright-blue;
+    color: variables.$color-dark0-hard;
 
     &:hover {
-      background-color: variables.$theme-bright-blue;
-      color: variables.$color-light0-hard;
+      background-color: variables.$color-blue-05;
+      color: variables.$color-dark0-hard;
     }
   }
 
   &-white {
-    color: variables.$color-light0-soft;
-    background-color: variables.$color-light4;
+    color: variables.$color-light0;
+    background-color: variables.$color-dark2;
 
     &:visited,
     &:link {
@@ -30,7 +30,7 @@
 
     &:hover,
     &:disabled {
-      background-color: variables.$color-light3;
+      background-color: variables.$color-dark3;
     }
   }
 
@@ -39,10 +39,21 @@
   }
 
   &-red {
-    color: variables.$color-light0-soft;
+    background-color: variables.$theme-bright-red;
+    color: variables.$color-dark0-hard;
+
+    &:hover {
+      background-color: variables.$red-03;
+    }
   }
+
   &-green {
-    color: variables.$color-light0-soft;
+    background-color: variables.$theme-bright-green;
+    color: variables.$color-dark0-hard;
+
+    &:hover {
+      background-color: variables.$green-03;
+    }
   }
 
   &--text {

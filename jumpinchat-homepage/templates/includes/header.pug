@@ -8,6 +8,8 @@ header.header
       a.button.button--red.header__NavItem(href="/support")
         img(src="/images/heart.svg", alt="heart to show support")
         | Support the site
+      button#theme-toggle.button.button--white-transparent.header__NavItem.theme__Toggle(type="button", aria-label="Dark mode", aria-pressed=accountDarkTheme ? 'true' : 'false', title="Toggle dark mode", hidden)
+        i.fa.fa-adjust(aria-hidden="true")
       if user
         button#profile-drop-trigger.button.button--white-transparent.header__NavItem.header__ProfileDropdownTrigger(type="button")
           span= user.username
@@ -34,3 +36,4 @@ header.header
       else
         a.button.button--white-transparent.header__NavItem(href="/login") Sign In
         a.button.button--black.header__NavItem(href="/register") Create Account
+      span#theme-status.theme__Status(role="status", hidden)

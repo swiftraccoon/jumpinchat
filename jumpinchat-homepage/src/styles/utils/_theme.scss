@@ -1,0 +1,155 @@
+@use "variables";
+
+html[data-theme="light"] { color-scheme: light; }
+
+.theme__Toggle[hidden], .theme__Status[hidden] { display: none; }
+.theme__Toggle { min-width: 2.5em; }
+.theme__Status {
+  display: block;
+  max-width: 36em;
+  color: #fff;
+  font-size: 0.85em;
+  line-height: 1.5;
+}
+
+// Match the room's Gruvbox palette without changing the existing light theme.
+html[data-theme="dark"] {
+  color-scheme: dark;
+  background: #282828;
+
+  body { background: #282828; color: #fbf1c7; }
+  a:hover, a:focus { color: #83a598; }
+  :focus-visible { outline: 2px solid #83a598; outline-offset: 3px; }
+  ::selection { background: #665c54; color: #fbf1c7; }
+
+  .header, .full-width--grey { background-color: #3c3836; }
+  .full-width--white { background-color: #282828; }
+  .full-width--blue { background-color: #3c3836; }
+  .full-width--black { background-color: #1d2021; color: #fbf1c7; }
+  .hero {
+    background-color: #282828;
+    .header { background-color: transparent; }
+    @media screen and (min-width: variables.$bp-tablet) {
+      background-image: linear-gradient(rgba(29, 32, 33, 0.5), rgba(29, 32, 33, 0.65)), url('../images/hero.jpg');
+    }
+  }
+
+  .header__ProfileDropdown, .profile__Container, .support__Product,
+  .settings__Stat, .room__Item, .settings__MenuItemLink,
+  .pagination__Page, .mfa__BackupCodes, .payment__Source {
+    background-color: #3c3836;
+    border-color: #665c54;
+    color: #fbf1c7;
+  }
+  .profile__Container--clear { background-color: transparent; }
+  .profile__Container--danger { border-color: #fb4934; }
+  .header__ProfileDropdownItem {
+    color: #fbf1c7;
+    border-color: #665c54;
+  }
+  .header__ProfileDropdownItem:hover, .header__ProfileDropdownItem:focus,
+  .settings__MenuItemLink:hover, .settings__MenuItemLink.active,
+  .pagination__Page:hover, .pagination__Page:focus {
+    background-color: #504945;
+    color: #fbf1c7;
+  }
+  .settings__MenuItemLink { color: #83a598; }
+  .pagination__Page--current {
+    background-color: #83a598;
+    color: #282828;
+  }
+
+  .form__Input, .form__InlineInput, .hero__FormInput {
+    background-color: #3c3836;
+    border-color: #928374;
+    color: #fbf1c7;
+    &::placeholder { color: #bdae93; opacity: 1; }
+    &:focus { border-color: #83a598; }
+    &:disabled { color: #bdae93; background-color: #504945; }
+  }
+  .form__Input.touched:required:invalid, .form__InlineInput.touched:required:invalid { border-color: #fb4934; }
+  .form__Input-checkbox + label::before {
+    background-color: #3c3836;
+    border-color: #928374;
+    color: #fbf1c7;
+  }
+  .form__Input-checkbox:checked + label::before { border-color: #83a598; }
+  .form__Input-checkbox:disabled + label::before {
+    background-color: #504945;
+    border-color: #665c54;
+    color: #bdae93;
+  }
+  .form__Input-checkbox:focus-visible + label::before {
+    outline: 2px solid #83a598;
+    outline-offset: 2px;
+  }
+
+  .form__Label, .profile__ListItemTitle, .text--sub, .footer__Copyright,
+  .blog__postDate, .admin__InfoListItemTitle time, th,
+  .messages__Actions, .modal__SubText { color: #bdae93; }
+  .room__Name, .room__DetailsFooter, .room__Broadcasters, .room__Viewers {
+    color: #fbf1c7;
+  }
+  .text--green { color: #b8bb26; }
+  .text--yellow { color: #fabd2f; }
+  .text--red, .form__Error { color: #fb4934; }
+
+  .button { background-color: #504945; color: #fbf1c7; }
+  .button:hover, .button:focus { background-color: #665c54; color: #fbf1c7; }
+  .button--blue { background-color: #83a598; color: #282828; }
+  .button--blue:hover, .button--blue:focus { background-color: #a3c5b8; color: #282828; }
+  .button--red { background-color: #cc241d; color: #fff; }
+  .button--red:hover, .button--red:focus { background-color: #9d211b; color: #fff; }
+  .button--green { background-color: #b8bb26; color: #282828; }
+  .button--green:hover, .button--green:focus { background-color: #d8db46; color: #282828; }
+  .button--yellow { background-color: #fabd2f; color: #282828; }
+  .button--yellow:hover, .button--yellow:focus { background-color: #ffdd6f; color: #282828; }
+  .button--black { background-color: #1d2021; }
+  .button--white { background-color: #504945; color: #fbf1c7; }
+  .button--white-transparent, .button--black-transparent {
+    background-color: transparent;
+    border-color: #bdae93;
+    color: #fbf1c7;
+  }
+  .button--white-transparent:hover, .button--white-transparent:focus,
+  .button--black-transparent:hover, .button--black-transparent:focus {
+    background-color: #504945;
+    color: #fbf1c7;
+  }
+  .button--text, .button--text-black {
+    background-color: transparent;
+    color: #fbf1c7;
+    text-shadow: none;
+  }
+  .button--text:hover, .button--text:focus,
+  .button--text-black:hover, .button--text-black:focus {
+    background-color: transparent;
+    color: #83a598;
+  }
+
+  .settings__Menu, .settings__MenuItem, .profile__Article,
+  thead > tr, tbody > tr + tr, blockquote,
+  .blog__post, .blog__nav { border-color: #665c54; }
+  .admin__RoomListItem:nth-of-type(even) { background-color: #3c3836; }
+  pre, samp, kbd {
+    background-color: #3c3836;
+    border-color: #665c54;
+    color: #fbf1c7;
+    text-shadow: none;
+    box-shadow: none;
+  }
+  .modal__Header { background-color: #504945; color: #fbf1c7; }
+  .modal__Body, .modal__Footer { background-color: #3c3836; }
+  .messages__Message { background-color: #3c3836; }
+  .messages__Message::before { border-top-color: #3c3836; }
+  .messages__Message--me { background-color: #454f49; }
+  .messages__Message--me::before { border-top-color: #454f49; }
+  .messages__Actions:hover, .messages__Actions:focus,
+  .settings__RoomModRemove, .messages__Action { color: #fbf1c7; }
+  .imageUpload__Container { background-color: #3c3836; outline-color: #83a598; }
+  .imageUpload__Container--dragover { background-color: #504945; }
+  .imageUpload__Label:hover { color: #83a598; }
+  .banner--warning { background-color: #fabd2f; color: #282828; text-shadow: none; }
+  // Payment fields are third-party iframes styled separately; keep their canvas legible.
+  #card-element { background-color: #fff; color: #282828; padding: 0.75em; border-radius: 2px; }
+}

@@ -13,7 +13,9 @@ import './disableOnClick';
 import './genFingerprint';
 import ImageUpload from './imageUpload';
 import { initializePaymentForms } from './payment';
+import { initializeTheme } from './theme';
 
 new ImageUpload('.imageUpload__Form--useravatar');
 new ImageUpload('.imageUpload__Form--roomdisplay');
 initializePaymentForms();
+initializeTheme();

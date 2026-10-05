@@ -11,9 +11,18 @@ body {
   }
 
   color: variables.$black-02;
+  background-color: variables.$white;
+  color-scheme: light;
 
   &.dark {
     color: variables.$color-light0;
+    background-color: variables.$color-dark0;
+    color-scheme: dark;
+    --focus-color: #{variables.$color-blue-04};
+
+    h3 {
+      color: variables.$color-blue-04;
+    }
   }
 }
 
