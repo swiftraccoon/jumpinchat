@@ -24,6 +24,22 @@ JANUS_HTTP_HOST="${JANUS_HTTP_HOST:-janus}"
 JANUS_HTTP_PORT="${JANUS_HTTP_PORT:-8088}"
 JANUS_ADMIN_PORT="${JANUS_ADMIN_PORT:-8188}"
 
+# Add a deployment hostname without accepting nginx directives or wildcards.
+NGINX_PUBLIC_HOSTNAME="${NGINX_PUBLIC_HOSTNAME:-}"
+if [[ -n "$NGINX_PUBLIC_HOSTNAME" ]] && \
+   { [[ ${#NGINX_PUBLIC_HOSTNAME} -gt 253 ]] || \
+     [[ ! "$NGINX_PUBLIC_HOSTNAME" =~ ^([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)*[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]]; }; then
+  echo 'NGINX_PUBLIC_HOSTNAME must be a DNS hostname without a scheme, port, or path' >&2
+  exit 1
+fi
+
+# The shared per-client limit also covers asset requests and media setup.
+NGINX_REQUEST_RATE="${NGINX_REQUEST_RATE:-2r/s}"
+if [[ ! "$NGINX_REQUEST_RATE" =~ ^[1-9][0-9]{0,5}r/[sm]$ ]]; then
+  echo 'NGINX_REQUEST_RATE must be 1-999999 requests per second or minute, for example 10r/s' >&2
+  exit 1
+fi
+
 # Local images stay on the upload volume. External S3 images are read only
 # through a public origin rooted at the public/ object prefix, never the bucket.
 STORAGE_BACKEND="${STORAGE_BACKEND:-local}"
@@ -152,7 +168,7 @@ map \$limit \$limit_key {
 }
 
 # request limiting
-limit_req_zone \$limit_key zone=sitelimit:10m rate=2r/s;
+limit_req_zone \$limit_key zone=sitelimit:10m rate=${NGINX_REQUEST_RATE};
 
 # caching
 proxy_cache_path  /var/cache/nginx levels=1:2 keys_zone=one:8m max_size=3000m inactive=600m;
@@ -183,7 +199,7 @@ server {
   listen [::]:443 ssl;
   http2 on;
 
-  server_name "~^172\.\d{1,3}\.\d{1,3}\.\d{1,3}\$" "~^10\.136\.\d{1,3}\.\d{1,3}\$" jumpin.chat local.jumpin.chat jumpinchat.com localhost 127.0.0.1;
+  server_name "~^172\.\d{1,3}\.\d{1,3}\.\d{1,3}\$" "~^10\.136\.\d{1,3}\.\d{1,3}\$" jumpin.chat local.jumpin.chat jumpinchat.com localhost 127.0.0.1 ${NGINX_PUBLIC_HOSTNAME};
   client_max_body_size 10M;
 
   gzip on;
@@ -277,9 +293,18 @@ server {
 
 server {
   listen 80;
-  server_name jumpin.chat www.jumpin.chat local.jumpin.chat jumpinchat.com www.jumpinchat.com;
+  server_name jumpin.chat www.jumpin.chat local.jumpin.chat jumpinchat.com www.jumpinchat.com ${NGINX_PUBLIC_HOSTNAME};
   server_tokens off;
   limit_req zone=sitelimit burst=10 nodelay;
-  return 301 https://\$host\$request_uri;
+
+  location ^~ /.well-known/acme-challenge/ {
+    root /var/www/acme;
+    default_type text/plain;
+    try_files \$uri =404;
+  }
+
+  location / {
+    return 301 https://\$host\$request_uri;
+  }
 }
 EOF
