@@ -2,13 +2,14 @@
  * Created by Zaccary on 09/09/2015.
  */
 
-/* global MediaStream */
+/* global MediaStream, navigator */
 
 import uuid from './uuid';
 import axios from 'axios';
 import Janus from 'janus-gateway';
 import adapter from 'webrtc-adapter';
 import createMediaRecovery from './mediaRecovery';
+import { takeSelectionTracks, cancelMediaSelection } from './mediaSelectionCapture';
 import camStore from '../stores/CamStore/CamStore';
 import {
   destroyLocalStream,
@@ -38,7 +39,23 @@ let janusMcuPlugin = null;
 let slowlinkTimeout;
 let localMediaStream = null;
 let sessionGeneration = 0;
+let publicationAttempt = null;
 const remoteFeeds = new Map();
+
+function isCurrentPublication(attempt) {
+  return publicationAttempt === attempt && !attempt.cancelled
+    && attempt.session === sessionGeneration && attempt.handle === janusMcuPlugin;
+}
+
+function stopTracks(tracks) {
+  for (const track of new Set(tracks)) {
+    try {
+      if (track.readyState !== 'ended') track.stop();
+    } catch (error) {
+      console.error('Could not release a media track', error);
+    }
+  }
+}
 
 function releaseRemoteFeed(entry) {
   if (entry.closed) return;
@@ -56,18 +73,49 @@ function removeRemoteFeed(id, roomId) {
 }
 
 
-const closeBroadcast = () => {
+const closeBroadcast = ({ notifyInterruptedOffer = true } = {}) => {
   recovery.cancel();
-  // Stop all local media tracks to ensure camera/mic are released
-  if (janusMcuPlugin && janusMcuPlugin.webrtcStuff && janusMcuPlugin.webrtcStuff.myStream) {
-    const tracks = janusMcuPlugin.webrtcStuff.myStream.getTracks();
-    tracks.forEach(track => track.stop());
+  const attempt = publicationAttempt;
+  const interrupted = attempt && attempt.phase !== 'published';
+  const retiredHandle = attempt?.phase === 'offer' && attempt.handle === janusMcuPlugin
+    ? attempt.handle : null;
+  const streamHandle = attempt?.handle || janusMcuPlugin;
+  if (retiredHandle) janusMcuPlugin = null;
+  publicationAttempt = null;
+  if (attempt) {
+    attempt.cancelled = true;
+    clearTimeout(attempt.timer);
   }
+  const tracks = [...(attempt?.tracks || [])];
+  // Stop all local media tracks to ensure camera/mic are released
+  if (streamHandle?.webrtcStuff?.myStream) {
+    tracks.push(...streamHandle.webrtcStuff.myStream.getTracks());
+  }
+  stopTracks(tracks);
+  attempt?.tracks.clear();
 
   localMediaStream = null;
   destroyLocalStream(null);
   setMediaDeviceId(null, 'video');
   setMediaDeviceId(null, 'audio');
+  if (interrupted) {
+    setMediaSelectionModal(false);
+    setMediaSelectionModalLoading(false);
+  }
+  if (retiredHandle) {
+    // detach synchronously invokes oncleanup; identity and attempt are already
+    // invalidated, so its callbacks cannot recurse or touch a later attempt.
+    try {
+      retiredHandle.detach();
+    } catch (error) {
+      console.error('Could not detach the interrupted publisher', error);
+    }
+    if (notifyInterruptedOffer && attempt.session === sessionGeneration) {
+      addNotification({
+        color: 'red', message: 'Broadcast preparation was interrupted. Refresh this page before trying again.', autoClose: false,
+      });
+    }
+  }
 };
 
 const getServerEndpoints = () => axios.get('/api/janus/endpoints')
@@ -179,120 +227,164 @@ const getServerInfo = function getServerInfo(roomName, cb) {
     });
 };
 
-function publishOwnFeed(isGold, videoQuality, videoDevice, audioDevice, sendAudio = false) {
-  const currentSession = sessionGeneration;
-  // Publish our stream
-  console.log('publish own feed', { isGold, videoQuality });
-  let media = {
-    audioRecv: false,
-    videoRecv: false,
-    audioSend: true,
-    videoSend: false,
-  };
+function finishPublicationAttempt(attempt) {
+  if (!isCurrentPublication(attempt)) return;
+  closeBroadcast({ notifyInterruptedOffer: false });
+}
 
-  if (videoDevice) {
-    media = {
-      ...media,
-      videoSend: true,
-      video: {
-        deviceId: {
-          exact: videoDevice,
-        },
-        ...defaultVideoConstraints,
-      },
-    };
-  }
-
-  if (isGold) {
-    media.video = {
-      ...media.video,
-      ...getVideoConstraints(videoQuality),
-    };
-  }
-
-  if (videoDevice === 'screen') {
-    media = {
-      ...media,
-      video: 'screen',
-      screenshareFrameRate: 15,
-    };
+function failPublication(attempt, error) {
+  if (!isCurrentPublication(attempt)) return;
+  const preparingOffer = attempt.phase === 'offer';
+  let message;
+  if (preparingOffer) {
+    message = 'Unable to prepare the broadcast. Refresh this page before trying again.';
+  } else if (error?.name === 'TimeoutError') {
+    message = 'Camera or microphone access timed out. Check the browser permission prompt and try again.';
+  } else if (error?.name === 'NotAllowedError') {
+    message = 'Camera or microphone permission was denied. Allow access in your browser and try again.';
+  } else if (error?.name === 'NotReadableError') {
+    message = 'Camera or microphone is unavailable. Close other apps using it and try again.';
   } else {
-    media = {
-      ...media,
-      audio: {
-        deviceId: {
-          exact: audioDevice,
-        },
-      },
-    };
+    message = 'Unable to broadcast. Check your camera and microphone and try again.';
   }
+  console.error('Broadcast preparation failed:', error);
+  finishPublicationAttempt(attempt);
+  addNotification({ color: 'red', message, autoClose: false });
+  trackEvent('Error', 'Cam Util', `Publish ${preparingOffer ? 'offer' : 'capture'}: ${String(error)}`);
+}
 
-  let simulcastMaxBitrates;
+function setPublicationDeadline(attempt, phase, duration) {
+  clearTimeout(attempt.timer);
+  attempt.phase = phase;
+  attempt.timer = setTimeout(() => {
+    const error = new Error(`Broadcast ${phase} timed out`);
+    error.name = 'TimeoutError';
+    failPublication(attempt, error);
+  }, duration);
+}
 
-  if (isGold) {
-    simulcastMaxBitrates = {
-      high: videoQuality.bitRate,
-      medium: 0,
-      low: 128000,
-    };
+function captureOwnedStream(attempt, acquire) {
+  let acquisition;
+  // Invoke synchronously so screen sharing retains the click's user activation.
+  try {
+    acquisition = acquire();
+  } catch (error) {
+    return Promise.reject(error);
   }
+  return Promise.resolve(acquisition).then((stream) => {
+    if (!isCurrentPublication(attempt)) {
+      stopTracks(stream.getTracks());
+      return null;
+    }
+    for (const track of stream.getTracks()) {
+      if (track.kind === 'audio') track.enabled = false;
+      attempt.tracks.add(track);
+    }
+    return stream;
+  });
+}
 
-  const shouldSimulcast = videoQuality
-    && videoQuality.id !== 'VIDEO_240'
-    && isGold;
-
-  janusMcuPlugin.createOffer(
-    {
-      media,
-      simulcast: shouldSimulcast,
-      simulcastMaxBitrates,
-      // Publishers are sendonly
-      success(jsep) {
-        if (currentSession !== sessionGeneration) return;
-        const message = {
-          request: 'configure',
-          audio: true,
-          video: true,
-          bitrate: isGold ? videoQuality.bitRate : undefined,
-        };
-
-        janusMcuPlugin.send({ message, jsep });
-
-        if (!sendAudio) {
-          janusMcuPlugin.muteAudio();
-        }
-
+async function publishOwnFeed(attempt, isGold, videoQuality, videoDevice, audioDevice, sendAudio) {
+  // Transfer the working selection tracks before awaiting anything. Closing the
+  // picker must no longer own (or stop) the tracks used by this publication.
+  const selection = takeSelectionTracks(videoDevice, audioDevice);
+  let { audioTrack, videoTrack } = selection;
+  for (const track of [audioTrack, videoTrack].filter(Boolean)) attempt.tracks.add(track);
+  const videoConstraints = isGold ? getVideoConstraints(videoQuality) : defaultVideoConstraints;
+  const audio = audioDevice ? { deviceId: { exact: audioDevice } } : true;
+  const needsAudio = !audioTrack;
+  const needsVideo = Boolean(videoDevice) && !videoTrack;
+  const captures = [selection.ready];
+  setMediaSelectionModalLoading(true, needsAudio && needsVideo
+    ? 'Waiting for camera and microphone…'
+    : needsAudio ? 'Waiting for microphone…'
+      : needsVideo ? 'Waiting for camera…' : 'Preparing selected devices…');
+  if (videoDevice === 'screen') {
+    // Start the native picker in the click's activation turn, before awaiting
+    // configuration or microphone work. Keep an already selected mic alive.
+    captures.push(captureOwnedStream(attempt, () => navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: 15 }, audio: false,
+    })).then((stream) => { if (stream) [videoTrack] = stream.getVideoTracks(); }));
+    if (needsAudio) {
+      captures.push(captureOwnedStream(attempt, () => navigator.mediaDevices.getUserMedia({ audio, video: false }))
+        .then((stream) => { if (stream) [audioTrack] = stream.getAudioTracks(); }));
+    }
+  } else if (needsAudio || needsVideo) {
+    // Request only missing kinds: changing the microphone must never reopen the
+    // camera whose preview is already working (and vice versa).
+    captures.push(captureOwnedStream(attempt, () => navigator.mediaDevices.getUserMedia({
+      audio: needsAudio ? audio : false,
+      video: needsVideo ? { deviceId: { exact: videoDevice }, ...videoConstraints } : false,
+    })).then((stream) => {
+      if (!stream) return;
+      if (needsAudio) [audioTrack] = stream.getAudioTracks();
+      if (needsVideo) [videoTrack] = stream.getVideoTracks();
+    }));
+  }
+  await Promise.all(captures);
+  if (!isCurrentPublication(attempt)) return;
+  if (!audioTrack || audioTrack.readyState === 'ended'
+    || (videoDevice && (!videoTrack || videoTrack.readyState === 'ended'))) {
+    throw new Error('The selected media device returned no live track');
+  }
+  // PTT must be respected before negotiation can start sending audio.
+  audioTrack.enabled = sendAudio;
+  const tracks = [{ type: 'audio', capture: audioTrack, recv: false }];
+  if (videoTrack) {
+    tracks.push({
+      type: 'video', capture: videoTrack, recv: false,
+      simulcast: Boolean(isGold && videoQuality && videoQuality.id !== 'VIDEO_240'),
+      ...(isGold ? { simulcastMaxBitrates: { high: videoQuality.bitRate, medium: 0, low: 128000 } } : {}),
+    });
+  }
+  setPublicationDeadline(attempt, 'offer', 15000);
+  setMediaSelectionModalLoading(true, 'Preparing broadcast…');
+  attempt.handle.createOffer({
+    tracks,
+    success(jsep) {
+      if (!isCurrentPublication(attempt) || attempt.phase !== 'offer') return;
+      try {
+        if (!jsep?.sdp) throw new Error('The browser returned no session description');
+        if (!sendAudio) attempt.handle.muteAudio();
+        attempt.handle.send({
+          message: { request: 'configure', audio: true, video: Boolean(videoTrack), bitrate: isGold ? videoQuality.bitRate : undefined },
+          jsep,
+        });
+        clearTimeout(attempt.timer);
+        attempt.phase = 'published';
         sendUserBroadcastState(true);
-
-        // because screensharing is weird and
-        // uses built-in browser selection windows
         setMediaSelectionModal(false);
         setMediaSelectionModalLoading(false);
-      },
-
-      error(err) {
-        if (currentSession !== sessionGeneration) return;
-        console.error('WebRTC error:', err);
-        try {
-          const message = err && err.name === 'NotAllowedError'
-            ? 'Camera or microphone permission was denied. Allow access in your browser and try again.'
-            : err && err.name === 'NotReadableError'
-              ? 'Camera or microphone is unavailable. Close other apps using it and try again.'
-              : 'Unable to broadcast. Check your camera and microphone and try again.';
-          addNotification({ color: 'red', message, autoClose: false });
-          trackEvent('Error', 'Cam Util', `Create offer: ${String(err)}`);
-        } finally {
-          setMediaSelectionModal(false);
-          setMediaSelectionModalLoading(false);
-          closeBroadcast();
-        }
-      },
+      } catch (error) {
+        // Configuration and notification failures also require retiring a handle
+        // that has already begun negotiation.
+        attempt.phase = 'offer';
+        failPublication(attempt, error);
+      }
     },
-  );
+    error(error) {
+      failPublication(attempt, error);
+    },
+  });
+}
+
+export function cancelPublish() {
+  cancelMediaSelection();
+  const attempt = publicationAttempt;
+  if (!attempt || attempt.phase === 'published') return;
+  const preparingOffer = attempt.phase === 'offer';
+  finishPublicationAttempt(attempt);
+  if (preparingOffer) {
+    addNotification({
+      color: 'red', message: 'Broadcast preparation was cancelled. Refresh this page before trying again.', autoClose: false,
+    });
+  }
 }
 
 
 export function publish(isGold, videoQuality, videoDevice, audioDevice, sendAudio = false) {
+  if (publicationAttempt?.phase === 'published') return;
+  if (publicationAttempt) cancelPublish();
   if (!janusMcuPlugin) {
     console.error('Plugin is not initialized');
     trackEvent('Error', 'Cam Util', 'Plugin is not initialized');
@@ -304,11 +396,21 @@ export function publish(isGold, videoQuality, videoDevice, audioDevice, sendAudi
     });
 
     closeBroadcast();
+    setMediaSelectionModal(false);
+    setMediaSelectionModalLoading(false);
 
     return;
   }
 
-  publishOwnFeed(isGold, videoQuality, videoDevice, audioDevice, sendAudio);
+  const attempt = {
+    session: sessionGeneration, handle: janusMcuPlugin, phase: 'capture',
+    tracks: new Set(), cancelled: false, timer: null, videoExpected: Boolean(videoDevice),
+  };
+  publicationAttempt = attempt;
+  setPublicationDeadline(attempt, 'capture', 30000);
+  setMediaSelectionModalLoading(true, 'Waiting for camera and microphone…');
+  publishOwnFeed(attempt, isGold, videoQuality, videoDevice, audioDevice, sendAudio)
+    .catch(error => failPublication(attempt, error));
 }
 
 export function setAudioState(state) {
@@ -321,6 +423,10 @@ export function setAudioState(state) {
 
 export function unpublishOwnFeed() {
   recovery.cancel();
+  if (publicationAttempt && publicationAttempt.phase !== 'published') {
+    cancelPublish();
+    return;
+  }
   if (!janusMcuPlugin) {
     closeBroadcast();
     return;
@@ -334,7 +440,9 @@ export function unpublishOwnFeed() {
   // This ensures camera/mic are released even if Janus rejects the unpublish
   // (e.g. "Can't unpublish, not published" due to race conditions).
   // Without this, the WebRTC media continues streaming to subscribers.
-  janusMcuPlugin.hangup();
+  const handle = janusMcuPlugin;
+  closeBroadcast();
+  handle.hangup();
 }
 
 function checkVideoSupported() {
@@ -571,14 +679,15 @@ function recoverOffer(options) {
 }
 
 function renegotiate() {
-  recoverOffer({ media: { video: false, audio: false } });
+  recoverOffer({ tracks: [] });
 }
 
 function restartIce() {
-  recoverOffer({ iceRestart: true, media: {} });
+  recoverOffer({ iceRestart: true, tracks: [] });
 }
 
 export function destroy() {
+  cancelMediaSelection();
   sessionGeneration += 1;
   for (const entry of remoteFeeds.values()) releaseRemoteFeed(entry);
   remoteFeeds.clear();
@@ -632,6 +741,9 @@ export function init(roomId, roomName, userId, cb = () => {}) {
           keepAlivePeriod: 25000,
           success() {
             if (currentSession !== sessionGeneration) return;
+            let publisherHandle = null;
+            const isCurrentPublisher = () => currentSession === sessionGeneration
+              && publisherHandle === janusMcuPlugin;
             // Attach to video MCU test plugin
             janus.attach({
               plugin: 'janus.plugin.videoroom',
@@ -641,6 +753,7 @@ export function init(roomId, roomName, userId, cb = () => {}) {
                   pluginHandle.detach();
                   return;
                 }
+                publisherHandle = pluginHandle;
                 janusMcuPlugin = pluginHandle;
                 const message = {
                   request: 'join',
@@ -656,7 +769,7 @@ export function init(roomId, roomName, userId, cb = () => {}) {
               },
 
               error(error) {
-                if (currentSession !== sessionGeneration) return;
+                if (!isCurrentPublisher()) return;
                 console.error('  -- Error attaching plugin... ', error);
                 trackEvent('Error', 'Cam Util', `error attaching plugin: ${error}`);
                 addNotification({
@@ -669,11 +782,12 @@ export function init(roomId, roomName, userId, cb = () => {}) {
               },
 
               consentDialog(on) {
+                if (!isCurrentPublisher()) return;
                 console.log(`Consent dialog should be ${(on ? 'on' : 'off')} now`);
               },
 
               iceState(state) {
-                if (currentSession !== sessionGeneration) return;
+                if (!isCurrentPublisher()) return;
                 if (state === 'disconnected') {
                   trackEvent('Error', 'Cam Util', 'ice disconnected');
                 }
@@ -684,7 +798,7 @@ export function init(roomId, roomName, userId, cb = () => {}) {
                 }
               },
               webrtcState(connected, reason) {
-                if (currentSession !== sessionGeneration) return;
+                if (!isCurrentPublisher()) return;
                 console.log('::: peer connection established?', connected);
                 if (connected) {
                   janusMcuPlugin.send({ message: { request: 'configure' } });
@@ -693,7 +807,7 @@ export function init(roomId, roomName, userId, cb = () => {}) {
                 }
               },
               slowLink() {
-                if (currentSession !== sessionGeneration) return;
+                if (!isCurrentPublisher()) return;
                 if (!slowlinkTimeout) {
                   trackEvent('Cams', 'Slow link');
                   addNotification({
@@ -707,7 +821,7 @@ export function init(roomId, roomName, userId, cb = () => {}) {
                 }
               },
               mediaState(type, on) {
-                if (currentSession !== sessionGeneration) return;
+                if (!isCurrentPublisher()) return;
                 console.log('::: mediaState :::', type, on);
                 if (type === 'video' && !on) {
                   renegotiate();
@@ -719,7 +833,7 @@ export function init(roomId, roomName, userId, cb = () => {}) {
               },
 
               onmessage(msg, jsep) {
-                if (currentSession !== sessionGeneration) return;
+                if (!isCurrentPublisher()) return;
                 const event = msg.videoroom;
 
                 if (event !== undefined && event !== null) {
@@ -796,8 +910,13 @@ export function init(roomId, roomName, userId, cb = () => {}) {
               },
 
               onlocaltrack(track, on) {
-                if (currentSession !== sessionGeneration) return;
                 if (!on) return;
+                const attempt = publicationAttempt;
+                if (!isCurrentPublisher() || !attempt || !isCurrentPublication(attempt)
+                  || !attempt.tracks.has(track)) {
+                  stopTracks([track]);
+                  return;
+                }
                 if (!localMediaStream) {
                   localMediaStream = new MediaStream();
                 }
@@ -806,13 +925,13 @@ export function init(roomId, roomName, userId, cb = () => {}) {
                 // so the feed is created with video: true.
                 // Audio track arrives first and would set video: false
                 // permanently since the store ignores subsequent calls.
-                if (track.kind === 'video') {
+                if (track.kind === 'video' || !attempt.videoExpected) {
                   addLocalStream({ stream: localMediaStream, token: uuid(), isLocal: true });
                 }
               },
 
               oncleanup() {
-                if (currentSession !== sessionGeneration) return;
+                if (!isCurrentPublisher()) return;
                 closeBroadcast();
               },
             });

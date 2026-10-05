@@ -1,23 +1,33 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import RoomBroadcastButton from './RoomBroadcastButton.react';
 import { checkCanBroadcast } from '../../../utils/UserAPI';
 import { unpublishOwnFeed } from '../../../utils/CamUtil';
 import { setMediaSelectionModal, setMediaSelectionModalLoading } from '../../../actions/ModalActions';
 import { setCanBroadcast } from '../../../actions/CamActions';
+import { beginMediaSelection, isMediaSelectionCurrent, retainSelectionStream } from '../../../utils/mediaSelectionCapture';
 vi.mock('../../../utils/UserAPI', () => ({ checkCanBroadcast: vi.fn() }));
 vi.mock('../../../utils/CamUtil', () => ({ unpublishOwnFeed: vi.fn() }));
 vi.mock('../../../actions/ModalActions', () => ({ setMediaSelectionModal: vi.fn(), setMediaSelectionModalLoading: vi.fn(), setModalError: vi.fn() }));
 vi.mock('../../../actions/CamActions', () => ({ setCanBroadcast: vi.fn() }));
+vi.mock('../../../utils/mediaSelectionCapture', () => ({ beginMediaSelection: vi.fn(), isMediaSelectionCurrent: vi.fn(), retainSelectionStream: vi.fn(), cancelMediaSelection: vi.fn() }));
 
 describe('broadcast controls', () => {
-  it('releases the permission probe and offers deduplicated devices', async () => {
-    const stop = vi.fn(); navigator.mediaDevices.getUserMedia.mockResolvedValue({ getAudioTracks: () => [], getVideoTracks: () => [{ stop }] });
+  const token = {};
+  beforeEach(() => {
+    beginMediaSelection.mockReturnValue(token);
+    isMediaSelectionCurrent.mockReturnValue(true);
+  });
+  it('retains the initial capture for selection and offers deduplicated devices', async () => {
+    const stop = vi.fn(); const stream = { getTracks: () => [{ stop }], getAudioTracks: () => [], getVideoTracks: () => [{ stop }] }; navigator.mediaDevices.getUserMedia.mockResolvedValue(stream);
     const device = { deviceId: 'cam', kind: 'videoinput' }; navigator.mediaDevices.enumerateDevices.mockResolvedValue([device, device]);
     checkCanBroadcast.mockImplementation((room, done) => done(null, true));
     render(<RoomBroadcastButton roomName="room" feedCount={1} canBroadcast />); fireEvent.click(screen.getByRole('button', { name: /Start Broadcasting/ }));
-    await waitFor(() => expect(setMediaSelectionModal).toHaveBeenLastCalledWith(true, [device])); expect(stop).toHaveBeenCalledOnce(); expect(setMediaSelectionModalLoading).toHaveBeenLastCalledWith(false);
+    await waitFor(() => expect(setMediaSelectionModal).toHaveBeenLastCalledWith(true, [device]));
+    expect(beginMediaSelection).toHaveBeenCalledOnce();
+    expect(retainSelectionStream).toHaveBeenCalledWith(token, stream, { audio: true, video: { width: 320, height: 240, frameRate: { ideal: 15, max: 30 } } });
+    expect(stop).not.toHaveBeenCalled(); expect(setMediaSelectionModalLoading).toHaveBeenLastCalledWith(false);
   });
   it('closes selection when broadcast permission is rejected', async () => {
     checkCanBroadcast.mockImplementation((room, done) => done(null, false)); render(<RoomBroadcastButton roomName="room" feedCount={1} canBroadcast />);

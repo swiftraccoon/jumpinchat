@@ -4,6 +4,7 @@
 
 import { ModalDispatcher } from '../dispatcher/AppDispatcher';
 import { trackEvent } from '../utils/AnalyticsUtil';
+import { cancelMediaSelection } from '../utils/mediaSelectionCapture';
 
 import {
   HANDLE_MODAL_STATE,
@@ -54,6 +55,7 @@ export function setReportModal(state, targetId) {
 }
 
 export function setMediaSelectionModal(state, deviceList = []) {
+  if (!state) cancelMediaSelection();
   trackEvent('MediaSelect', state ? 'open modal' : 'close modal');
   ModalDispatcher.handleAction({
     actionType: MEDIA_MODAL_STATE,
@@ -69,10 +71,11 @@ export function setMediaSelectionModalType(type) {
   });
 }
 
-export function setMediaSelectionModalLoading(loading) {
+export function setMediaSelectionModalLoading(loading, loadingMessage = '') {
   ModalDispatcher.handleAction({
     actionType: MEDIA_MODAL_LOADING,
     loading,
+    loadingMessage,
   });
 }
 

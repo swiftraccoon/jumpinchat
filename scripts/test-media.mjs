@@ -7,6 +7,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { isTurnRelayPair } from './media-relay-stats.mjs';
 
 const smokeRequire = createRequire(import.meta.url);
 const { chromium, firefox } = smokeRequire(process.env.PLAYWRIGHT_PACKAGE ? path.resolve(process.env.PLAYWRIGHT_PACKAGE) : 'playwright');
@@ -133,6 +134,7 @@ async function observe(context, relay) {
       diagnostics.mediaRequests.push(entry);
       try {
         const stream = await getUserMedia(constraints);
+        entry.streamIndex = diagnostics.streams.length;
         diagnostics.streams.push(stream);
         entry.tracks = stream.getTracks().map(track => ({ kind: track.kind, label: track.label }));
         entry.result = 'success';
@@ -222,27 +224,95 @@ async function assertHealthyChatRecovery(client) {
 
 async function chooseVideo(client) {
   const { page } = client;
+  const streamStart = await page.evaluate(() => window.__mediaSmoke.streams.length);
   await page.getByRole('button', { name: /Start Broadcasting/ }).click();
   const dialog = page.getByRole('dialog', { name: 'Media selection modal' });
-  const camera = dialog.locator('button.mediaSources__SourceWrapper').filter({ has: page.locator('video') }).first();
+  await dialog.locator('button.mediaSources__SourceWrapper').filter({ has: page.locator('video') }).first().waitFor();
+  const selection = await page.evaluate(async start => {
+    const diagnostics = window.__mediaSmoke;
+    const initial = diagnostics.streams.slice(start).find(stream => stream.getAudioTracks().some(track => track.readyState === 'live')
+      && stream.getVideoTracks().some(track => track.readyState === 'live'));
+    if (!initial) throw new Error('The selection must retain its initial live camera and microphone capture');
+    const video = initial.getVideoTracks().find(track => track.readyState === 'live');
+    const audio = initial.getAudioTracks().find(track => track.readyState === 'live');
+    const enumerated = await navigator.mediaDevices.enumerateDevices();
+    // Match the application's device-ID deduplication and per-kind ordering.
+    const devices = enumerated.filter((device, index, all) => all.findIndex(candidate => candidate.deviceId === device.deviceId) === index);
+    const cameras = devices.filter(device => device.kind === 'videoinput');
+    const microphones = devices.filter(device => device.kind === 'audioinput');
+    const cameraIndex = cameras.findIndex(device => device.deviceId === video.getSettings().deviceId);
+    const matchingMicIndex = microphones.findIndex(device => device.deviceId === audio.getSettings().deviceId);
+    if (cameraIndex < 0 || !microphones.length) throw new Error('Native selected input identities must be present in the source selector');
+    const microphoneIndex = matchingMicIndex >= 0 ? matchingMicIndex : 0;
+    diagnostics.selection = { video, audio, microphoneDeviceId: microphones[microphoneIndex].deviceId };
+    return { cameraIndex, microphoneIndex, retainedMicrophoneMatches: matchingMicIndex >= 0 };
+  }, streamStart);
+  client.selection = selection;
+  const camera = dialog.locator('button.mediaSources__SourceWrapper').filter({ has: page.locator('video') }).nth(selection.cameraIndex);
   await camera.waitFor();
-  await page.waitForFunction(() => [...document.querySelectorAll('.mediaSources__SourceWrapper video')].some(video => video.videoWidth > 0), null, { timeout: 30000 });
+  await page.waitForFunction(index => {
+    const video = document.querySelectorAll('.mediaSources__SourceWrapper video')[index];
+    return video?.videoWidth > 0;
+  }, selection.cameraIndex, { timeout: 30000 });
+  const preview = await camera.locator('video').evaluate(video => {
+    const selected = window.__mediaSmoke.selection;
+    return {
+      muted: video.muted,
+      videoOnly: video.srcObject?.getAudioTracks().length === 0 && video.srcObject?.getVideoTracks().length === 1,
+      sameCameraTrack: video.srcObject?.getVideoTracks()[0] === selected.video,
+      cameraLive: selected.video.readyState === 'live',
+      microphoneLive: selected.audio.readyState === 'live',
+      microphoneDisabled: selected.audio.enabled === false,
+    };
+  });
+  assert.ok(Object.values(preview).every(Boolean), 'The preview must use the initial live camera track, contain no audio, stay muted, and retain a disabled microphone');
   await camera.click();
   const ptt = dialog.locator('#mediaPttCheckbox');
   await ptt.waitFor({ state: 'attached' });
   if (await ptt.isChecked()) await dialog.locator('label[for="mediaPttCheckbox"] button').click();
   assert.equal(await ptt.isChecked(), false, 'Push to talk must be off for continuous audio evidence');
-  await page.waitForFunction(() => window.__mediaSmoke.streams.length > 0 && window.__mediaSmoke.streams.every(stream => stream.getTracks().every(track => track.readyState === 'ended')));
-  check(`${client.data.name}: permission-check and preview capture tracks released after device selection`);
+  const retained = await page.evaluate(() => {
+    const { video, audio } = window.__mediaSmoke.selection;
+    return video.readyState === 'live' && audio.readyState === 'live' && audio.enabled === false;
+  });
+  assert.ok(retained, 'Moving to microphone selection must retain the working camera and disabled microphone');
+  check(`${client.data.name}: muted video-only preview and working capture retained through source selection`, preview);
   return dialog;
 }
 
 async function publish(client) {
   const dialog = await chooseVideo(client);
-  await dialog.locator('button.mediaSources__SourceWrapper').first().click();
+  const captureCount = await client.page.evaluate(() => window.__mediaSmoke.mediaRequests.length);
+  await dialog.locator('button.mediaSources__SourceWrapper').nth(client.selection.microphoneIndex).click();
   await dialog.waitFor({ state: 'hidden' });
   await client.page.getByRole('button', { name: /Stop Broadcasting/ }).waitFor();
-  check(`${client.data.name}: published synthetic camera and microphone`);
+  const evidence = await client.page.evaluate(start => {
+    const diagnostics = window.__mediaSmoke;
+    const requests = diagnostics.mediaRequests.slice(start);
+    const senders = diagnostics.pcs.filter(pc => pc.connectionState !== 'closed').flatMap(pc => pc.getSenders());
+    const microphoneRequest = requests.find(request => request.constraints.audio && !request.constraints.video);
+    const replacementAudio = microphoneRequest && diagnostics.streams[microphoneRequest.streamIndex]?.getAudioTracks()[0];
+    return {
+      captures: requests.map(({ constraints, result }) => ({ audio: Boolean(constraints.audio), video: Boolean(constraints.video), result })),
+      sameCameraSender: senders.some(sender => sender.track === diagnostics.selection.video),
+      sameMicrophoneSender: senders.some(sender => sender.track === diagnostics.selection.audio),
+      replacementMicrophoneSender: Boolean(replacementAudio && senders.some(sender => sender.track === replacementAudio)),
+      requestedSelectedMicrophone: microphoneRequest?.constraints.audio.deviceId?.exact === diagnostics.selection.microphoneDeviceId,
+    };
+  }, captureCount);
+  assert.ok(evidence.sameCameraSender, 'Publication must use the same native camera track that was previewed');
+  if (client.selection.retainedMicrophoneMatches) {
+    assert.deepEqual(evidence.captures, [], 'Publishing the matching retained camera and microphone must not open any new capture');
+    assert.ok(evidence.sameMicrophoneSender, 'Publication must use the same native microphone track retained during selection');
+  } else {
+    // Some browsers expose a selector alias absent from the initial track's
+    // settings. Such an explicit source choice must be acquired by exact ID.
+    assert.deepEqual(evidence.captures, [{ audio: true, video: false, result: 'success' }],
+      'An unmatched microphone alias may open only its own audio capture; the working camera must never reopen');
+    assert.ok(evidence.requestedSelectedMicrophone && evidence.replacementMicrophoneSender,
+      'The audio-only acquisition must request the selected device exactly and supply the actual publishing track');
+  }
+  check(`${client.data.name}: published retained synthetic camera and microphone`, evidence);
 }
 
 async function snapshot(client) {
@@ -288,18 +358,18 @@ function totals(snapshot) {
 async function waitMedia(client, relay = false) {
   const deadline = Date.now() + 45000;
   let measurement;
+  let relayProven = !relay;
   do {
     measurement = await snapshot(client);
     const values = totals(measurement);
-    if (values.outboundVideoFrames > 10 && values.inboundVideoFrames > 10 && values.outboundAudioBytes > 1000 && values.inboundAudioBytes > 1000 && values.inboundAudioEnergy > 0 && measurement.videos.filter(video => video.width > 0 && !video.paused).length >= 2) {
-      if (relay) {
-        const active = measurement.connections.filter(connection => connection.connectionState === 'connected' && connection.stats.some(entry => ['inbound-rtp', 'outbound-rtp'].includes(entry.type) && (entry.bytesSent > 0 || entry.bytesReceived > 0)));
-        assert.ok(active.length >= 2, 'Publisher and subscriber connections must both be active');
-        active.forEach(connection => {
-          assert.equal(connection.iceTransportPolicy, 'relay');
-          assert.ok(connection.selected.length > 0 && connection.selected.every(pair => pair.local?.candidateType === 'relay'), 'Every active media connection must have a selected TURN relay pair');
-        });
-      }
+    if (relay) {
+      const active = measurement.connections.filter(connection => connection.connectionState === 'connected' && connection.stats.some(entry => ['inbound-rtp', 'outbound-rtp'].includes(entry.type) && (entry.bytesSent > 0 || entry.bytesReceived > 0)));
+      // RTP can arrive while a nominated pair is still transitioning through
+      // in-progress. Wait for the same strict proof within the existing deadline.
+      relayProven = active.length >= 2 && active.every(connection => connection.iceTransportPolicy === 'relay'
+        && connection.selected.length > 0 && connection.selected.every(pair => isTurnRelayPair(connection, pair)));
+    }
+    if (relayProven && values.outboundVideoFrames > 10 && values.inboundVideoFrames > 10 && values.outboundAudioBytes > 1000 && values.inboundAudioBytes > 1000 && values.inboundAudioEnergy > 0 && measurement.videos.filter(video => video.width > 0 && !video.paused).length >= 2) {
       check(`${client.data.name}: bidirectional ${relay ? 'TURN relay ' : ''}audio/video`, values);
       (client.data.measurements ||= []).push({ name: 'initial-media', snapshot: measurement });
       return measurement;
@@ -307,6 +377,7 @@ async function waitMedia(client, relay = false) {
     await new Promise(resolve => setTimeout(resolve, 1000));
   } while (Date.now() < deadline);
   client.data.lastMediaSnapshot = measurement;
+  if (!relayProven) throw new Error(`${client.data.name}: selected TURN relay pairs were not proven before the media deadline: ${JSON.stringify(totals(measurement))}`);
   throw new Error(`${client.data.name}: media did not flow in both directions: ${JSON.stringify(totals(measurement))}`);
 }
 
@@ -468,13 +539,21 @@ async function networkOutage(alice, bob, room) {
 async function deniedPermission(room) {
   const client = await createClient('DeniedCamera', room);
   const dialog = await chooseVideo(client);
+  // End retained devices deliberately so the next publish must request native
+  // permission again; already-authorized live tracks legitimately need no prompt.
+  await client.page.evaluate(() => {
+    for (const stream of window.__mediaSmoke.streams) stream.getTracks().forEach(track => track.stop());
+  });
+  const denialStart = await client.page.evaluate(() => window.__mediaSmoke.mediaRequests.length);
   await client.context.grantPermissions(['microphone'], { origin });
-  await dialog.locator('button.mediaSources__SourceWrapper').first().click();
+  await dialog.locator('button.mediaSources__SourceWrapper').nth(client.selection.microphoneIndex).click();
   await client.page.getByText('Camera or microphone permission was denied. Allow access in your browser and try again.', { exact: true }).waitFor();
   await dialog.waitFor({ state: 'hidden' });
   await client.page.waitForFunction(() => [...document.querySelectorAll('button')].some(button => button.textContent.includes('Start Broadcasting') && !button.disabled));
   const measurement = await snapshot(client);
-  assert.ok(measurement.mediaRequests.some(request => request.result === 'NotAllowedError'));
+  const deniedCaptures = measurement.mediaRequests.slice(denialStart);
+  assert.ok(deniedCaptures.some(request => request.constraints.video && request.result === 'NotAllowedError'),
+    'Expired retained camera tracks must trigger a fresh native capture and real camera-permission rejection');
   assert.equal(totals(measurement).outboundVideoBytes, 0);
   assert.ok(measurement.captureTracks.length > 0 && measurement.captureTracks.every(track => track.readyState === 'ended'), 'Denied publish must leave no live permission-check or preview capture tracks');
   check('Denied camera: real getUserMedia rejection and UI cleanup', { results: measurement.mediaRequests.map(request => request.result), captureTracks: measurement.captureTracks });

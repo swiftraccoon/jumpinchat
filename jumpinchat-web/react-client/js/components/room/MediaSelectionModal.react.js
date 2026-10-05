@@ -10,7 +10,8 @@ import {
 import { setBroadcastQuality } from '../../actions/UserActions';
 import { setClientAudioPtt, setDefaultAudioPtt } from '../../actions/CamActions';
 import { saveBroadcastQuality } from '../../utils/UserAPI';
-import { publish } from '../../utils/CamUtil';
+import { publish, cancelPublish } from '../../utils/CamUtil';
+import { pinSelectionVideo } from '../../utils/mediaSelectionCapture';
 import MediaSource from './MediaSource.react';
 import ScrollArea from '../elements/ScrollArea.react';
 import Switch from '../elements/Switch.react';
@@ -55,7 +56,7 @@ class MediaSelectionModal extends Component {
       this.setDefaultAudioPtt(forcePtt);
     }
 
-    if (selectedDevices.audio && selectedDevices.audio !== prevSelectedDevices.audio) {
+    if (open && selectedDevices.audio && selectedDevices.audio !== prevSelectedDevices.audio) {
       trackEvent('MediaSelect', 'publishing media');
       this.setMediaSelectionModalLoading(true);
       this.publish(videoQuality, selectedDevices.video, selectedDevices.audio, !audioPtt);
@@ -63,12 +64,12 @@ class MediaSelectionModal extends Component {
   }
 
   selectDevice(deviceId, type) {
+    // Pin before dispatch: the video-to-audio transition unmounts previews.
+    if (type === 'video') pinSelectionVideo(deviceId);
     this.setMediaDeviceId(deviceId, type);
 
     if (type === 'video') {
       this.setMediaSelectionModalType('audio');
-    } else {
-      this.setMediaSelectionModalType('video');
     }
   }
 
@@ -81,7 +82,7 @@ class MediaSelectionModal extends Component {
   }
 
   closeModal() {
-    this.setMediaSelectionModalType('video');
+    cancelPublish();
     this.setMediaSelectionModal(false);
   }
 
@@ -109,6 +110,7 @@ class MediaSelectionModal extends Component {
           <button
             type="button"
             className="modal__Button modal__Button-close"
+            aria-label="Cancel media selection"
             onClick={this.closeModal}
           >
             <i className="fa fa-times" />
@@ -116,11 +118,15 @@ class MediaSelectionModal extends Component {
         </div>
         <div className="modal__Body modal__Body--noPadding">
           {modal.loading && (
-            <div className="modal__LoadingContainer">
+            <div className="modal__LoadingContainer" role="status" aria-live="polite">
               <Loading
-                title="Loading&hellip;"
+                title={modal.loadingMessage || 'Starting broadcast…'}
                 loading
               />
+              <p className="modal__SubText">
+                Check for a camera or microphone permission prompt in your browser.
+                You can cancel with the × button above.
+              </p>
             </div>
           )}
           {!modal.loading && (
@@ -290,6 +296,7 @@ MediaSelectionModal.propTypes = {
     }),
     mediaType: PropTypes.string,
     loading: PropTypes.bool,
+    loadingMessage: PropTypes.string,
   }).isRequired,
   forcePtt: PropTypes.bool.isRequired,
   error: PropTypes.shape({

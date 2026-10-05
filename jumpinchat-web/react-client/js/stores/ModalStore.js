@@ -37,6 +37,7 @@ export class ModalStore extends Store {
     this.mediaSelectionModal = {
       open: false,
       loading: false,
+      loadingMessage: '',
       mediaType: 'video',
       deviceList: {
         video: [],
@@ -110,17 +111,27 @@ export class ModalStore extends Store {
 
   setMediaSelectionModal(open) {
     this._modalError = null;
+    const resetSelection = !open || !this.mediaSelectionModal.open;
     this.mediaSelectionModal = {
       ...this.mediaSelectionModal,
       open,
+      // Reset when hidden or beginning a new selection. Switching back to video
+      // before closing remounts previews alongside the publication capture.
+      ...(resetSelection ? {
+        loading: false,
+        loadingMessage: '',
+        mediaType: 'video',
+        selectedDevices: { video: null, audio: null },
+      } : {}),
     };
   }
 
-  setMediaSelectionLoading(loading) {
+  setMediaSelectionLoading(loading, loadingMessage = '') {
     this._modalError = null;
     this.mediaSelectionModal = {
       ...this.mediaSelectionModal,
       loading,
+      loadingMessage: loading ? loadingMessage : '',
     };
   }
 
@@ -257,7 +268,7 @@ ModalDispatcher.register((payload) => {
       break;
 
     case MEDIA_MODAL_LOADING:
-      modalStore.setMediaSelectionLoading(action.loading);
+      modalStore.setMediaSelectionLoading(action.loading, action.loadingMessage);
       break;
 
     case SET_JOIN_CONDITION_MODAL:

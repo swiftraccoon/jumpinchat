@@ -6,6 +6,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { publish } from '../../utils/CamUtil';
 import { setModalError } from '../../actions/ModalActions';
 import {
+  getMediaSelection,
+  isMediaSelectionCurrent,
+  getSelectionPreview,
+  retainSelectionStream,
+  releaseSelectionPreview,
+} from '../../utils/mediaSelectionCapture';
+import {
   defaultVideoConstraints,
   getVideoConstraints,
 } from '../../constants/MediaConstants';
@@ -64,7 +71,8 @@ class MediaSource extends Component {
   componentWillUnmount() {
     this.disposed = true;
     this.mediaGeneration += 1;
-    MediaSource.destroyStream(this.stream);
+    if (this.selection) releaseSelectionPreview(this.selection, this.stream);
+    else MediaSource.destroyStream(this.stream);
     this.stream = null;
   }
 
@@ -76,18 +84,41 @@ class MediaSource extends Component {
     const { isGold, videoQuality, type, device } = this.props;
     if (type !== 'video' || !this.video) return null;
     const generation = ++this.mediaGeneration;
-    MediaSource.destroyStream(this.stream);
-    this.stream = null;
-    const constraints = isGold ? getVideoConstraints(videoQuality) : defaultVideoConstraints;
+    const selection = getMediaSelection();
+    this.selection = selection;
+    if (!selection) {
+      MediaSource.destroyStream(this.stream);
+      this.stream = null;
+    }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: { deviceId: { exact: device.deviceId }, ...constraints },
-      });
+      const constraints = isGold ? getVideoConstraints(videoQuality) : defaultVideoConstraints;
+      let stream = selection ? await getSelectionPreview(selection, device.deviceId, constraints) : null;
+      if (!stream) {
+        if (selection && !isMediaSelectionCurrent(selection)) return null;
+        if (this.disposed || generation !== this.mediaGeneration) return null;
+        const request = { audio: false, video: { deviceId: { exact: device.deviceId }, ...constraints } };
+        if (selection) {
+          // Quality changes during an outstanding capture configure its result;
+          // they must not open this physical camera a second time.
+          if (!this.pendingCapture) {
+            this.pendingCapture = navigator.mediaDevices.getUserMedia(request)
+              .then(captured => retainSelectionStream(selection, captured, request))
+              .finally(() => { this.pendingCapture = null; });
+          }
+          if (!await this.pendingCapture || !isMediaSelectionCurrent(selection)) return null;
+          stream = await getSelectionPreview(selection, device.deviceId, constraints);
+          if (!stream) return null;
+        } else {
+          stream = await navigator.mediaDevices.getUserMedia(request);
+        }
+      }
       if (this.disposed || generation !== this.mediaGeneration) {
-        MediaSource.destroyStream(stream);
+        if (!selection) MediaSource.destroyStream(stream);
+        else releaseSelectionPreview(selection, stream);
         return null;
       }
+      if (selection && !isMediaSelectionCurrent(selection)) return null;
+      if (selection && this.stream && this.stream !== stream) releaseSelectionPreview(selection, this.stream);
       this.stream = stream;
       if (this.video) this.video.srcObject = stream;
       this.setState({ error: null });
@@ -122,6 +153,8 @@ class MediaSource extends Component {
         type="button"
         className="mediaSources__SourceWrapper"
         title={device.label}
+        disabled={type === 'video' && Boolean(device.deviceId)
+          && (!this.stream || this.stream.getVideoTracks?.().every(track => track.readyState === 'ended'))}
         onClick={this.onSelectDevice}
       >
         {type === 'video' && !device.deviceId && (
@@ -138,6 +171,7 @@ class MediaSource extends Component {
             ref={(e) => { this.video = e; }}
             autoPlay
             playsInline
+            muted
           />
         )}
 

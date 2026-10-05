@@ -71,7 +71,9 @@
 
   &__LoadingContainer {
     display: flex;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
     min-width: 33em;
     min-height: 33em;
   }

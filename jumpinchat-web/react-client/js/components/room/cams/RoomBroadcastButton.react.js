@@ -12,6 +12,13 @@ import {
 } from '../../../actions/ModalActions';
 
 import { setCanBroadcast } from '../../../actions/CamActions';
+import { defaultVideoConstraints } from '../../../constants/MediaConstants';
+import {
+  beginMediaSelection,
+  isMediaSelectionCurrent,
+  retainSelectionStream,
+  cancelMediaSelection,
+} from '../../../utils/mediaSelectionCapture';
 
 class RoomBroadcastButton extends Component {
   static removeDuplicates(myArr, prop) {
@@ -43,34 +50,51 @@ class RoomBroadcastButton extends Component {
     }
   }
 
+  componentWillUnmount() {
+    clearTimeout(this.selectionTimer);
+    if (this.selection) cancelMediaSelection(this.selection);
+  }
+
   async _startLocalStream() {
     const {
       roomName,
     } = this.props;
 
+    clearTimeout(this.selectionTimer);
+    const selection = beginMediaSelection();
+    this.selection = selection;
     this.setMediaSelectionModal(true);
-    this.setMediaSelectionModalLoading(true);
+    this.setMediaSelectionModalLoading(true, 'Requesting camera and microphone…');
+    this.selectionTimer = setTimeout(() => {
+      if (!isMediaSelectionCurrent(selection)) return;
+      cancelMediaSelection(selection);
+      this.setMediaSelectionModalLoading(false);
+      setModalError({ message: 'Device access timed out. Close this dialog and try again.' });
+    }, 30000);
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: true,
-      });
-
-      stream.getAudioTracks().forEach(track => track.stop());
-      stream.getVideoTracks().forEach(track => track.stop());
+      const constraints = { audio: true, video: defaultVideoConstraints };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      // Keep the granted sources alive through selection. The microphone is
+      // disabled by the owner, and previews receive video-only streams.
+      retainSelectionStream(selection, stream, constraints);
     } catch (err) {
+      if (!isMediaSelectionCurrent(selection)) return;
       console.error({ err }, 'failed to get user media');
     }
+    if (!isMediaSelectionCurrent(selection)) return;
 
     this.checkCanBroadcast(roomName, async (err, canBroadcast) => {
+      if (!isMediaSelectionCurrent(selection)) return;
       if (err) {
+        clearTimeout(this.selectionTimer);
         this.setMediaSelectionModalLoading(false);
         this.setMediaSelectionModal(false);
         return false;
       }
 
       if (!canBroadcast) {
+        clearTimeout(this.selectionTimer);
         this.setMediaSelectionModalLoading(false);
         this.setMediaSelectionModal(false);
         return false;
@@ -78,9 +102,14 @@ class RoomBroadcastButton extends Component {
 
       try {
         const devices = await RoomBroadcastButton.getMediaDevices();
+        if (!isMediaSelectionCurrent(selection)) return;
+        clearTimeout(this.selectionTimer);
         this.setMediaSelectionModalLoading(false);
         this.setMediaSelectionModal(true, RoomBroadcastButton.removeDuplicates(devices, 'deviceId'));
       } catch (err) {
+        if (!isMediaSelectionCurrent(selection)) return;
+        clearTimeout(this.selectionTimer);
+        cancelMediaSelection(selection);
         this.setMediaSelectionModalLoading(false);
         setModalError(err);
       }

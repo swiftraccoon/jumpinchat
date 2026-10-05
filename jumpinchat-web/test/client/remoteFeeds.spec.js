@@ -89,6 +89,10 @@ describe('remote subscriber lifecycle', () => {
         ? { token: 'fixture' } : url.includes('turn') ? { uris: [] } : [] }) },
       'janus-gateway': Janus, 'webrtc-adapter': {},
       './mediaRecovery': createMediaRecovery,
+      './mediaSelectionCapture': {
+        cancelMediaSelection() {},
+        takeSelectionTracks: () => ({ audioTrack: null, videoTrack: null, ready: Promise.resolve() }),
+      },
       '../stores/CamStore/CamStore': { getState: () => ({ camsDisabled: false, allFeedsHd: true }) },
       '../actions/CamActions': actions, './RoomAPI': actions,
       '../actions/NotificationActions': actions, '../actions/ModalActions': actions,
