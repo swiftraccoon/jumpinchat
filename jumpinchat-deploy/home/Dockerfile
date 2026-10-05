@@ -1,4 +1,4 @@
-FROM docker.io/library/node:24.21.0-trixie@sha256:be40f6a87b9b22215ddb20da0a2320a5c6d583fe3ee3b0024d9fa4f05b40c8fd AS builder
+FROM docker.io/library/node:26.10.0-trixie@sha256:a723b54c35a76e947095a20a67d39585bb09c862e6b1adeb8a9f518f95e34fb0 AS builder
 
 RUN npm install --global npm@12.2.0 --ignore-scripts
 
@@ -16,7 +16,7 @@ COPY jumpinchat-homepage/ ./
 RUN node build.js
 RUN npm prune --omit=dev
 
-FROM docker.io/library/node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe
+FROM docker.io/library/node:26.10.0-trixie-slim@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1
 
 RUN npm install --global npm@12.2.0 --ignore-scripts
 
