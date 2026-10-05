@@ -1,4 +1,4 @@
-# Stripe 22 payment migration
+# Stripe 23 payment migration
 
 This change updates hosted Checkout, subscription details, saved-card changes,
 and fulfillment together. Deploy the homepage and web API from the same revision.
@@ -7,8 +7,15 @@ changed during development.
 
 ## API and account configuration
 
-The shared lazy client pins requests to `2026-08-26.dahlia`, the API version in
-Stripe SDK 22.6.1. An absent Stripe secret key leaves the chat application available
+The shared lazy client pins requests to `2026-09-30.endive`, the API version in
+Stripe SDK 23.0.0. SetupIntent creation now uses
+`allowed_payment_method_types: ['card']` instead of the removed
+`payment_method_types` parameter, preserving the card-only saved-payment flow.
+This source migration does not change the Stripe account or webhook endpoint
+version; validate the configured account in test mode before enabling payments.
+See the [Endive parameter migration](https://docs.stripe.com/changelog/endive/2026-09-30/removes-the-payment-method-types-parameter-from-payment-intents-and-setup-intents).
+
+An absent Stripe secret key leaves the chat application available
 and returns 503 from payment routes. An absent webhook signing key returns 503
 from the webhook; configure both keys before reopening checkout.
 

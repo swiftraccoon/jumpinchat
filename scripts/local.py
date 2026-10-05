@@ -251,11 +251,13 @@ def generate_tls(tls, log):
     private_write(tls / 'server.ext', 'basicConstraints=critical,CA:FALSE\n'
                   'keyUsage=critical,digitalSignature,keyEncipherment\n'
                   'extendedKeyUsage=serverAuth\n'
+                  'subjectKeyIdentifier=hash\n'
+                  'authorityKeyIdentifier=keyid,issuer\n'
                   'subjectAltName=DNS:localhost,IP:127.0.0.1\n')
     run(['openssl', 'x509', '-req', '-in', tls / 'server.csr', '-CA', ca_cert,
          '-CAkey', ca_key, '-CAcreateserial', '-days', '365', '-sha256',
          '-extfile', tls / 'server.ext', '-out', tls / 'cert.pem'], log)
-    run(['openssl', 'verify', '-CAfile', ca_cert, '-purpose', 'sslserver',
+    run(['openssl', 'verify', '-x509_strict', '-CAfile', ca_cert, '-purpose', 'sslserver',
          '-verify_hostname', 'localhost', tls / 'cert.pem'], log)
     private_write(tls / 'fullchain.pem', (tls / 'cert.pem').read_text() + ca_cert.read_text())
     run(['openssl', 'genpkey', '-genparam', '-algorithm', 'DH', '-pkeyopt', 'group:ffdhe2048',

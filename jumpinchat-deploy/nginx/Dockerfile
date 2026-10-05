@@ -1,4 +1,4 @@
-FROM docker.io/library/nginx:stable@sha256:d5792f71a9496b833bc08ea834a758c46e2b6a6306c10f4be926f38a656cdc1c
+FROM docker.io/library/nginx:1.30.5@sha256:b972f831f200b19ef0767938224f9711e74cd783718738cd7405d5cabf75c442
 
 RUN apt-get update > /dev/null && \
     apt-get install -y -qq \

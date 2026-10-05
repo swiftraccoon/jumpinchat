@@ -1,5 +1,8 @@
 # Secrets and credentials
 .npmrc
+!jumpinchat-web/.npmrc
+!jumpinchat-homepage/.npmrc
+!jumpinchat-email/.npmrc
 .env
 *.pem
 

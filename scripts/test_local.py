@@ -280,7 +280,7 @@ class LocalProfileTests(unittest.TestCase):
         with (self.directory / 'tls-test.log').open('w') as log:
             launcher.generate_tls(tls, log)
         for option, name in (('-verify_hostname', 'localhost'), ('-verify_ip', '127.0.0.1')):
-            result = subprocess.run(['openssl', 'verify', '-CAfile', str(tls / 'ca.pem'),
+            result = subprocess.run(['openssl', 'verify', '-x509_strict', '-CAfile', str(tls / 'ca.pem'),
                                      '-purpose', 'sslserver', option, name, str(tls / 'cert.pem')],
                                     capture_output=True, text=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)

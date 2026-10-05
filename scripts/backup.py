@@ -17,6 +17,21 @@ DEPLOY = Path(__file__).resolve().parent.parent / 'jumpinchat-deploy'
 ARCHIVES = ('database.archive.gz', 'uploads.tar.gz')
 
 
+def validate_mongodb_state(mongo):
+    """Allow completed 8.3/9.0 and 9.0's explicit FCV8.3 burn-in state.
+
+    A transitional dump still records the actual binary and FCV; it is not a
+    claim that the migration is complete or safe to restore into an older binary.
+    """
+    version = mongo.get('version', '')
+    match = re.fullmatch(r'(8\.3|9\.0)\.\d+', version) if isinstance(version, str) else None
+    allowed = {'8.3': {'8.3'}, '9.0': {'8.3', '9.0'}}
+    if not match or mongo.get('fcv') not in allowed[match.group(1)]:
+        raise ValueError('Unsupported MongoDB server/FCV state; require 8.3/FCV8.3 or 9.0/FCV8.3 or FCV9.0. Follow RECOVERY.md')
+    if any(mongo.get(key) for key in ('targetVersion', 'previousVersion')):
+        raise ValueError('MongoDB FCV change is still in progress; finish or recover it before backup')
+
+
 def run(args, output=None, timeout=None):
     try:
         result = subprocess.run(args, cwd=DEPLOY, stdout=output or subprocess.PIPE,
@@ -139,11 +154,10 @@ def backup(args):
     # Record format compatibility before stopping writers. A dump is not a
     # shortcut past the supported MongoDB server/FCV upgrade sequence.
     mongo = json.loads(run(compose + ['exec', '-T', 'mongodb', 'mongosh', '--quiet',
-        '--eval', 'print(JSON.stringify({version: db.version(), fcv: '
-        'db.adminCommand({getParameter: 1, featureCompatibilityVersion: 1})'
-        '.featureCompatibilityVersion.version}))']))
-    if not mongo.get('version', '').startswith('8.3.') or mongo.get('fcv') != '8.3':
-        raise ValueError('Finish the MongoDB 8.3/FCV migration first; use the recorded old revision to back up an older deployment')
+        '--eval', 'const state = db.adminCommand({getParameter: 1, featureCompatibilityVersion: 1})'
+        '.featureCompatibilityVersion; print(JSON.stringify({version: db.version(), fcv: state.version, '
+        'targetVersion: state.targetVersion, previousVersion: state.previousVersion}))']))
+    validate_mongodb_state(mongo)
     mongo['database_tools'] = run(compose + ['exec', '-T', 'mongodb', 'mongodump', '--version']).splitlines()[0]
     # Refuse an existing destination, including incomplete backups.
     args.directory.mkdir(mode=0o700, parents=False, exist_ok=False)

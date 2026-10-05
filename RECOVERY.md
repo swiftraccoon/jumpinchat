@@ -66,8 +66,12 @@ A successful directory contains two archives and a checksummed version-2 manifes
 The manifest records the source MongoDB version, FCV and Database Tools version.
 Checksum verification also accepts older version-1 manifests, but those lack the
 version metadata: recover the recorded original server/tool versions separately.
-Restore archives to a compatible server release; do not assume an old dump can
-be imported directly into 8.3.
+Restore archives to the recorded compatible server release; do not assume an old
+dump can be imported directly into 9.0. Creation supports completed 8.3/FCV8.3,
+9.0/FCV9.0, and the deliberate 9.0-binary/FCV8.3 burn-in state. It refuses an
+in-progress FCV change. Burn-in backups record the actual binary and FCV rather
+than claiming the migration is complete; restore them on the recorded 9.0 binary,
+not an 8.3 binary. Checksumming an archive does not establish version compatibility.
 
 If a command fails, preserve the output for diagnosis; an incomplete directory must
 not be treated as a backup. Check application health after the command, including
@@ -81,7 +85,8 @@ source project, database URI, upload volume, or S3 bucket.
 
 1. On a separate host/VM, check out the recorded application revision. Prepare
    fresh configuration and TLS material using the recorded compatible database
-   release and tools (8.3 for current backups). Keep outbound email/payments disabled
+   release and tools (9.0 for new default deployments, 8.3 for pre-upgrade backups).
+   Keep outbound email/payments disabled
    and restrict ingress. Copy the backup to this host and run `backup.py verify`.
 2. Use a new Compose project, for example `jic-restore`, **and a separate checkout
    with empty `jumpinchat-deploy/data/` directories**. A project name alone does
@@ -178,7 +183,8 @@ S3 backups.
 
 ## Upgrade an existing MongoDB 4.4 deployment
 
-This checkout targets MongoDB 8.3. Its startup wrapper checks
+Older deployments must first complete the supported path to MongoDB 8.3 before
+the 9.0 procedure below. The startup wrapper checks
 `data/db/.jic-mongodb-series` (and `data/db2` for the second full-profile member).
 It creates the marker only for an empty directory. An existing unmarked directory
 is refused before `mongod` can open it. Never remove database files to bypass this
@@ -188,7 +194,7 @@ check, and never mark a 4.4 directory as 8.3.
    replica-set membership, application revision and data paths. Keep the recorded
    old revision and image digests available. Use that revision's matching tools
    to take a coordinated backup of the database and public/private uploads. The
-   new backup tool expects a completed 8.3 migration. Verify a restore into an
+   new backup tool does not accept pre-8.3 servers. Verify a restore into an
    isolated copy using the original database release before upgrading anything.
 2. Rehearse on copies on a separate host/VM with enough free disk space. A new
    Compose project name alone does not isolate the `data/db` bind mount. Do not
@@ -219,11 +225,16 @@ check, and never mark a 4.4 directory as 8.3.
    and write the line `8.3` to `.jic-mongodb-series` in each migrated data directory,
    preserving directory ownership. This marker records completed operator
    verification; writing it does not perform or validate a migration itself.
-7. Start the guarded 8.3 services from this checkout and confirm replica health,
+7. Start guarded services with the explicitly pinned 8.3 image, not this checkout's
+   default 9.0 image, and confirm replica health,
    then start app writers and check readiness, login and persisted data. Retain
    the original backup and recorded old software. Rollback after writes or FCV
    changes is a restore/cutover decision; never point an old binary at the
    upgraded data directory.
+
+For lite deployments `compose.mongo-8.3.yml` selects 8.3.11. Full deployments need
+that same reviewed 8.3 image on **both** database services while completing these
+steps. After validating the 8.3 deployment, continue with the procedure below.
 
 Release procedures: [5.0](https://www.mongodb.com/docs/v5.0/release-notes/5.0-upgrade-replica-set/),
 [6.0](https://www.mongodb.com/docs/v6.0/release-notes/6.0-upgrade-replica-set/),
@@ -231,11 +242,147 @@ Release procedures: [5.0](https://www.mongodb.com/docs/v5.0/release-notes/5.0-up
 [8.0](https://www.mongodb.com/docs/v8.0/release-notes/8.0-upgrade-replica-set/), and
 [8.0 to 8.3](https://www.mongodb.com/docs/manual/release-notes/8.3-upgrade-from-8.0-replica-set/).
 
+## Upgrade MongoDB 8.3 to 9.0
+
+This is an operator-controlled, persistent-data migration, not an ordinary image
+refresh. The official [8.3 replica-set upgrade procedure](https://www.mongodb.com/docs/manual/release-notes/9.0-upgrade-replica-set/)
+requires FCV8.3 and a compatible driver. Review the
+[9.0 compatibility changes](https://www.mongodb.com/docs/manual/release-notes/9.0-compatibility/)
+and verify application driver support. Keep the old application/image digests,
+configuration, TLS files, coordinated database/upload backup and an off-host copy.
+Do not prune old images or remove the original database files.
+
+Rehearse **before production** on an isolated restored 8.3 deployment with fresh
+volumes, no provider access and a different project/network. Compare collection
+documents and indexes, then run the application, media and recovery checks.
+`python3 scripts/test-mongodb-upgrade.py --help` describes the disposable synthetic
+guard/FCV/dump-restore test; it does not replace rehearsing the actual backup.
+The full `scripts/ci-deployment.py` rehearsal separately verifies a fresh 9.0
+application and its restored account/room/upload/chat/media behavior.
+
+### Single-member lite replica set
+
+The supplied overrides are **lite-only**. A single-member set cannot use a rolling
+upgrade to avoid downtime. A full two-member deployment also loses its voting
+majority if either member stops; arrange a topology-specific maintenance plan
+and apply the per-member guard protocol deliberately, not the lite override.
+
+Run from `jumpinchat-deploy/`. Substitute the **existing** project and append all
+its normal deployment override files to the array before the migration-specific
+override. Keep the same data mounts and replica-set identity. Never run `down -v`.
+These commands use Docker; Podman operators should use the matching Compose CLI
+and ownership handling after the same rehearsal.
+
+```bash
+set -euo pipefail
+jic_project=YOUR_EXISTING_PROJECT
+jic_compose=(docker compose -p "$jic_project" -f compose.lite.yml)
+# Append the installation's ordinary override file(s) here, if applicable.
+```
+
+After each database start, wait with a bounded readiness poll until `mongosh`
+connects and `db.hello().isWritablePrimary` is true before running the assertions
+below. A newly started process may not yet be PRIMARY. Treat a failed assertion
+or readiness deadline as a stop condition; inspect the database logs and do not
+advance the migration marker or FCV.
+
+1. Take and verify the coordinated pre-upgrade backup using `scripts/backup.py`
+   and the actual project/configuration; rehearse its restore into 8.3 first.
+   The backup command only inspects/executes existing database containers; the
+   default Compose image does not change the running binary. Stop all writers
+   for migration, including external writers, and keep them stopped through the
+   initial database transition. Account for interrupted chats/calls.
+
+   ```bash
+   "${jic_compose[@]}" stop web home
+   "${jic_compose[@]}" -f compose.mongo-8.3.yml up -d --no-deps mongodb
+   "${jic_compose[@]}" exec -T mongodb mongosh --quiet --eval '
+     const assert = require("node:assert/strict");
+     assert.equal(db.version(), "8.3.11");
+     const f = db.adminCommand({getParameter: 1, featureCompatibilityVersion: 1}).featureCompatibilityVersion;
+     assert.equal(f.version, "8.3"); assert.ok(!f.targetVersion && !f.previousVersion);
+     const r = rs.status(); assert.equal(r.members.length, 1); assert.equal(r.members[0].stateStr, "PRIMARY");
+   '
+   ```
+
+   The same-series patch must succeed before proceeding. If this preflight fails,
+   stop and resolve it; changing a marker does not repair FCV or replica state.
+   Record a fresh verified backup after the patch if the rehearsal requires it.
+
+2. Stop 8.3 cleanly and select the explicit migration override. It requires a
+   completed `8.3` marker and a real 9.0 binary. **Before** launching that binary,
+   it writes `9.0-pending-fcv`; it does not write a completed `9.0` marker.
+
+   ```bash
+   "${jic_compose[@]}" stop mongodb
+   "${jic_compose[@]}" -f compose.mongo-upgrade.yml up -d --no-deps mongodb
+   "${jic_compose[@]}" exec -T mongodb mongosh --quiet --eval '
+     const assert = require("node:assert/strict");
+     assert.equal(db.version(), "9.0.2");
+     const f = db.adminCommand({getParameter: 1, featureCompatibilityVersion: 1}).featureCompatibilityVersion;
+     assert.equal(f.version, "8.3"); assert.ok(!f.targetVersion && !f.previousVersion);
+     assert.equal(db.hello().isWritablePrimary, true);
+   '
+   ```
+
+   Run the rehearsed data, index and application checks with FCV8.3 retained.
+   A controlled application burn-in may resume writers only after database
+   readiness passes; keep this migration override for any database restart.
+   A failed/interrupted launch retains the pending marker and can resume with
+   the same 9.0 migration override. Normal 8.3 and 9.0 entrypoints both refuse
+   pending data. **Never restore the old marker or launch 8.3 on this directory.**
+
+3. Once the burn-in is accepted, stop writers again. Verify a 9.0-binary/FCV8.3
+   backup and the recovery plan before enabling incompatible 9.0 features.
+   Set FCV and verify the completed state:
+
+   ```bash
+   "${jic_compose[@]}" stop web home
+   "${jic_compose[@]}" exec -T mongodb mongosh --quiet --eval '
+     const assert = require("node:assert/strict");
+     assert.equal(db.adminCommand({setFeatureCompatibilityVersion: "9.0", confirm: true}).ok, 1);
+     const f = db.adminCommand({getParameter: 1, featureCompatibilityVersion: 1}).featureCompatibilityVersion;
+     assert.equal(db.version(), "9.0.2"); assert.equal(f.version, "9.0");
+     assert.ok(!f.targetVersion && !f.previousVersion); assert.equal(db.hello().isWritablePrimary, true);
+   '
+   "${jic_compose[@]}" stop mongodb
+   ```
+
+4. Only after that verification and clean shutdown, record completion in the
+   stopped container's exact data volume. The helper runs without networking and
+   refuses anything other than the pending marker; writing the existing file
+   preserves its ownership. The container ID is resolved from the explicit project.
+
+   ```bash
+   jic_mongo=$("${jic_compose[@]}" ps -a -q mongodb)
+   test -n "$jic_mongo"
+   test "$(docker inspect --format '{{.State.Running}}' "$jic_mongo")" = false
+   docker run --rm --pull=never --network=none --volumes-from "$jic_mongo" \
+     --entrypoint /bin/bash \
+     docker.io/library/mongo:9.0.2@sha256:bac22ea7710d774103dcad3ec8ac13cba1eb378f488e3ce8a6b3a1adf2ba9dcc \
+     -ceu 'test "$(cat /data/db/.jic-mongodb-series)" = 9.0-pending-fcv; printf "%s\n" 9.0 > /data/db/.jic-mongodb-series'
+   "${jic_compose[@]}" up -d --no-deps mongodb
+   ```
+
+   Remove the migration-specific override from future startup commands; keep all
+   ordinary installation overrides. Verify binary 9.0.2, FCV 9.0 and PRIMARY again,
+   then resume the recorded application writers. Check readiness, original login,
+   room ownership/settings, uploads, chat and live media. Take a fresh coordinated
+   9.0 backup and verify its isolated restoration before declaring completion.
+
+Rollback after a 9.0 launch is a separate supported downgrade or restore/cutover
+decision. The pending marker is intentionally conservative even if startup fails.
+The safest recovery is the verified pre-upgrade 8.3 backup restored into **new**
+8.3 volumes with the recorded application revision. Later writes would be lost
+unless separately recovered. Follow MongoDB's downgrade constraints if choosing
+in-place downgrade; never point an old binary at the upgraded files or change a
+marker simply to make a refused startup proceed.
+
 ## Synthetic runtime and restore rehearsal
 
 After installing application dependencies and building the web/homepage assets,
 run this optional integration check from the repository root with Node 24 LTS,
-MongoDB 8.3, Redis 8.10.1 and Database Tools 100.18.0 binaries for the host:
+MongoDB 9.0.2, Redis 8.10.2 and matching supported Database Tools binaries for the host:
 
 ```bash
 node scripts/test-runtime.mjs \
@@ -264,5 +411,6 @@ minutes. Janus media and external email/payment services are disabled in this
 fixture. This test does not exercise Compose stop/start orchestration in
 `backup.py`, real operator backups, existing 4.4 data upgrades or live media.
 Review the current [versioning policy](https://www.mongodb.com/docs/manual/reference/versioning/)
-and compatibility changes before each migration. No script in this checkout runs
-that migration or deletes the prior data.
+and compatibility changes before each migration. No tool automatically migrates
+production or deletes prior data; the dedicated migration override is an explicit
+operator action governed by the procedure above.

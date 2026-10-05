@@ -1,0 +1,5 @@
+# LITE ONLY: same-series patch/pre-migration override. See RECOVERY.md.
+# Never use this override after the data has been opened by MongoDB 9.0.
+services:
+  mongodb:
+    image: docker.io/library/mongo:8.3.11@sha256:d731d77bfd7afd66bd487bdf627b5bf7ce4c3602ec461d635977021db529ebbc

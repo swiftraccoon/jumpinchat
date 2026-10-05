@@ -26,10 +26,13 @@ deployment instructions below when configuring a LAN or public server.
 
 ## Existing installations
 
-The data image is MongoDB 8.3. **Do not start it on a MongoDB 4.4 data directory.**
-The included entrypoint refuses an existing directory unless an operator has
-recorded the completed migration. Follow the staged migration in
-[RECOVERY.md](../RECOVERY.md#upgrade-an-existing-mongodb-44-deployment) first.
+The default data image is MongoDB 9.0.2. **An image update does not migrate an
+existing database.** Normal startup requires a completed marker matching the
+actual installed binary's series (8.3 or 9.0). An existing 8.3 installation must
+follow the [8.3 to 9.0 procedure](../RECOVERY.md#upgrade-mongodb-83-to-90) first;
+the lite-only `compose.mongo-8.3.yml` override retains the pinned 8.3.11 binary
+during preparation. Older 4.4 data needs the earlier staged procedure in
+[RECOVERY.md](../RECOVERY.md#upgrade-an-existing-mongodb-44-deployment).
 Database and upload directories are never removed by these scripts.
 
 The archived MinIO community service and its Compose profile have been retired.
@@ -39,7 +42,8 @@ upload volume before switching the application; see the storage section below.
 ## Fresh single-server deployment
 
 Run these commands from this directory after configuring secrets, `JANUS_NAT_IP`
-and TLS files. Empty database directories receive the 8.3 marker automatically.
+and TLS files. Empty database directories receive the 9.0 marker automatically.
+Do not use these fresh-install commands on existing 8.3 volumes.
 
 ```bash
 node ../scripts/init-env.mjs
@@ -67,28 +71,36 @@ Set `PUBLIC_BASE_URL` to the public HTTPS origin, including a nonstandard port i
 used, on both web and homepage services. Account emails, canonical/social links,
 sitemaps and room structured data use this value; the default is
 `https://jumpin.chat`. Paths, credentials, queries and fragments are rejected.
-For a custom hostname, configure the proxy's server names and matching TLS
-certificate as well. The proxy also accepts `localhost` and `127.0.0.1` for local
+For a custom hostname, set `NGINX_PUBLIC_HOSTNAME` in the nginx service environment
+and provide a matching TLS certificate. This value is a hostname without a scheme
+or port; `PUBLIC_BASE_URL` still includes `https://` and any nonstandard port.
+The proxy also accepts `localhost` and `127.0.0.1` for local
 HTTPS installations. When Stripe is absent, support pages explain availability
 and gift links do not offer an unusable checkout.
+
+The nginx service accepts `NGINX_REQUEST_RATE` to tune its shared per-client-IP
+request limit; the default is `2r/s`. For several browsers sharing one public IP,
+use a value such as `10r/s` to allow asset loading and media setup together.
+Values must be a positive integer up to 999999 followed by `r/s` or `r/m`.
 
 ## Runtime versions and builds
 
 | Component | Maintained release |
 |---|---|
-| Application and asset build | Node 24 LTS, matching Debian Trixie build/runtime |
-| Homepage | Node 24 LTS |
-| Email | Node 24 LTS |
-| Database | MongoDB 8.3 with `mongosh` and bundled Database Tools |
-| Cache/session bus | Redis 8.10.1 |
-| Media server | Janus 1.4.1 on Ubuntu 26.04 LTS |
+| Application and asset build | Node 24.21.0 LTS / npm 12.2.0, matching Debian Trixie build/runtime |
+| Homepage | Node 24.21.0 LTS / npm 12.2.0 |
+| Email | Node 24.21.0 LTS / npm 12.2.0 |
+| Database | MongoDB 9.0.2 with `mongosh` and bundled Database Tools; 8.3.11 migration override |
+| Cache/session bus | Redis 8.10.2 |
+| Media server | Janus 1.4.2 on Ubuntu 26.04 LTS |
 | Optional TURN relay | Upstream coturn 4.18 |
-| Local mail inbox | Mailpit 1.31.1 |
-| Reverse proxy / load balancer | Current stable nginx / HAProxy 3.4 |
+| Local mail inbox | Mailpit 1.31.4 |
+| Reverse proxy / load balancer | nginx 1.30.5 stable / HAProxy 3.4.6 LTS |
 
 Core deployment images are pinned by digest in Dockerfiles/Compose and recorded
-in `images.lock.json`. The local Mailpit pin lives in `local/Dockerfile` and is
-included in the weekly dependency-update configuration. Janus source is pinned
+in `images.lock.json`, including the local Mailpit image and intermediate MongoDB
+8.3.11 image. Mailpit's Dockerfile is also included in the weekly dependency-update
+configuration. Janus source is pinned
 by release and SHA-256. Its build uses
 Ubuntu's maintained OpenSSL, SRTP, libnice and WebSocket packages, compiling only
 VideoRoom, HTTP/WebSocket transports and HTTP event handling. Package repository
@@ -96,8 +108,11 @@ updates are intentionally consumed when rebuilding. Builds are not claimed to be
 byte-for-byte reproducible; schedule rebuilds and runtime smoke checks when pins
 or distro packages change.
 
-Application installs use the committed npm lockfiles with `npm ci`; incompatible
-peer dependencies fail the build. The web runtime copies from the matching Node
+Application images explicitly install npm 12.2.0 with its own lifecycle scripts
+disabled, then use committed lockfiles with `npm ci`. Each application's `.npmrc`
+is copied before installation: `strict-allow-scripts=true` enforces its reviewed,
+version-pinned `allowScripts` policy. Unreviewed install scripts and incompatible
+peer dependencies fail the build; do not bypass either check. The web runtime copies from the matching Node
 base instead of running a remote NodeSource installer. The old MongoDB 3.6,
 Python 2, Bower, and native crypto-library installation scripts are removed.
 
@@ -111,6 +126,8 @@ Python 2, Bower, and native crypto-library installation scripts are removed.
 | `compose.media.yml` | janus, janus2 |
 | `compose.data.yml` | mongodb, mongodbslave, redis |
 | `compose.email.yml` | email |
+| `compose.mongo-8.3.yml` | Lite-only pre-migration MongoDB 8.3.11 override |
+| `compose.mongo-upgrade.yml` | Lite-only explicit 8.3 → 9.0 pending-migration entrypoint |
 | `compose.turn.yml` | Optional TURN relay, with its own public address |
 | `docker-compose.yml` | Generated full deployment |
 
@@ -179,6 +196,11 @@ TLS certificates are mounted at runtime into nginx and Janus, so renewal does
 not require rebuilding an image. Replace the files, reload nginx and restart
 Janus during a media maintenance window. Preserve file ownership/read access in
 the container user namespace. Active calls are interrupted by Janus restarts.
+
+For ACME HTTP validation, mount the certificate client's webroot into nginx at
+`/var/www/acme`. Requests to `/.well-known/acme-challenge/` on port 80 serve files
+from that webroot; other HTTP paths redirect to HTTPS. A renewal hook must copy
+the renewed certificate and key to the mounted TLS files and reload the services.
 
 ## Verification
 

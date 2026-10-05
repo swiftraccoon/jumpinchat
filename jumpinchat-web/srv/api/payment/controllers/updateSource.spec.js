@@ -19,7 +19,7 @@ describe('SetupIntent payment method changes', () => {
   });
   it('creates an off-session card setup bound to the authenticated account and customer', async () => {
     await setup(req, res);
-    sinon.assert.calledWith(stripe.setupIntents.create, { customer: 'cus_1', usage: 'off_session', payment_method_types: ['card'], metadata: { userId: 'user_1' } });
+    sinon.assert.calledWithExactly(stripe.setupIntents.create, { customer: 'cus_1', usage: 'off_session', allowed_payment_method_types: ['card'], metadata: { userId: 'user_1' } });
     assert.equal(res.status.firstCall.args[0], 201);
     assert.deepEqual(res.send.firstCall.args[0], { clientSecret: 'fixture_client_secret' });
   });

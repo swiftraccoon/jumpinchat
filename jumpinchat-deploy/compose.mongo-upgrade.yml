@@ -1,0 +1,6 @@
+# LITE ONLY: deliberate 8.3 -> 9.0 migration, after backup and FCV8.3 preflight.
+# Keeps a pending marker until the operator verifies FCV9.0 and stops mongod.
+services:
+  mongodb:
+    image: docker.io/library/mongo:9.0.2@sha256:bac22ea7710d774103dcad3ec8ac13cba1eb378f488e3ce8a6b3a1adf2ba9dcc
+    entrypoint: ["/bin/bash", "/usr/local/bin/jic-mongodb-entrypoint.sh", "--upgrade-from-8.3"]

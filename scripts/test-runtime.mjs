@@ -167,9 +167,10 @@ try {
   await redis.connect();
   connections.push(() => redis.close());
   const serverVersion = (await mongo.db().admin().command({ buildInfo: 1 })).version;
-  assert.match(serverVersion, /^8\.3\./);
-  assert.match(await redis.info('server'), /redis_version:8\.10\.1/);
-  console.log(`Runtime: Node ${process.versions.node}, MongoDB ${serverVersion}, Redis 8.10.1`);
+  assert.match(serverVersion, /^9\.0\./);
+  const redisVersion = /redis_version:([^\r\n]+)/.exec(await redis.info('server'))?.[1];
+  assert.equal(redisVersion, '8.10.2');
+  console.log(`Runtime: Node ${process.versions.node}, MongoDB ${serverVersion}, Redis ${redisVersion}`);
 
   const paymentSuite = await execute(process.execPath, [
     '--loader=esmock', path.join(webPath, 'node_modules/mocha/bin/mocha.js'),

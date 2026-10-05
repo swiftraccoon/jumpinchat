@@ -271,7 +271,7 @@ def rehearse(args):
     started = time.monotonic()
     outcome = {'status': 'failed', 'startedAt': datetime.now(timezone.utc).isoformat(),
                'checks': [], 'audioOutputMuted': True, 'mediaMode': 'synthetic',
-               'limits': ['Fresh synthetic MongoDB 8.3 data and local uploads; no old-version upgrade or provider accounts.',
+               'limits': ['Fresh synthetic MongoDB 9.0 data and local uploads; no old-version upgrade or provider accounts.',
                           'Redis sessions and Mailpit mail are outside this backup; login uses a fresh session.',
                           'Saved room identity is restored; ephemeral Janus media rooms are initialized anew.']}
     owned = False

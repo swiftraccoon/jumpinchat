@@ -27,6 +27,7 @@ describe('hosted Checkout creation', () => {
     assert.equal(options.line_items[0].price_data.unit_amount, 600);
     assert.equal(options.customer_creation, 'always');
     assert.equal(options.customer_email, user.auth.email);
+    assert.equal(Object.hasOwn(options, 'payment_method_types'), false);
     sinon.assert.calledWith(utils.saveCheckoutSession, 'user_1', 'cs_1', undefined);
     sinon.assert.callOrder(utils.saveCheckoutSession, res.send);
   });

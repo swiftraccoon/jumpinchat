@@ -1,9 +1,11 @@
-FROM docker.io/library/node:24-trixie@sha256:f7d34e58713740f9eef9092c0bd6ff10369d132f7238399a4b270f16d47fa608 AS builder
+FROM docker.io/library/node:24.21.0-trixie@sha256:be40f6a87b9b22215ddb20da0a2320a5c6d583fe3ee3b0024d9fa4f05b40c8fd AS builder
+
+RUN npm install --global npm@12.2.0 --ignore-scripts
 
 WORKDIR /var/www/jic-homepage
 
 # Copy package files first for layer caching
-COPY jumpinchat-homepage/package.json jumpinchat-homepage/package-lock.json ./
+COPY jumpinchat-homepage/package.json jumpinchat-homepage/package-lock.json jumpinchat-homepage/.npmrc ./
 # Install ALL deps (devDeps needed for esbuild + sass build)
 RUN npm ci
 
@@ -14,7 +16,9 @@ COPY jumpinchat-homepage/ ./
 RUN node build.js
 RUN npm prune --omit=dev
 
-FROM docker.io/library/node:24-trixie-slim@sha256:50c3b2f6988dfc307b86e5301d69611af31f4789bdf232863b07d3b02fe55ae0
+FROM docker.io/library/node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe
+
+RUN npm install --global npm@12.2.0 --ignore-scripts
 
 ENV NODE_ENV="production"
 ENV PORT=3000

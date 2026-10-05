@@ -1,7 +1,10 @@
 # Test and build commands
 
-Use Node 24.11+ LTS (24.x) or Node 26, and npm. The committed npm lockfiles are
-authoritative. Install without legacy peer overrides.
+Use Node 24.15+ LTS (24.x) or Node 26, and npm 12.2.0. CI and `.nvmrc` select
+Node 24.21.0. The committed npm lockfiles are authoritative. Install without
+legacy peer overrides. Each project's strict install-script policy permits only
+reviewed dependencies through version-pinned `allowScripts` entries; review a
+new install script before updating its approval, never bypass the policy.
 
 ```bash
 npm --prefix jumpinchat-web ci
@@ -39,6 +42,64 @@ After the utility replacement and transport recovery fixes, all 58 Vitest files
 passed (171 tests), alongside 510 server, 134 homepage, 13 email and 21 media tests.
 The media cases preserve denial/unreadable/unknown camera failures, retry bounds,
 cancellation, and stale session callback behavior.
+
+## October 2026 dependency upgrade validation
+
+The 2026-10-05 upgrade was checked with Node 24.21.0 LTS and npm 12.2.0;
+application suites also passed on Node 26.10.0. Clean installs, dependency trees,
+lint and production builds passed. All three applications reported no outdated
+direct packages and zero full-tree or production-only npm audit findings at the
+time of verification. These are time-specific registry results, not a guarantee
+against subsequently reported vulnerabilities.
+
+| Suite | Passing checks |
+| --- | ---: |
+| Web server | 538 |
+| React/frontend | 203 |
+| Controlled media and room-template tests | 69 |
+| Homepage | 149 |
+| Email HTTP/SMTP | 13 |
+| Python operations, image/toolchain pins and executable recovery instructions | 90 |
+| nginx configuration | 9 |
+| Relay-statistics evidence | 10 |
+| MongoDB 9 payment durability/concurrency | 18 |
+| Synthetic MongoDB 8.3.11 to 9.0.2 migration and restore | 30 |
+
+The fresh Podman deployment passed seven account/email/upload checks and 41
+Chromium chat/media checks with synthetic devices and muted speakers. Its full
+backup/restored-application rehearsal matched account/room records, 26 collection
+index sets and two uploaded files, then passed 12 restored-room TURN/chat/media
+checks. The native stack used MongoDB 9.0.2, Redis 8.10.2 and Janus 1.4.2.
+
+The migration check is repeatable with `python3 scripts/test-mongodb-upgrade.py`.
+It creates only UUID-owned containers and fresh volumes without networking,
+checks the pending/completed marker protocol and both FCV states, preserves
+compound-index key order, and restores a 9.0 dump into an empty matching server.
+It removes its own temporary resources; it never migrates a production database.
+
+New regression coverage protects Sentry 11's explicit privacy configuration,
+Stripe 23's pinned Endive API and card-only SetupIntent parameters, EJS 7 callback
+rendering/escaping, local 404 icons, and the strict npm install-script policy.
+Live Stripe/Sentry provider calls were not exercised. Local certificate generation
+now explicitly includes subject/authority key identifiers and verifies with
+OpenSSL's strict X.509 rules; this fixed the OpenSSL 3.6/Python integration failure
+without disabling certificate validation.
+
+Production build `6e8aab0-ovh-deps-20261005` was deployed to
+`jic.research.clinic`, with MongoDB 9.0.2 finalized at FCV 9.0. Live synthetic-device
+checks passed in Chromium (41) and Firefox (33), with two additional retained
+capture/push-to-talk attempts per browser. Firefox also passed eight dark-default
+and saved-light preference checks. No browser page or HTTP errors were observed.
+Firefox's unsupported permission automation was skipped; Chromium covered denial
+and permission recovery. These checks do not substitute for physical-device tests.
+
+Isolated restores of the actual production backups passed before and after the
+migration. The final restore validated 99 documents, 26 collections and 28 indexes;
+the empty upload volume matched the source backup. Pre-upgrade backups, protected
+off-host copies and previous application images are retained. Temporary test
+resources were removed. All health-checked production services were healthy after
+deployment; TURN was running. Stripe and Sentry remain disabled in production, so
+their live provider integrations were not tested.
 
 ## Historical frontend inventory
 

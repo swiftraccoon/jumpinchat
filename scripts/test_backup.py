@@ -13,6 +13,88 @@ spec.loader.exec_module(backup)
 
 
 class BackupTests(unittest.TestCase):
+    def test_completed_and_burn_in_database_states_preserve_actual_metadata(self):
+        for version, fcv in [('8.3.11', '8.3'), ('9.0.2', '8.3'), ('9.0.2', '9.0')]:
+            with self.subTest(version=version, fcv=fcv):
+                state = {'version': version, 'fcv': fcv}
+                backup.validate_mongodb_state(state)
+                self.assertEqual(state, {'version': version, 'fcv': fcv})
+
+    def test_unsupported_database_or_fcv_states_are_refused(self):
+        for version, fcv in [('4.4.30', '4.4'), ('8.0.20', '8.0'), ('8.3.11', '8.0'),
+                             ('8.3.11', '9.0'), ('9.0.2', '8.0'), ('9.1.0', '9.0'),
+                             ('9.0.2-rc0', '9.0'), ('9.0.invalid', '9.0'), (None, '9.0')]:
+            with self.subTest(version=version, fcv=fcv), self.assertRaisesRegex(ValueError, 'server/FCV'):
+                backup.validate_mongodb_state({'version': version, 'fcv': fcv})
+
+    def test_in_progress_fcv_changes_are_not_backed_up_as_stable_states(self):
+        for field in ('targetVersion', 'previousVersion'):
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'still in progress'):
+                backup.validate_mongodb_state({'version': '9.0.2', 'fcv': '8.3', field: '9.0'})
+
+    def test_nine_backups_record_the_real_binary_fcv_and_tools(self):
+        for fcv in ('8.3', '9.0'):
+            with self.subTest(fcv=fcv), tempfile.TemporaryDirectory() as tmp:
+                args = argparse.Namespace(maintenance=True, project='test', engine='docker',
+                                          compose_file=Path('compose.yml'), database='tc',
+                                          directory=Path(tmp) / 'backup')
+                stopped = False
+
+                def run(command, output=None, timeout=None):
+                    nonlocal stopped
+                    if command[-2:] == ['config', '--services']:
+                        return 'web\nmongodb'
+                    if command[1] == 'ps':
+                        return 'original-web'
+                    if command[1] == 'inspect':
+                        return json.dumps([{'Id': 'original-web', 'Image': 'fixture',
+                            'State': {'Running': not stopped},
+                            'Config': {'Env': ['MONGODB_URI=mongodb://mongodb/tc?replicaSet=rs0']}}])
+                    if 'mongosh' in command:
+                        self.assertIn('targetVersion: state.targetVersion', command[-1])
+                        return json.dumps({'version': '9.0.2', 'fcv': fcv})
+                    if command[-1] == '--version':
+                        return 'mongodump version: 100.18.0'
+                    if 'stop' in command:
+                        stopped = True
+                        return ''
+                    if output is not None:
+                        output.write(b'archive fixture')
+                        return None
+                    self.fail(f'Unexpected operation: {command[0:2]}')
+
+                with patch.object(backup, 'run', side_effect=run), patch.object(backup, 'restore_services'):
+                    backup.backup(args)
+                manifest = json.loads((args.directory / 'manifest.json').read_text())
+                self.assertEqual(manifest['mongodb'], {'version': '9.0.2', 'fcv': fcv,
+                                                       'database_tools': 'mongodump version: 100.18.0'})
+
+    def test_invalid_fcv_is_rejected_before_stopping_writers_or_creating_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            args = argparse.Namespace(maintenance=True, project='test', engine='docker',
+                                      compose_file=Path('compose.yml'), database='tc',
+                                      directory=Path(tmp) / 'backup')
+            calls = []
+
+            def run(command, output=None, timeout=None):
+                calls.append(command)
+                if command[-2:] == ['config', '--services']:
+                    return 'web\nmongodb'
+                if command[1] == 'ps':
+                    return 'original-web'
+                if command[1] == 'inspect':
+                    return json.dumps([{'Id': 'original-web', 'Image': 'fixture',
+                        'State': {'Running': True},
+                        'Config': {'Env': ['MONGODB_URI=mongodb://mongodb/tc?replicaSet=rs0']}}])
+                if 'mongosh' in command:
+                    return json.dumps({'version': '9.0.2', 'fcv': '8.0'})
+                self.fail(f'Unexpected operation: {command[0:2]}')
+
+            with patch.object(backup, 'run', side_effect=run), self.assertRaisesRegex(ValueError, 'server/FCV'):
+                backup.backup(args)
+            self.assertFalse(args.directory.exists())
+            self.assertFalse(any('stop' in call for call in calls))
+
     def test_corruption_is_detected(self):
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp)

@@ -4,6 +4,8 @@
 **/.env.*
 **/*.pem
 **/.npmrc
+!jumpinchat-web/.npmrc
+!jumpinchat-homepage/.npmrc
 **/dist
 **/.tmp
 **/coverage

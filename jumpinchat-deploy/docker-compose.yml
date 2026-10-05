@@ -303,7 +303,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    image: docker.io/library/mongo:8.3@sha256:613a7cc66be5bbf1796252660b43c9b8969a5ad1dab6180c9d917b7472867e64
+    image: docker.io/library/mongo:9.0.2@sha256:bac22ea7710d774103dcad3ec8ac13cba1eb378f488e3ce8a6b3a1adf2ba9dcc
     entrypoint: ["/bin/bash", "/usr/local/bin/jic-mongodb-entrypoint.sh"]
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     expose:
@@ -323,7 +323,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    image: docker.io/library/mongo:8.3@sha256:613a7cc66be5bbf1796252660b43c9b8969a5ad1dab6180c9d917b7472867e64
+    image: docker.io/library/mongo:9.0.2@sha256:bac22ea7710d774103dcad3ec8ac13cba1eb378f488e3ce8a6b3a1adf2ba9dcc
     entrypoint: ["/bin/bash", "/usr/local/bin/jic-mongodb-entrypoint.sh"]
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     expose:
@@ -344,7 +344,7 @@ services:
       retries: 3
       start_period: 30s
     # Override only with a release validated against the application Redis client.
-    image: ${REDIS_IMAGE:-docker.io/library/redis:8.10.1@sha256:298e5b3bc566bade82f46ad5511777a4a07a294097ce16ada2f6a42be5239df5}
+    image: ${REDIS_IMAGE:-docker.io/library/redis:8.10.2@sha256:6f81e8915c60b065a524e6967e0ad1c639ba6efa84d669f823683ea04d9150ee}
     expose:
       - "6379"
     logging:

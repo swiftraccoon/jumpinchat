@@ -8,7 +8,7 @@ separate coturn service.
 ## Requirements
 
 - **Podman** (rootless) + **podman-compose** (`pip install podman-compose`), or Docker + Docker Compose
-- Node 24 LTS for local development and the configuration scripts (`nvm use` in each app)
+- Node 24.21.0 LTS and npm 12.2.0 for local development and the configuration scripts (`nvm use` in each app)
 - Python 3.11+ and OpenSSL for the local launcher and backup tooling
 - For LAN/public deployment: a reachable server address and open HTTP, HTTPS and media ports
 
@@ -133,8 +133,8 @@ your own TURN server hostnames as a comma-separated list.
 
 ### 5. Prepare MongoDB directories
 
-These instructions initialize a fresh MongoDB 8.3 deployment. For existing 4.4
-data, follow the staged migration in [RECOVERY.md](RECOVERY.md) first. The startup
+These instructions initialize a fresh MongoDB 9.0 deployment. For existing 8.3
+or older data, follow the staged migration in [RECOVERY.md](RECOVERY.md) first. The startup
 guard refuses to open existing data without a completed migration marker.
 
 Rootless Podman needs UID-mapped dirs for MongoDB:
@@ -182,7 +182,7 @@ Create a room by visiting `https://local.jumpin.chat:8443/yourroom`.
 | **haproxy** | Load balances between web and web2 |
 | **web / web2** | Node.js app (chat rooms, Socket.io, API) |
 | **home / home2** | Express 5 homepage (registration, login, settings, room directory) |
-| **mongodb + mongodbslave** | MongoDB 8.3 replica set |
+| **mongodb + mongodbslave** | MongoDB 9.0 replica set |
 | **redis** | Session store and cache |
 | **janus / janus2** | Janus WebRTC Gateway (video/audio media) |
 | **email** | SMTP email service |
@@ -279,6 +279,10 @@ when preserving its current version; validate a version change before rollout.
 ## Dependency maintenance
 
 Node 24 LTS is the deployment target; Node 26 is also accepted for development.
+The repository pins npm 12.2.0. Dependency install scripts are default-deny:
+each application has a strict `.npmrc` and reviewed, version-pinned
+`allowScripts` entries. Review installers before updating their approval pins;
+do not disable that policy to make a dependency update pass.
 The Node 24 build and runtime images use matching Debian releases for native npm
 modules. Janus uses supported Ubuntu 26.04 libraries for OpenSSL, ICE, SRTP and
 WebSockets, with its source archive and container bases pinned by checksum.

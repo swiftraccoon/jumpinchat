@@ -1,21 +1,23 @@
 {
-  "resolved_at": "2026-09-09",
+  "resolved_at": "2026-10-04",
   "registry": "docker.io",
   "images": {
-    "library/node:24-trixie": "sha256:f7d34e58713740f9eef9092c0bd6ff10369d132f7238399a4b270f16d47fa608",
-    "library/node:24-trixie-slim": "sha256:50c3b2f6988dfc307b86e5301d69611af31f4789bdf232863b07d3b02fe55ae0",
-    "library/node:24-alpine": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
-    "library/nginx:stable": "sha256:d5792f71a9496b833bc08ea834a758c46e2b6a6306c10f4be926f38a656cdc1c",
-    "library/haproxy:3.4": "sha256:0e81cf4a7fac4f689289ae2afd29e1153e9e6d69ae3fb0c1f0345f998643c258",
-    "library/mongo:8.3": "sha256:613a7cc66be5bbf1796252660b43c9b8969a5ad1dab6180c9d917b7472867e64",
-    "library/ubuntu:26.04": "sha256:2260313b31c8c011cd2eebe728008efac1b3982be73eb71348ea2648d2c0e09b",
-    "library/redis:8.10.1": "sha256:298e5b3bc566bade82f46ad5511777a4a07a294097ce16ada2f6a42be5239df5",
+    "library/node:24.21.0-trixie": "sha256:be40f6a87b9b22215ddb20da0a2320a5c6d583fe3ee3b0024d9fa4f05b40c8fd",
+    "library/node:24.21.0-trixie-slim": "sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe",
+    "library/node:24.21.0-alpine": "sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1",
+    "library/nginx:1.30.5": "sha256:b972f831f200b19ef0767938224f9711e74cd783718738cd7405d5cabf75c442",
+    "library/haproxy:3.4.6": "sha256:7f085b2dd4f3b2507af4c7633fa5ab621eaad36995cc0f7f7c6111bb8a2e8742",
+    "library/mongo:9.0.2": "sha256:bac22ea7710d774103dcad3ec8ac13cba1eb378f488e3ce8a6b3a1adf2ba9dcc",
+    "library/mongo:8.3.11": "sha256:d731d77bfd7afd66bd487bdf627b5bf7ce4c3602ec461d635977021db529ebbc",
+    "library/ubuntu:26.04": "sha256:f144425ff09be612d6d9ad965196e9cdc23dae1f42110a8a11a3e9a8198759f7",
+    "library/redis:8.10.2": "sha256:6f81e8915c60b065a524e6967e0ad1c639ba6efa84d669f823683ea04d9150ee",
+    "axllent/mailpit:v1.31.4": "sha256:b68349e3a014b90c5610bfb26b2ae36f3892d7b8cf25ee140c6c71c98d2fcf48",
     "coturn/coturn:4.18.0-r0": "sha256:bbefd3e1fdfdc0d58770fe01b581fd8b00d9f3a5580d00acb77cf719a6bc78e3"
   },
   "sources": {
-    "janus-gateway:1.4.1": {
-      "url": "https://codeload.github.com/meetecho/janus-gateway/tar.gz/refs/tags/v1.4.1",
-      "sha256": "cba1e7aac44f4458701c5e14698e791a0eee13ecacbdacc71b4245716c442c08"
+    "janus-gateway:1.4.2": {
+      "url": "https://codeload.github.com/meetecho/janus-gateway/tar.gz/refs/tags/v1.4.2",
+      "sha256": "2b7e5ea81e27760c396bcd911277cb59bffb5d981915e383283e6080e411b47b"
     }
   }
 }

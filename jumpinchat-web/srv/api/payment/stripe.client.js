@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import config from '../../config/env/index.js';
 
 // Pin requests independently of the account default and webhook endpoint version.
-export const STRIPE_API_VERSION = '2026-08-26.dahlia';
+export const STRIPE_API_VERSION = '2026-09-30.endive';
 export const isStripeConfigured = () => Boolean(config.payment.stripe.secretKey);
 let client;
 

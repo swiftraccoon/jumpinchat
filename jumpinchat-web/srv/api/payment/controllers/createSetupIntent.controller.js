@@ -13,7 +13,7 @@ export default async function createSetupIntent(req, res) {
     const intent = await stripe.setupIntents.create({
       customer: payment.customerId,
       usage: 'off_session',
-      payment_method_types: ['card'],
+      allowed_payment_method_types: ['card'],
       metadata: { userId },
     });
     return res.status(201).send({ clientSecret: intent.client_secret });
