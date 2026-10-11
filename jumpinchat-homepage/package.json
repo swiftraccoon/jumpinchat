@@ -20,7 +20,7 @@
     "bcrypt": "^6.0.0",
     "connect-mongo": "^6.0.0",
     "cookie-parser": "^1.4.7",
-    "cropperjs": "^2.2.0",
+    "cropperjs": "^2.3.0",
     "date-fns": "^4.4.0",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
