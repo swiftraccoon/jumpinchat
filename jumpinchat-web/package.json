@@ -55,7 +55,7 @@
     "jimp": "^1.6.1",
     "joi": "^18.2.9",
     "jsonwebtoken": "^9.0.3",
-    "marked": "^18.0.14",
+    "marked": "^18.1.0",
     "mongoose": "^9.10.4",
     "otplib": "^13.5.0",
     "prop-types": "^15.8.1",
