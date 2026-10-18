@@ -1,4 +1,4 @@
-FROM docker.io/library/haproxy:3.4.6@sha256:7f085b2dd4f3b2507af4c7633fa5ab621eaad36995cc0f7f7c6111bb8a2e8742
+FROM docker.io/library/haproxy:3.4.7@sha256:6479d4cead30c4cc996cbe3dd50022c5404db22d2e001d1aa8fa366f4ea171e3
 USER root
 RUN mkdir -p /run/haproxy/
 COPY haproxy.cfg.tpl /usr/local/etc/haproxy/haproxy.cfg.tpl
