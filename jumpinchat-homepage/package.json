@@ -34,7 +34,7 @@
     "multer": "^2.4.0",
     "pino": "^10.4.0",
     "pug": "^3.0.4",
-    "sanitize-html": "^2.18.0",
+    "sanitize-html": "^2.18.1",
     "sitemap": "^9.0.1"
   },
   "devDependencies": {
