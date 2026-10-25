@@ -1,4 +1,4 @@
-FROM docker.io/library/ubuntu:26.04@sha256:f144425ff09be612d6d9ad965196e9cdc23dae1f42110a8a11a3e9a8198759f7 AS builder
+FROM docker.io/library/ubuntu:26.04@sha256:c098726dd9b9733f3e885f8de0ef375206a311b0a317eadc40d347b1115fb944 AS builder
 
 ARG JANUS_VERSION=1.4.2
 ARG JANUS_SHA256=2b7e5ea81e27760c396bcd911277cb59bffb5d981915e383283e6080e411b47b
@@ -23,7 +23,7 @@ RUN curl -fsSL "https://codeload.github.com/meetecho/janus-gateway/tar.gz/refs/t
       --disable-all-handlers --enable-sample-event-handler && \
     make -j2 && make install && make configs
 
-FROM docker.io/library/ubuntu:26.04@sha256:f144425ff09be612d6d9ad965196e9cdc23dae1f42110a8a11a3e9a8198759f7
+FROM docker.io/library/ubuntu:26.04@sha256:c098726dd9b9733f3e885f8de0ef375206a311b0a317eadc40d347b1115fb944
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl libjansson4 libnice10 libglib2.0-0t64 libssl3t64 \
       libsrtp2-1 libmicrohttpd12t64 libwebsockets19t64 libcurl4t64 libconfig11 && \
